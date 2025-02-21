@@ -1,0 +1,368 @@
+---
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Nexalogics Consumer API
+  description: |-
+    <p>Document describing the contracts used for all REST APIs exposed by Nexaalogics Consumer App.</p>
+          <p>Some useful links:</p>
+          <ul>
+          <li><a href="https://dev.nexalogics.com.au/">Nexa Admin API Staging</a></li>
+          <li><a href="https://adminapi.nexalogics.com.au/">Nexa Admin API Production</a></li>
+          <li><a href="https://staging.nexalogics.com.au/">Nexa Admin Staging</a></li>
+          <li><a href="https://admin.nexalogics.com.au/">Nexa Admin Production</a></li>
+          </ul>
+  contact:
+    name: Dev Team
+    email: dev@nexalogics.com.au
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://smartbear.com/terms-of-use/
+servers:
+- url: http://localhost:9999/
+  description: Local Dev environment
+- url: https://staging.api.nexalogics.com.au/
+  description: Staging Environment
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Nexa-Appid
+    AppSecretAuth:
+      type: apiKey
+      in: header
+      name: X-Nexa-AppSecret
+    FirebaserUserAuth:
+      type: http
+      scheme: bearer
+    NexaUserAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ColorModeResponse:
+      type: object
+      properties:
+        mode:
+          type: string
+        theme:
+          type: object
+          properties:
+            palette:
+              type: object
+              properties:
+                primary:
+                  type: object
+                  properties:
+                    light:
+                      type: string
+                    main:
+                      type: string
+                    dark:
+                      type: string
+                    contrastText:
+                      type: string
+                  required:
+                  - main
+                secondary:
+                  type: object
+                  properties:
+                    light:
+                      type: string
+                    main:
+                      type: string
+                    dark:
+                      type: string
+                    contrastText:
+                      type: string
+                  required:
+                  - main
+                error:
+                  type: object
+                  properties:
+                    light:
+                      type: string
+                    main:
+                      type: string
+                    dark:
+                      type: string
+                    contrastText:
+                      type: string
+                  required:
+                  - main
+                warning:
+                  type: object
+                  properties:
+                    light:
+                      type: string
+                    main:
+                      type: string
+                    dark:
+                      type: string
+                    contrastText:
+                      type: string
+                  required:
+                  - main
+                info:
+                  type: object
+                  properties:
+                    light:
+                      type: string
+                    main:
+                      type: string
+                    dark:
+                      type: string
+                    contrastText:
+                      type: string
+                  required:
+                  - main
+                success:
+                  type: object
+                  properties:
+                    light:
+                      type: string
+                    main:
+                      type: string
+                    dark:
+                      type: string
+                    contrastText:
+                      type: string
+                  required:
+                  - main
+                text:
+                  type: object
+                  properties:
+                    primary:
+                      type: string
+                    secondary:
+                      type: string
+                    disabled:
+                      type: string
+                background:
+                  type: object
+                  properties:
+                    default:
+                      type: string
+                    paper:
+                      type: string
+                action:
+                  type: object
+                  properties:
+                    active:
+                      type: string
+                    hover:
+                      type: string
+                    selected:
+                      type: string
+                    disabled:
+                      type: string
+                    disabledBackground:
+                      type: string
+                    focus:
+                      type: string
+                divider:
+                  type: string
+              required:
+              - primary
+              - secondary
+          required:
+          - palette
+      required:
+      - mode
+      - theme
+    LayoutResponse:
+      type: object
+      properties:
+        font:
+          type: array
+          items:
+            type: object
+            properties:
+              fontFamily:
+                type: string
+              subset:
+                type: string
+              weights:
+                type: array
+                items:
+                  nullable: true
+              styles:
+                type: array
+                items:
+                  nullable: true
+              type:
+                type: string
+              lanCode:
+                type: string
+              _id:
+                type: string
+            required:
+            - fontFamily
+            - type
+        logos:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              imageUrl:
+                type: string
+              _id:
+                type: string
+            required:
+            - type
+            - imageUrl
+        fontSize:
+          type: object
+          properties:
+            base:
+              type: string
+            xs:
+              type: string
+            sm:
+              type: string
+            md:
+              type: string
+            lg:
+              type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+  parameters: {}
+paths:
+  "/":
+    get:
+      tags:
+      - Health
+      responses:
+        '200':
+          description: Nexalogics Consumer API Index
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Nexalogics Consumer API
+  "/apps/colors/{mode}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getColorsByMode
+      parameters:
+      - schema:
+          type: string
+          enum:
+          - light
+          - dark
+          description: Color mode (light or dark)
+          example: light
+        required: true
+        name: mode
+        in: path
+      responses:
+        '200':
+          description: The requested Color Mode
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ColorModeResponse"
+        '404':
+          description: Color Mode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+        '422':
+          description: Invalid color mode error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - expected: "'light' | 'dark'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - mode
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error
+  "/apps/layout/":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getLayout
+      responses:
+        '200':
+          description: The requested Layout of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LayoutResponse"
+        '404':
+          description: Layout not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found

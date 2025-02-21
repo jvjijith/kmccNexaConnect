@@ -8,9 +8,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint --max-warnings 0",
+    "rm:nexa-api-client": "rimraf ./src/nexa-api-client",
+    "generate:api-client": "npm run rm:nexa-api-client && ./node_modules/.bin/openapi-generator-cli generate -i https://api-dev.amazingkids.app/dev/api-spec -g typescript-fetch -o ./src/ak-api-client && git add . && npm run lint-staged",
+    "generate:api-client:local-spec": "npm run rm:nexa-api-client && npx openapi-generator-cli generate -i ./api-spec.yml -g typescript-fetch -o ./src/nexa-api-client && git add . && npm run lint-staged",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@openapitools/openapi-generator-cli": "^2.16.3",
     "@repo/ui": "*",
     "next": "^15.1.0",
     "react": "^19.0.0",
