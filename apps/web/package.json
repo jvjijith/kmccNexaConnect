@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "^2.16.3",
+    "@repo/theme": "^1.0.0",
     "@repo/ui": "*",
     "next": "^15.1.0",
     "react": "^19.0.0",

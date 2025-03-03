@@ -5,8 +5,15 @@
   "private": true,
   "exports": {
     "./button": "./src/button.tsx",
-    "./card": "./src/card.tsx",
-    "./code": "./src/code.tsx"
+    "./code": "./src/code.tsx",
+    "./mui": "./src/mui.tsx",
+    "./theme": "./src/theme.tsx",
+    "./herosection": "./src/components/HeroSection.tsx",
+    "./movingcarousel": "./src/components/MovingTextCarousel.tsx",
+    "./imagecard": "./src/components/ImageCard.tsx",
+    "./about": "./src/components/About.tsx",
+    "./card": "./src/components/card.tsx",
+    "./NavBar": "./src/components/NavBar.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -17,22 +24,26 @@
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@turbo/gen": "^1.12.4",
-    "@types/node": "^20.11.24",
-    "@types/react": "18.3.0",
+    "@types/node": "^20.17.19",
+    "@types/react": "^18.3.18",
     "@types/react-dom": "18.3.1",
     "typescript": "5.5.4"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^6.3.0",
+    "@mui/icons-material": "^6.4.5",
     "@mui/lab": "^6.0.0-beta.21",
-    "@mui/material": "^6.3.0",
+    "@mui/material": "^6.4.6",
     "@mui/material-nextjs": "^6.3.0",
+    "@mui/styled-engine-sc": "^6.4.3",
     "@mui/system": "^6.3.0",
     "@mui/x-data-grid": "^7.23.3",
     "@mui/x-date-pickers": "^7.23.3",
+    "@types/react-helmet": "^6.1.11",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-helmet": "^6.1.0",
+    "styled-components": "^6.1.15"
   }
 }

@@ -231,6 +231,541 @@ components:
           type: string
         updated_at:
           type: string
+    MenuResponse:
+      type: object
+      properties:
+        menuName:
+          type: string
+        menuType:
+          type: string
+        layoutType:
+          type: string
+        menuPage:
+          type: string
+        imageUrl:
+          type: string
+        allowImage:
+          type: boolean
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              menuName:
+                type: string
+              menuType:
+                type: string
+              multiItems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    menuName:
+                      type: string
+                    menuType:
+                      type: string
+                    menuPage:
+                      type: string
+                    imageUrl:
+                      type: string
+                    allowImage:
+                      type: boolean
+                    active:
+                      type: boolean
+                    _id:
+                      type: string
+                  required:
+                  - menuName
+                  - menuType
+              imageUrl:
+                type: string
+              allowImage:
+                type: boolean
+              menuPage:
+                type: string
+              active:
+                type: boolean
+              _id:
+                type: string
+            required:
+            - menuName
+            - menuType
+        active:
+          type: boolean
+      required:
+      - menuName
+      - menuType
+      - layoutType
+    PageResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        referenceName:
+          type: string
+        items:
+          type: array
+          items:
+            nullable: true
+        type:
+          type: string
+        internalType:
+          type: string
+        externalUrl:
+          type: string
+        bannerImage:
+          type: string
+        portraitImage:
+          type: string
+        landscapeImage:
+          type: string
+        available:
+          type: array
+          items:
+            type: object
+            properties:
+              appId:
+                type: string
+              _id:
+                type: string
+            required:
+            - appId
+        numberItems:
+          type: object
+          properties:
+            web:
+              type: number
+            android:
+              type: number
+            iOS:
+              type: number
+        title:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              title:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - title
+        metaDescription:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              description:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - description
+        keywords:
+          type: array
+          items:
+            type: string
+        canonicalUrl:
+          type: string
+        ogTitle:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              title:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - title
+        ogDescription:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              description:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - description
+        ogImage:
+          type: string
+        twitterCard:
+          type: string
+        twitterCreator:
+          type: string
+        publish:
+          type: boolean
+        draft:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      required:
+      - slug
+      - referenceName
+      - type
+      - internalType
+      - externalUrl
+      - title
+      - metaDescription
+      - ogTitle
+      - ogDescription
+    ElementResponse:
+      type: object
+      properties:
+        componentType:
+          type: string
+        referenceName:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              itemType:
+                type: string
+              itemId:
+                type: string
+              _id:
+                type: string
+            required:
+            - itemType
+            - itemId
+        availability:
+          type: array
+          items:
+            type: object
+            properties:
+              appId:
+                type: string
+              _id:
+                type: string
+            required:
+            - appId
+        numberItems:
+          type: object
+          properties:
+            web:
+              type: number
+            android:
+              type: number
+            iOS:
+              type: number
+        title:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              name:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - name
+        description:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              paragraph:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - paragraph
+        draft:
+          type: boolean
+        withText:
+          type: boolean
+        withDescription:
+          type: boolean
+        publish:
+          type: boolean
+        viewText:
+          type: string
+        viewAll:
+          type: string
+        swiperOptions:
+          type: object
+          properties:
+            slidesPerView:
+              type: number
+            swiperType:
+              type: string
+            spaceBetween:
+              type: number
+            loop:
+              type: boolean
+            autoplay.delay:
+              type: number
+            autoplay.disableOnInteraction:
+              type: boolean
+            breakpoints:
+              nullable: true
+            effect:
+              type: string
+            speed:
+              type: number
+        imageUrl:
+          type: string
+        audioUrl:
+          type: string
+        videoUrl:
+          type: string
+        cardOptions:
+          type: object
+          properties:
+            imagePosition:
+              type: string
+            titlePosition:
+              type: string
+            descriptionPosition:
+              type: string
+            actionButtonPosition:
+              type: string
+            actionButtonText:
+              type: string
+            actionButtonUrl:
+              type: string
+            cardAspectRatio:
+              type: string
+        hoverEffect:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - componentType
+      - referenceName
+      - items
+    ContainerResponse:
+      type: object
+      properties:
+        referenceName:
+          type: string
+        description:
+          type: string
+        layoutOptions:
+          type: object
+          properties:
+            layout:
+              type: string
+            gridOptions:
+              type: object
+              properties:
+                spacing:
+                  type: number
+                direction:
+                  type: string
+                justifyContent:
+                  type: string
+                alignItems:
+                  type: string
+                wrap:
+                  type: string
+                columns:
+                  type: number
+                  minimum: 1
+                sizeData:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      column:
+                        nullable: true
+                      size:
+                        type: object
+                        properties:
+                          xs:
+                            type: number
+                            maximum: 12
+                          sm:
+                            type: number
+                            maximum: 12
+                          md:
+                            type: number
+                            maximum: 12
+                          lg:
+                            type: number
+                            maximum: 12
+                          xl:
+                            type: number
+                            maximum: 12
+                          _id:
+                            type: string
+                      _id:
+                        type: string
+                    required:
+                    - size
+                defaultSize:
+                  type: object
+                  properties:
+                    xs:
+                      type: number
+                      maximum: 12
+                    sm:
+                      type: number
+                      maximum: 12
+                    md:
+                      type: number
+                      maximum: 12
+                    lg:
+                      type: number
+                      maximum: 12
+                    xl:
+                      type: number
+                      maximum: 12
+              required:
+              - columns
+              - defaultSize
+            stackOptions:
+              type: object
+              properties:
+                spacing:
+                  type: number
+                direction:
+                  type: string
+                justifyContent:
+                  type: string
+                alignItems:
+                  type: string
+                divider:
+                  nullable: true
+            tabOptions:
+              type: object
+              properties:
+                orientation:
+                  type: string
+                variant:
+                  type: string
+                centered:
+                  type: boolean
+                indicatorColor:
+                  type: string
+                textColor:
+                  type: string
+            fluidOptions:
+              type: object
+              properties:
+                gutter:
+                  type: number
+                justify:
+                  type: string
+          required:
+          - layout
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              element:
+                type: string
+              _id:
+                type: string
+        style:
+          type: object
+          properties:
+            backgroundColor:
+              type: string
+            textColor:
+              type: string
+            textMutedColor:
+              type: string
+            headerFontFamily:
+              type: string
+            textFontFamily:
+              type: string
+            headerFontSize:
+              type: string
+            textFontSize:
+              type: string
+            borderRadius:
+              type: string
+            padding:
+              type: string
+            customCSS:
+              type: string
+        available:
+          type: array
+          items:
+            type: object
+            properties:
+              appId:
+                type: string
+              _id:
+                type: string
+            required:
+            - appId
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        draft:
+          type: boolean
+        publish:
+          type: boolean
+      required:
+      - referenceName
+      - description
+      - layoutOptions
+    CreateTokenResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          pattern: "\\/.+@.+\\..+\\/,Please enter a valid email address"
+        phone:
+          type: string
+        customerUserId:
+          type: string
+        country:
+          type: string
+        shippingAddress:
+          type: string
+        billingAddress:
+          type: string
+        storeUser:
+          type: boolean
+        active:
+          type: boolean
+        language:
+          type: string
+        currency:
+          type: string
+        _id:
+          type: string
+        __v:
+          type: number
+      required:
+      - name
+      - email
+      - phone
+      - storeUser
+      - language
   parameters: {}
 paths:
   "/":
@@ -338,7 +873,7 @@ paths:
                 required:
                 - success
                 - error
-  "/apps/layout/":
+  "/apps/layout":
     get:
       tags:
       - Apps
@@ -366,3 +901,336 @@ paths:
                 - message
                 example:
                   message: Not Found
+  "/apps/menu":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getMenu
+      responses:
+        '200':
+          description: The requested Menu of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MenuResponse"
+        '404':
+          description: Menu not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/page":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getPage
+      responses:
+        '200':
+          description: The requested Page of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PageResponse"
+        '404':
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/page/{pageId}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getPageById
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: pageId
+        in: path
+      responses:
+        '200':
+          description: The requested Page of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PageResponse"
+        '404':
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/page/{slug}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getPageBySlug
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: slug
+        in: path
+      responses:
+        '200':
+          description: The requested Page of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PageResponse"
+        '404':
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/element":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getElement
+      responses:
+        '200':
+          description: The requested Element of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ElementResponse"
+        '404':
+          description: Element not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/element/{elementId}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getElement
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: elementId
+        in: path
+      responses:
+        '200':
+          description: The requested Element of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ElementResponse"
+        '404':
+          description: Element not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/container":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getContainer
+      responses:
+        '200':
+          description: The requested Container of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ContainerResponse"
+        '404':
+          description: Container not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/container/{containerId}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getContainerbyid
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: containerId
+        in: path
+      responses:
+        '200':
+          description: The requested Container of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ContainerResponse"
+        '404':
+          description: Container not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/auth/createToken":
+    get:
+      tags:
+      - Auth
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        FirebaserUserAuth: []
+      operationId: createToken
+      parameters:
+      - schema:
+          type: string
+          description: The Email id of the user trying to Login
+          example: you@domain.com
+        required: true
+        name: emailId
+        in: path
+      responses:
+        '200':
+          description: Logged IN User Token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CreateTokenResponse"
+        '404':
+          description: User Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - emailId
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error

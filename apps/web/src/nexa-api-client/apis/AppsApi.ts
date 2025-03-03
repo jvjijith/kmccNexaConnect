@@ -16,19 +16,31 @@
 import * as runtime from '../runtime';
 import type {
   ColorModeResponse,
+  ContainerResponse,
+  ElementResponse,
   GetColorsByMode404Response,
   GetColorsByMode422Response,
   LayoutResponse,
+  MenuResponse,
+  PageResponse,
 } from '../models/index';
 import {
     ColorModeResponseFromJSON,
     ColorModeResponseToJSON,
+    ContainerResponseFromJSON,
+    ContainerResponseToJSON,
+    ElementResponseFromJSON,
+    ElementResponseToJSON,
     GetColorsByMode404ResponseFromJSON,
     GetColorsByMode404ResponseToJSON,
     GetColorsByMode422ResponseFromJSON,
     GetColorsByMode422ResponseToJSON,
     LayoutResponseFromJSON,
     LayoutResponseToJSON,
+    MenuResponseFromJSON,
+    MenuResponseToJSON,
+    PageResponseFromJSON,
+    PageResponseToJSON,
 } from '../models/index';
 
 export interface GetColorsByModeRequest {
@@ -81,6 +93,70 @@ export class AppsApi extends runtime.BaseAPI {
 
     /**
      */
+    async getContainerRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ContainerResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/container/`,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ContainerResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getContainer(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ContainerResponse> {
+        const response = await this.getContainerRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getElementRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ElementResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/element/`,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ElementResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getElement(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ElementResponse> {
+        const response = await this.getElementRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
     async getLayoutRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LayoutResponse>> {
         const queryParameters: any = {};
 
@@ -108,6 +184,70 @@ export class AppsApi extends runtime.BaseAPI {
      */
     async getLayout(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LayoutResponse> {
         const response = await this.getLayoutRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getMenuRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MenuResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/menu/`,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MenuResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getMenu(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MenuResponse> {
+        const response = await this.getMenuRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getPageRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PageResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/page/`,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PageResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPage(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PageResponse> {
+        const response = await this.getPageRaw(initOverrides);
         return await response.value();
     }
 
