@@ -36,7 +36,7 @@ export default function DynamicPage() {
 
   console.log("pageData from page:",pageData);
 
-  if (!pageData) return <span>Loading...</span>;
+  // if (!pageData) return <span>Loading...</span>;
 
   return (
     <Box  

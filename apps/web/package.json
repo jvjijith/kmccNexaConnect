@@ -18,6 +18,7 @@
     "@repo/theme": "^1.0.0",
     "@repo/ui": "*",
     "next": "^15.1.0",
+    "nextjs-toploader": "^3.7.15",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

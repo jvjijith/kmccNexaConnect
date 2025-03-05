@@ -8,7 +8,7 @@ interface PageProps {
 }
 
 const Page: React.FC<PageProps> = ({ pageData, containers }) => {
-  if (!pageData) return <span>Loading...</span>;
+  // if (!pageData) return <span>Loading...</span>;
 
   return (
     <>

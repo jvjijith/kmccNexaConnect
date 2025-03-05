@@ -23,5 +23,5 @@ export default function HomeRoute() {
     fetchData();
   }, [router]);
 
-  return <span>Loading...</span>;
+  // return <span>Loading...</span>;
 }
