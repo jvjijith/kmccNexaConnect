@@ -1,7 +1,10 @@
+"use client"; // This ensures the component runs only on the client side
+
 import React from 'react';
 import { Card, CardMedia, Typography, Box, IconButton, styled, ThemeProvider } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import { theme } from '../theme';
+
 
 // Custom styled components
 const StyledCard = styled(Card)(({ theme }) => ({

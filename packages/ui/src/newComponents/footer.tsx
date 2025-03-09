@@ -1,3 +1,5 @@
+"use client";  // 👈 Add this line at the top
+
 import React from 'react';
 import { 
   Box, 
@@ -21,7 +23,7 @@ import {
   Email as EmailIcon,
   LocationOn as LocationIcon
 } from '@mui/icons-material';
-import {Grid2 as Grid} from '@mui/material';
+import { Grid2 as Grid } from '@mui/material';
 
 // Custom styled components
 const StyledListItem = styled(ListItem)({

@@ -19,3 +19,11 @@ export async function getContainer(containerId: string) {
 export async function getElement(elementId: string) {
   return await fetchApi(`/apps/element/${elementId}`);
 }
+
+export async function getColor(mode: string) {
+  return await fetchApi(`/apps/colors/${mode}`);
+}
+
+export async function getMenu() {
+  return await fetchApi(`/apps/menu`);
+}

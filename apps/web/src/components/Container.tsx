@@ -1,5 +1,4 @@
-"use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Element from "./Element";
 import { getElement } from "../data/loader";
 import { Box, Typography } from "@repo/ui/mui";
@@ -30,8 +29,7 @@ interface LayoutOptions {
         lg?: number;
         xl?: number;
     };
-};
-
+  };
   stackOptions?: {
     spacing?: number;
     direction?: string;
@@ -82,30 +80,34 @@ interface ContainerProps {
   containerData: ContainerData[]; // Expecting an array of containers
 }
 
-const Containers: React.FC<ContainerProps> = ({ containerData }) => {
-  const [elementDataMap, setElementDataMap] = useState<{ [key: string]: any }>({});
+// Function to fetch elements for all containers
+async function getElementsData(containerData: ContainerData[]) {
+  const elementDataMap: { [key: string]: any } = {};
 
-  // Fetch elements based on container items
-  useEffect(() => {
-    const fetchElements = async () => {
-      if (!containerData) return;
+  // Gather all unique element IDs across all containers
+  const elementIds = new Set<string>();
+  containerData?.forEach(container => {
+    container.items?.forEach(item => {
+      elementIds.add(item.element);
+    });
+  });
 
-      const elementPromises = containerData.flatMap((container) =>
-        container.items?.map(async (item) => {
-          const elementData = await getElement(item.element);
-          return { [item.element]: elementData };
-        }) || []
-      );
+  // Fetch data for each unique element ID
+  const elementPromises = Array.from(elementIds).map(async (elementId) => {
+    const elementData = await getElement(elementId);
+    return { [elementId]: elementData };
+  });
 
-      const resolvedElements = await Promise.all(elementPromises);
-      const elementsMap = Object.assign({}, ...resolvedElements);
-      setElementDataMap(elementsMap);
-    };
+  const resolvedElements = await Promise.all(elementPromises);
+  return Object.assign({}, ...resolvedElements);
+}
 
-    fetchElements();
-  }, [containerData]);
+const Containers = async ({ containerData }: ContainerProps) => {
+  // Fetch all element data at the server
+  const elementDataMap = await getElementsData(containerData);
 
-  console.log("containerData",containerData);
+  console.log("containerData", containerData);
+  
   return (
     <div>
       {containerData.map((container, index) => {
@@ -120,8 +122,6 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
           fontSize: `${style.textFontSize || "16"}px`,
           ...(style.customCSS ? { cssText: style.customCSS } : {}),
         };
-
-        
 
         const renderLayout = () => {
           switch (layoutOptions?.layout) {
@@ -149,19 +149,6 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
                     </Box>
                   )}
 
-                {/* {title && (
-                  <h2
-                    style={{
-                      textAlign: "center",
-                      fontSize: style.textFontSize || "28px",
-                      fontWeight: "bold",
-                      fontFamily: style.textFontFamily || "inherit",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    {description}
-                  </h2>
-                )} */}
                 <div
                   style={{
                     display: layoutOptions.gridOptions?.direction?.includes("row") ? "flex" : "grid",
@@ -185,12 +172,6 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
                         key={`${item.element}-${index}`}
                         style={{
                           gridColumn: `span ${mdSize}`, // Use the safely assigned `mdSize`
-                          // flex: layoutOptions.gridOptions?.direction?.includes("row")
-                          //   ? `0 0 ${(mdSize / 12) * 100}%`
-                          //   : undefined, // Apply flex-basis in row layouts
-                          // maxWidth: layoutOptions.gridOptions?.direction?.includes("row")
-                          //   ? `${(mdSize / 12) * 100}%`
-                          //   : undefined, // Restrict max width in row layouts
                         }}
                       >
                         <Element elementData={elementData} containerTitle={title} />
@@ -264,8 +245,6 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
 
         return (
           <div key={index} style={containerStyle}>
-            {/* <h2>{referenceName}</h2>
-            <p>{description}</p> */}
             {renderLayout()}
           </div>
         );

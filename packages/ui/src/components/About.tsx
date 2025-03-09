@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { 
   Box, 
@@ -34,8 +36,6 @@ export default function About({
     primary: string;
     secondary: string;
     accent: string;
-    foreground: string;
-    background: string;
   };
   withOpacity: (color: string, opacity: number) => string;
 }) {

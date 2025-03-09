@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+"use client"; // Add this at the top to mark it as a client component
+
+import React from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -7,9 +9,7 @@ import {
   Box, 
   Menu, 
   MenuItem, 
-  IconButton, 
-  useTheme, 
-  useMediaQuery 
+  IconButton
 } from '@mui/material';
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
@@ -27,23 +27,22 @@ interface MenuDataType {
 }
 
 interface NavbarProps {
-  menuData?: MenuDataType;
+  menuData: MenuDataType;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ menuData = { menuName: '', items: [] } }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+const Navbar: React.FC<NavbarProps> = ({ menuData }) => {
+  // Add state for dropdown menus
+  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
+  const [openMenuIndex, setOpenMenuIndex] = React.useState<number | null>(null);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, menuName: string) => {
-    setMenuAnchorEl(event.currentTarget);
-    setActiveMenu(menuName);
+  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>, index: number) => {
+    setAnchorElNav(event.currentTarget);
+    setOpenMenuIndex(index);
   };
 
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
-    setActiveMenu(null);
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+    setOpenMenuIndex(null);
   };
 
   return (
@@ -70,87 +69,81 @@ const Navbar: React.FC<NavbarProps> = ({ menuData = { menuName: '', items: [] } 
               sx={{ height: 60, mr: 1 }} 
             />
           </Box>
-
-          {/* Mobile Menu */}
-          {isMobile ? (
-            <>
-              <IconButton
-                size="large"
-                edge="end"
-                color="inherit"
-                aria-label="menu"
-                onClick={(e) => handleMenuOpen(e, 'mobile')}
-                sx={{ color: 'white' }}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Menu
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl && activeMenu === 'mobile')}
-                onClose={handleMenuClose}
-              >
-                {menuData.items.map((item, index) => (
-                  <MenuItem key={index} onClick={handleMenuClose} component="a" href={`/pages/${item.menuName.toLowerCase().replace(/ /g, '-')}`}> 
-                    {item.menuName}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
-          ) : (
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: "center" }}>
-              {/* Desktop Navigation */}
-              {menuData?.items.map((item, index) => (
-                <React.Fragment key={index}>
-                  {item.menuType === 'multiple' && item.multiItems?.length ? (
-                    <>
-                      <Button
-                        color="inherit"
-                        onClick={(e) => handleMenuOpen(e, item.menuName)}
-                        endIcon={<KeyboardArrowDownIcon />}
-                        sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}
-                      >
-                        {item.menuName}
-                      </Button>
-                      <Menu
-                        anchorEl={menuAnchorEl}
-                        open={Boolean(menuAnchorEl && activeMenu === item.menuName)}
-                        onClose={handleMenuClose}
-                      >
-                        {item.multiItems.map((subItem, subIndex) => (
-                          <MenuItem key={subIndex} onClick={handleMenuClose} component="a" href={`/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`}> 
-                            {subItem.menuName}
-                          </MenuItem>
-                        ))}
-                      </Menu>
-                    </>
-                  ) : (
-                    <Button color="inherit" component="a" href={`/pages/${item.menuName.toLowerCase().replace(/ /g, '-')}`} sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}>
+          
+          {/* Desktop Navigation */}
+          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: "center" }}>
+            {menuData?.items?.map((item, index) => (
+              <React.Fragment key={index}>
+                {item.menuType === 'multiple' && item.multiItems?.length ? (
+                  <>
+                    <Button
+                      color="inherit"
+                      endIcon={<KeyboardArrowDownIcon />}
+                      sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}
+                      onClick={(e) => handleOpenNavMenu(e, index)}
+                      aria-controls={openMenuIndex === index ? `menu-${index}` : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={openMenuIndex === index ? 'true' : undefined}
+                    >
                       {item.menuName}
                     </Button>
-                  )}
-                </React.Fragment>
-              ))}
-            </Box>
-          )}
-
+                    <Menu
+                      id={`menu-${index}`}
+                      anchorEl={anchorElNav}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                      }}
+                      keepMounted
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'left',
+                      }}
+                      open={openMenuIndex === index}
+                      onClose={handleCloseNavMenu}
+                    >
+                      {item.multiItems.map((subItem, subIndex) => (
+                        <MenuItem 
+                          key={subIndex} 
+                          component="a" 
+                          href={`/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`}
+                          onClick={handleCloseNavMenu}
+                        > 
+                          {subItem.menuName}
+                        </MenuItem>
+                      ))}
+                    </Menu>
+                  </>
+                ) : (
+                  <Button 
+                    color="inherit" 
+                    component="a" 
+                    href={`/${item.menuName.toLowerCase().replace(/ /g, '-')}`} 
+                    sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}
+                  >
+                    {item.menuName}
+                  </Button>
+                )}
+              </React.Fragment>
+            ))}
+          </Box>
+          
           {/* Donate Button */}
-          {!isMobile && (
-            <Button
-              variant="contained"
-              endIcon={<ArrowForwardIcon />}
-              sx={{
-                bgcolor: '#FF5722',
-                borderRadius: '50px',
-                px: 3,
-                ml: 30,
-                height: "80px",
-                width: "250px",
-                '&:hover': { bgcolor: '#E64A19' }
-              }}
-            >
-              Donate Now
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{
+              bgcolor: '#FF5722',
+              borderRadius: '50px',
+              px: 3,
+              ml: 30,
+              height: "80px",
+              width: "250px",
+              '&:hover': { bgcolor: '#E64A19' }
+            }}
+          >
+            Donate Now
+          </Button>
         </Toolbar>
       </Container>
     </AppBar>

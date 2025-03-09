@@ -14,13 +14,7 @@ const FundraiserCard = ({
   containerTitle
 }: {
   elementData: any;
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    foreground: string;
-    background: string;
-  };
+  theme: any;
   withOpacity: (color: string, opacity: number) => string;
   containerTitle: string;
 }) => {
@@ -33,7 +27,9 @@ const FundraiserCard = ({
     <>
     {
       (cardOptions.imagePosition === "left" && cardOptions.titlePosition === "right" && cardOptions.descriptionPosition  === "right" )&&
-      <About elementData={elementData} containerTitle={containerTitle} />
+      <About elementData={elementData} containerTitle={containerTitle} 
+      themes={theme} 
+      />
       }
     {
       (cardOptions.imagePosition === "top" && cardOptions.titlePosition === "bottom" && cardOptions.descriptionPosition  === "none" )&&
@@ -47,6 +43,7 @@ const FundraiserCard = ({
       (cardOptions.imagePosition === "none" && cardOptions.titlePosition === "bottom" && cardOptions.descriptionPosition  === "top" )&&
       <NoImageCard 
       elementData={elementData} containerTitle={containerTitle}
+      themes={theme}
        />
       }
     {

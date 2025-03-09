@@ -1,27 +1,14 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getPage } from "../src/data/loader";
 
-export default function HomeRoute() {
-  const [pages, setPages] = useState<any[]>([]);
-  const router = useRouter();
+export default async function HomeRoute() {
+  const pages = await getPage();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const pageData = await getPage();
-        if (pageData.length > 0) {
-          router.replace(`/pages/${pageData[0].slug}`); // Redirect to first page
-        }
-        setPages(pageData || []);
-      } catch (error) {
-        console.error("Error fetching pages:", error);
-      }
-    };
+  if (!pages || pages.length === 0) {
+    notFound(); // Show 404 if no pages exist
+  }
 
-    fetchData();
-  }, [router]);
-
-  // return <span>Loading...</span>;
+  return (
+    <meta httpEquiv="refresh" content={`0;url=/${pages[0].slug}`} />
+  );
 }

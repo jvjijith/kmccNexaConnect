@@ -1,12 +1,15 @@
+"use client";
+
 import React from 'react';
 import { Box, Typography, Card, CardContent, IconButton, styled, ThemeProvider, useTheme } from '@mui/material';
 import { ArrowOutwardOutlined as ArrowOutwardOutlinedIcon } from '@mui/icons-material';
-import { theme } from '../theme';
+import { createDynamicTheme } from '../theme/theme';
 
 // Custom styled components using theme
 const StyledCard = styled(Card)(({ theme }) => ({
   borderBottomRightRadius: "60px",
   boxShadow: theme.shadows[3],
+  backgroundColor: theme.palette.background.default,
   maxWidth: 350,
   minHeight: 440,
   padding: theme.spacing(3),
@@ -60,9 +63,11 @@ interface SupportCardProps {
   icon?: React.ReactNode;
 }
 
-const SupportCard: React.FC<{ elementData: any; containerTitle: string; }> = ({ elementData, containerTitle }) => {
+const SupportCard: React.FC<{ elementData: any; containerTitle: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
 
 const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
+
+const theme = createDynamicTheme({themes});
 
   return (
     <ThemeProvider theme={theme}>
@@ -99,6 +104,7 @@ const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
           key={index}
             variant="subtitle1" 
             component="div"
+            color='text.secondary'
             sx={{ 
               fontWeight: 600, 
               fontSize: '1.9rem',

@@ -21,7 +21,8 @@
     "./footer": "./src/newComponents/footer.tsx",
     "./banner": "./src/newComponents/banner.tsx",
     "./grid": "./src/newComponents/grid.tsx",
-    "./NavBar": "./src/components/NavBar.tsx"
+    "./NavBar": "./src/components/NavBar.tsx",
+    "./theme": "./src/theme/theme.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
