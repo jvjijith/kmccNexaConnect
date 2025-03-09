@@ -1,6 +1,11 @@
 "use client";
 import React from "react";
 import Containers from "./Container";
+import About from "@repo/ui/newAbout";
+import Image from "@repo/ui/newImage";
+import ImageLeft from "@repo/ui/imageLeftCard";
+import NoImageCard from "@repo/ui/noimagecard";
+import ImageOnlyCard from "@repo/ui/imageonlycard";
 
 interface PageProps {
   pageData: any;
@@ -15,6 +20,12 @@ const Page: React.FC<PageProps> = ({ pageData, containers }) => {
         {containers.map((container, index) => (
           <Containers key={index} containerData={container} />
         ))}
+        
+        {/* <About/> */}
+        {/* <Image/> */}
+        {/* <ImageLeft/> */}
+        {/* <NoImageCard/> */}
+        {/* <ImageOnlyCard/> */}
     </>
   );
 };

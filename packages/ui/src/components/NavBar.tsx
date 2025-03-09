@@ -1,85 +1,158 @@
-"use client";
+import React, { useState } from 'react';
+import { 
+  AppBar, 
+  Toolbar, 
+  Button, 
+  Container, 
+  Box, 
+  Menu, 
+  MenuItem, 
+  IconButton, 
+  useTheme, 
+  useMediaQuery 
+} from '@mui/material';
+import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material';
+import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 
-import { useState } from "react";
-import {
-  AppBar,
-  Toolbar,
-  Button,
-  Box,
-  IconButton,
-  Drawer,
-  List,
-  ListItem,
-  useTheme,
-} from "@mui/material";
-import { Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
-import ActionButton from "./ActionButton.js";
-import Link from "./NavLink.js";
-import useMediaQuery from "../hooks/useMediaQuery.js";
-
-interface NavbarProps {
-  isTopOfPage: boolean;
-  menuData: any;
-  fetchApi: any;
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    foreground: string;
-    background: string;
-  };
-  withOpacity: (color: string, opacity: number) => string;
+interface MenuItemType {
+  menuName: string;
+  menuType: string;
+  multiItems?: { menuName: string }[];
 }
 
-const Navbar = ({ isTopOfPage, menuData, fetchApi, theme, withOpacity }: NavbarProps) => {
-  const isAboveMediumScreens = useMediaQuery("(min-width: 1060px)");
-  const [isMenuToggled, setIsMenuToggled] = useState(false);
+interface MenuDataType {
+  menuName: string;
+  items: MenuItemType[];
+}
+
+interface NavbarProps {
+  menuData?: MenuDataType;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ menuData = { menuName: '', items: [] } }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, menuName: string) => {
+    setMenuAnchorEl(event.currentTarget);
+    setActiveMenu(menuName);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setActiveMenu(null);
+  };
 
   return (
     <AppBar
-      position="fixed"
+      position="absolute"
+      elevation={0}
       sx={{
-        backgroundColor: isTopOfPage ? "transparent" : theme.background,
-        boxShadow: isTopOfPage ? "none" : 1,
-        transition: "background-color 0.3s ease-in-out",
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        boxShadow: "none",
+        width: "100vw",
+        height: "150px",
+        display: "flex",
+        justifyContent: "space-evenly",
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {/* Logo */}
-        <Box component="img" src={"https://kmccaustralia.org/public/images/kmcc_logo.png"} alt="logo" sx={{ height: 40 }} />
-
-        {/* Desktop Menu */}
-        {isAboveMediumScreens ? (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {menuData?.items?.map((item: any) => (
-              <Link key={item.menuName} page={item.menuName} selectedPage={item.menuName} setSelectedPage={item.menuName} />
-            ))}
-            <Button color="inherit">Sign In</Button>
-            <ActionButton setSelectedPage={"donate"}>Donate</ActionButton>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters sx={{ width: "100%", justifyContent: "space-between" }}>
+          {/* Logo */}
+          <Box sx={{ display: "flex", alignItems: "center", mr: 20 }}>
+            <Box 
+              component="img" 
+              src="https://demo.awaikenthemes.com/avenix/wp-content/uploads/2024/08/logo-2.svg" 
+              alt="Logo" 
+              sx={{ height: 60, mr: 1 }} 
+            />
           </Box>
-        ) : (
-          <IconButton color="inherit" onClick={() => setIsMenuToggled(true)}>
-            <MenuIcon />
-          </IconButton>
-        )}
-      </Toolbar>
 
-      {/* Mobile Drawer */}
-      <Drawer anchor="right" open={isMenuToggled} onClose={() => setIsMenuToggled(false)}>
-        <Box sx={{ width: 250, display: "flex", flexDirection: "column", p: 2 }}>
-          {/* Close Button */}
-          <IconButton onClick={() => setIsMenuToggled(false)} sx={{ alignSelf: "flex-end" }}>
-            <CloseIcon />
-          </IconButton>
+          {/* Mobile Menu */}
+          {isMobile ? (
+            <>
+              <IconButton
+                size="large"
+                edge="end"
+                color="inherit"
+                aria-label="menu"
+                onClick={(e) => handleMenuOpen(e, 'mobile')}
+                sx={{ color: 'white' }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl && activeMenu === 'mobile')}
+                onClose={handleMenuClose}
+              >
+                {menuData.items.map((item, index) => (
+                  <MenuItem key={index} onClick={handleMenuClose} component="a" href={`/pages/${item.menuName.toLowerCase().replace(/ /g, '-')}`}> 
+                    {item.menuName}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+          ) : (
+            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: "center" }}>
+              {/* Desktop Navigation */}
+              {menuData?.items.map((item, index) => (
+                <React.Fragment key={index}>
+                  {item.menuType === 'multiple' && item.multiItems?.length ? (
+                    <>
+                      <Button
+                        color="inherit"
+                        onClick={(e) => handleMenuOpen(e, item.menuName)}
+                        endIcon={<KeyboardArrowDownIcon />}
+                        sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}
+                      >
+                        {item.menuName}
+                      </Button>
+                      <Menu
+                        anchorEl={menuAnchorEl}
+                        open={Boolean(menuAnchorEl && activeMenu === item.menuName)}
+                        onClose={handleMenuClose}
+                      >
+                        {item.multiItems.map((subItem, subIndex) => (
+                          <MenuItem key={subIndex} onClick={handleMenuClose} component="a" href={`/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`}> 
+                            {subItem.menuName}
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                    </>
+                  ) : (
+                    <Button color="inherit" component="a" href={`/pages/${item.menuName.toLowerCase().replace(/ /g, '-')}`} sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}>
+                      {item.menuName}
+                    </Button>
+                  )}
+                </React.Fragment>
+              ))}
+            </Box>
+          )}
 
-          {/* Menu Items */}
-          <List>
-          {menuData?.items?.map((item: any) => (
-              <Link key={item.menuName} page={item.menuName} selectedPage={item.menuName} setSelectedPage={item.menuName} />
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+          {/* Donate Button */}
+          {!isMobile && (
+            <Button
+              variant="contained"
+              endIcon={<ArrowForwardIcon />}
+              sx={{
+                bgcolor: '#FF5722',
+                borderRadius: '50px',
+                px: 3,
+                ml: 30,
+                height: "80px",
+                width: "250px",
+                '&:hover': { bgcolor: '#E64A19' }
+              }}
+            >
+              Donate Now
+            </Button>
+          )}
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 };

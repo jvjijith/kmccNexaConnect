@@ -425,6 +425,135 @@ components:
       - metaDescription
       - ogTitle
       - ogDescription
+    PageBySlugResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        referenceName:
+          type: string
+        items:
+          type: array
+          items:
+            nullable: true
+        type:
+          type: string
+        internalType:
+          type: string
+        externalUrl:
+          type: string
+        bannerImage:
+          type: string
+        portraitImage:
+          type: string
+        landscapeImage:
+          type: string
+        available:
+          type: array
+          items:
+            type: object
+            properties:
+              appId:
+                type: string
+              _id:
+                type: string
+            required:
+            - appId
+        numberItems:
+          type: object
+          properties:
+            web:
+              type: number
+            android:
+              type: number
+            iOS:
+              type: number
+        title:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              title:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - title
+        metaDescription:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              description:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - description
+        keywords:
+          type: array
+          items:
+            type: string
+        canonicalUrl:
+          type: string
+        ogTitle:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              title:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - title
+        ogDescription:
+          type: array
+          items:
+            type: object
+            properties:
+              lanCode:
+                type: string
+              description:
+                type: string
+              _id:
+                type: string
+            required:
+            - lanCode
+            - description
+        ogImage:
+          type: string
+        twitterCard:
+          type: string
+        twitterCreator:
+          type: string
+        publish:
+          type: boolean
+        draft:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      required:
+      - slug
+      - referenceName
+      - type
+      - internalType
+      - externalUrl
+      - title
+      - metaDescription
+      - ogTitle
+      - ogDescription
     ElementResponse:
       type: object
       properties:
@@ -991,7 +1120,7 @@ paths:
                 - message
                 example:
                   message: Not Found
-  "/apps/page/{slug}":
+  "/apps/page/slug/{slug}":
     get:
       tags:
       - Apps
@@ -1011,7 +1140,7 @@ paths:
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/PageResponse"
+                "$ref": "#/components/schemas/PageBySlugResponse"
         '404':
           description: Page not found
           content:

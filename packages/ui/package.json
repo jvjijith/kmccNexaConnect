@@ -13,6 +13,15 @@
     "./imagecard": "./src/components/ImageCard.tsx",
     "./about": "./src/components/About.tsx",
     "./card": "./src/components/card.tsx",
+    "./Nav": "./src/newComponents/navbar/page.tsx",
+    "./newAbout": "./src/newComponents/about.tsx",
+    "./newImage": "./src/newComponents/image.tsx",
+    "./imageLeftCard": "./src/newComponents/imageLeftCard.tsx",
+    "./noimagecard": "./src/newComponents/noImageCard.tsx",
+    "./imageonlycard": "./src/newComponents/imageOnlyCard.tsx",
+    "./footer": "./src/newComponents/footer.tsx",
+    "./banner": "./src/newComponents/banner.tsx",
+    "./grid": "./src/newComponents/grid.tsx",
     "./NavBar": "./src/components/NavBar.tsx"
   },
   "scripts": {
@@ -24,14 +33,16 @@
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@turbo/gen": "^1.12.4",
-    "@types/node": "^20.17.19",
+    "@types/node": "^20.17.23",
     "@types/react": "^18.3.18",
-    "@types/react-dom": "18.3.1",
-    "typescript": "5.5.4"
+    "@types/react-anchor-link-smooth-scroll": "^1.0.5",
+    "@types/react-dom": "18.3.1"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fontsource/fira-sans": "^5.2.5",
+    "@heroicons/react": "^2.2.0",
     "@mui/icons-material": "^6.4.5",
     "@mui/lab": "^6.0.0-beta.21",
     "@mui/material": "^6.4.6",
@@ -41,7 +52,9 @@
     "@mui/x-data-grid": "^7.23.3",
     "@mui/x-date-pickers": "^7.23.3",
     "@types/react-helmet": "^6.1.11",
+    "framer-motion": "^12.4.10",
     "react": "^19.0.0",
+    "react-anchor-link-smooth-scroll": "^1.0.12",
     "react-dom": "^19.0.0",
     "react-helmet": "^6.1.0",
     "styled-components": "^6.1.15"

@@ -5,10 +5,12 @@ import React, { useEffect, useState } from "react";
 import { colors, themes, withOpacity } from "../utils/colors";
 import About from "@repo/ui/about";
 import Card from "@repo/ui/card";
+import Banner from "@repo/ui/banner";
 import { getPage, getPageById } from "../data/loader";
 
 
 interface ElementProps {
+  containerTitle: string;
   elementData: {
     componentType:
       | "swimlane"
@@ -68,7 +70,7 @@ interface ElementProps {
 }
 
 
-const Element: React.FC<ElementProps> = ({ elementData }) => {
+const Element: React.FC<ElementProps> = ({ elementData ,containerTitle }) => {
   if (!elementData) return null;
   const fundraiserData = {
     id: '1',
@@ -122,7 +124,7 @@ const Element: React.FC<ElementProps> = ({ elementData }) => {
         return (
           <Hero 
           elementData={elementData}
-          theme={themes.ramadan}
+          // theme={themes.ramadan}
           withOpacity={withOpacity}
           />
         );
@@ -168,19 +170,16 @@ const Element: React.FC<ElementProps> = ({ elementData }) => {
           elementData={elementData}
           theme={themes.ramadan}
           withOpacity={withOpacity}
+          containerTitle={containerTitle}
            />
         );
 
       case "banner":
         return (
-          <div className="bg-gray-200 p-4 text-center rounded-md">
-            {elementData.title?.[0]?.name ? (
-              <h2 className="text-xl font-bold">{elementData.title[0].name}</h2>
-            ) : null}
-            {elementData.description?.[0]?.paragraph ? (
-              <span className="text-gray-600">{elementData.description[0].paragraph}</span>
-            ) : null}
-          </div>
+          <Banner
+          elementData={elementData}
+          containerTitle={containerTitle}
+          />
         );
 
       default:

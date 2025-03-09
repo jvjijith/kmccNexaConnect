@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Element from "./Element";
 import { getElement } from "../data/loader";
+import { Box, Typography } from "@repo/ui/mui";
 
 interface LayoutOptions {
   layout?: "grid" | "stack" | "tab" | "fluid";
@@ -71,6 +72,7 @@ interface ContainerItem {
 interface ContainerData {
   referenceName: string;
   description: string;
+  title: string;
   layoutOptions?: LayoutOptions;
   items?: ContainerItem[];
   style?: StyleOptions;
@@ -103,11 +105,11 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
     fetchElements();
   }, [containerData]);
 
-  // console.log("elementDataMap",elementDataMap['670ec2f5dba590f25ae80e1b']);
+  console.log("containerData",containerData);
   return (
     <div>
       {containerData.map((container, index) => {
-        const { referenceName, description, layoutOptions, items = [], style = {} } = container;
+        const { referenceName, title, description, layoutOptions, items = [], style = {} } = container;
 
         const containerStyle: React.CSSProperties = {
           backgroundColor: style.backgroundColor || "transparent",
@@ -119,44 +121,86 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
           ...(style.customCSS ? { cssText: style.customCSS } : {}),
         };
 
+        
+
         const renderLayout = () => {
           switch (layoutOptions?.layout) {
             case "grid":
               return (
+                <>
+                {title && (
+                    <Box textAlign="center" py={2} sx={{ mb: "5%" }}>
+                      <Typography
+                        variant="h1"
+                        fontWeight="bold"
+                        color="text.primary"
+                        sx={{
+                          display: "inline-block",
+                          whiteSpace: "pre-line",
+                          wordWrap: "break-word",
+                          maxWidth: "80%", // Adjust as needed
+                          fontSize: "3.5rem",
+                        }}
+                      >
+                        {title.length > 30
+                          ? title.replace(/(.{30})/, "$1\n") // Insert a break after 30 characters
+                          : title}
+                      </Typography>
+                    </Box>
+                  )}
+
+                {/* {title && (
+                  <h2
+                    style={{
+                      textAlign: "center",
+                      fontSize: style.textFontSize || "28px",
+                      fontWeight: "bold",
+                      fontFamily: style.textFontFamily || "inherit",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {description}
+                  </h2>
+                )} */}
                 <div
                   style={{
-                    display: "grid",
-                    gap: `${layoutOptions.gridOptions?.spacing || 2}px`,
-                    gridTemplateColumns: `repeat(${layoutOptions.gridOptions?.columns || 1}, 1fr)`,
+                    display: layoutOptions.gridOptions?.direction?.includes("row") ? "flex" : "grid",
+                    gap: `${(layoutOptions.gridOptions?.spacing || 0) * 4}px`, // Adjusted spacing
+                    gridTemplateColumns: layoutOptions.gridOptions?.direction?.includes("row")
+                      ? undefined
+                      : `repeat(${layoutOptions.gridOptions?.columns || 1}, 1fr)`,
                     justifyContent: layoutOptions.gridOptions?.justifyContent || "flex-start",
                     alignItems: layoutOptions.gridOptions?.alignItems || "stretch",
-                    flexWrap: layoutOptions.gridOptions?.wrap as React.CSSProperties["flexWrap"]  || "wrap",
-                    flexDirection: layoutOptions.gridOptions?.direction as React.CSSProperties["flexDirection"]  || "row",
+                    flexWrap: layoutOptions.gridOptions?.wrap as React.CSSProperties["flexWrap"] || "wrap",
+                    flexDirection: layoutOptions.gridOptions?.direction as React.CSSProperties["flexDirection"] || "row",
                   }}
                 >
-                  {items.map((item) => {
-                    const columnSize =
-                      layoutOptions.gridOptions?.sizeData?.find((col) => col.column === item.element)?.size;
-                      console.log("columnSize",columnSize);
-                      console.log("containerData",containerData);
-                    return elementDataMap[item.element]?.map((elementData: any, index: number) => (
+                  {items.map((item, itemIndex) => {
+                    const columnSize = layoutOptions.gridOptions?.sizeData?.[itemIndex]?.size || {};
+                    const mdSize = columnSize.md ?? 1; // Default fallback to 1 if undefined
+              
+                    const elements = elementDataMap[item.element] || []; // Ensure it's an array
+                    return elements.map((elementData: any, index: number) => (
                       <div
                         key={`${item.element}-${index}`}
                         style={{
-                          gridColumn: `span ${columnSize?.md}`,
+                          gridColumn: `span ${mdSize}`, // Use the safely assigned `mdSize`
+                          // flex: layoutOptions.gridOptions?.direction?.includes("row")
+                          //   ? `0 0 ${(mdSize / 12) * 100}%`
+                          //   : undefined, // Apply flex-basis in row layouts
+                          // maxWidth: layoutOptions.gridOptions?.direction?.includes("row")
+                          //   ? `${(mdSize / 12) * 100}%`
+                          //   : undefined, // Restrict max width in row layouts
                         }}
                       >
-                        {/* <div> */}
-                        <Element elementData={elementData} />
-                        {/* </div> */}
+                        <Element elementData={elementData} containerTitle={title} />
                       </div>
                     ));
                   })}
-
-
                 </div>
-
+                </>
               );
+              
             case "stack":
               return (
                 <div
@@ -172,7 +216,7 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
                   {items.map((item) => (
                     <div key={item.element}>
                       {elementDataMap[item.element]?.map((elementData: any, index: number) => (
-                        <Element key={index} elementData={elementData} />
+                        <Element key={index} elementData={elementData} containerTitle={title} />
                       ))}
                     </div>
                   ))}
@@ -194,7 +238,7 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
                   {items.map((item) => (
                     <div key={item.element}>
                       {elementDataMap[item.element]?.map((elementData: any, index: number) => (
-                        <Element key={index} elementData={elementData} />
+                        <Element key={index} elementData={elementData} containerTitle={title} />
                       ))}
                     </div>
                   ))}
@@ -208,7 +252,7 @@ const Containers: React.FC<ContainerProps> = ({ containerData }) => {
                  {items.map((item) => (
                     <div key={item.element}>
                       {elementDataMap[item.element]?.map((elementData: any, index: number) => (
-                        <Element key={index} elementData={elementData} />
+                        <Element key={index} elementData={elementData} containerTitle={title} />
                       ))}
                     </div>
                   ))}

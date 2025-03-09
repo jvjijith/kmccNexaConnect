@@ -1,13 +1,14 @@
 "use client";
 
-import { Typography, Button, Container, Box } from "@mui/material";
+import { Typography, Button, Container, Box, ThemeProvider } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { KeyboardArrowRight } from "@mui/icons-material";
+import { theme } from "../theme.js";
 
 // Styled Button
 const ActionButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "btnColor" && prop !== "borderColor",
-})<{ btnColor: string; borderColor?: string }>(({ btnColor, borderColor }) => ({
+})<{ btnColor: string; borderColor?: string }>(({ theme, btnColor, borderColor }) => ({
   borderRadius: "50px",
   padding: "12px 32px",
   fontSize: "1rem",
@@ -15,11 +16,11 @@ const ActionButton = styled(Button, {
   textTransform: "none",
   backgroundColor: btnColor || "transparent",
   border: borderColor ? `2px solid ${borderColor}` : "none",
-  color: borderColor ? borderColor : "#fff",
+  color: borderColor ? borderColor : theme.palette.primary.contrastText,
   "&:hover": {
     backgroundColor: borderColor ? borderColor : btnColor,
     borderColor: borderColor || btnColor,
-    color: borderColor ? btnColor : "#fff",
+    color: borderColor ? btnColor : theme.palette.primary.contrastText,
   },
   "& .MuiSvgIcon-root": {
     marginLeft: "8px",
@@ -27,19 +28,21 @@ const ActionButton = styled(Button, {
   },
 }));
 
-
 // Styled Hero Section
-const HeroSection = styled("div")<{  overlayColor: string }>(({  overlayColor }) => ({
-  backgroundImage: 'url("https://s3.us-east-005.backblazeb2.com/nexaStore/67c046400f7598cc5ee8ceae.jpg")', // A mosque at night
+const HeroSection = styled("div")<{ overlayColor: string; url: string; }>(({ theme, overlayColor, url }) => ({
+  backgroundImage: `url(${url})`,
   backgroundSize: "cover",
   backgroundPosition: "center",
+  backgroundAttachment: "fixed",
   height: "100vh",
+  width: "100%",
   position: "relative",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   textAlign: "center",
-  color: "white",
+  color: theme.palette.primary.contrastText,
+  zIndex: 0,
   "&::before": {
     content: '""',
     position: "absolute",
@@ -47,66 +50,52 @@ const HeroSection = styled("div")<{  overlayColor: string }>(({  overlayColor })
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: overlayColor || "rgba(0, 0, 0, 0.5)",
+    backgroundColor: overlayColor || theme.palette.secondary.main,
   },
 }));
 
 export default function Hero({
   elementData,
-  theme,
   withOpacity,
 }: {
   elementData: any;
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    foreground: string;
-    background: string;
-  };
   withOpacity: (color: string, opacity: number) => string;
 }) {
   return (
-    <HeroSection  overlayColor={withOpacity(theme.background, 0.7)}>
-      <Container maxWidth="lg">
-        <Box position="relative" zIndex={1}>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold", color: theme.foreground }}>
-            {elementData?.description?.[0]?.paragraph}
-          </Typography>
+    <ThemeProvider theme={theme}>
+      <HeroSection overlayColor={withOpacity(theme.palette.secondary.main, 0.7)} url={elementData?.imageUrl}>
+        <Container maxWidth="lg">
+          <Box position="relative" zIndex={1}>
+            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold", color: theme.palette.primary.main, fontSize: '1.5rem' }}>
+            ✦ {elementData?.description?.[0]?.paragraph}
+            </Typography>
 
-          <Typography
-            variant="h2"
-            component="h1"
-            sx={{ mb: 3, fontWeight: "bold", textTransform: "uppercase", color: theme.primary }}
-          >
-            {elementData?.description?.[1]?.paragraph}
-          </Typography>
+            <Typography
+              variant="h1"
+              component="h1"
+              sx={{ mb: 3, fontWeight: "bold", textTransform: "uppercase", color: "white", fontSize: '5.5rem' }}
+            >
+              {elementData?.description?.[1]?.paragraph}
+            </Typography>
 
-          <Typography variant="body1" sx={{ mb: 4, maxWidth: "600px", mx: "auto", color: theme.foreground }}>
+            <Typography variant="body1" sx={{ mb: 4, maxWidth: "600px", mx: "auto", color: theme.palette.secondary.main, fontSize: '1rem', fontWeight: "bold" }}>
             {elementData?.description?.[2]?.paragraph}
-          </Typography>
+            </Typography>
 
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              mt: 2,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <ActionButton btnColor={theme.primary}>
-              Join In Person
-              <KeyboardArrowRight />
-            </ActionButton>
+            {/* <Box sx={{ display: "flex", gap: 2, mt: 2, justifyContent: "center", alignItems: "center" }}>
+              <ActionButton btnColor={theme.palette.primary.main}>
+                Join In Person
+                <KeyboardArrowRight />
+              </ActionButton>
 
-            <ActionButton btnColor="transparent" borderColor={theme.accent}>
-              Donate Now
-              <KeyboardArrowRight />
-            </ActionButton>
+              <ActionButton btnColor="transparent" borderColor={theme.palette.primary.main}>
+                Donate Now
+                <KeyboardArrowRight />
+              </ActionButton>
+            </Box> */}
           </Box>
-        </Box>
-      </Container>
-    </HeroSection>
+        </Container>
+      </HeroSection>
+    </ThemeProvider>
   );
 }

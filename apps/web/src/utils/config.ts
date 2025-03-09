@@ -1,23 +1,28 @@
 export const baseApiConfig = {
-  basePath: process.env.API_BASE_URL || "http://localhost:9999", // Fallback URL
-  apiKey: process.env.API_KEY || "default-api-key",
+  basePath: process.env.NEXT_PUBLIC_API_BASE_URL || "", // Ensure fallback
+  apiKey: process.env.NEXT_PUBLIC_API_KEY || "",
   headers: {
-    "accept": "*/*",
+    accept: "*/*",
     "accept-encoding": "gzip, deflate",
     "accept-language": "*",
-    "connection": "keep-alive",
-    "host": "localhost:9999",
+    connection: "keep-alive",
+    host: "storeapi-vewo.onrender.com",
     "sec-fetch-mode": "cors",
     "user-agent": "node",
-    "x-nexa-appid": process.env.API_KEY || "66ee43a23d6b6d3398c67c87",
-    "x-nexa-appsecret": process.env.API_SECRET || "ca66d1a2b39081269c1301b49337a78705f3af4353c813291a2d797792d39402"
+    "x-nexa-appid": process.env.NEXT_PUBLIC_API_KEY || "",
+    "x-nexa-appsecret": process.env.NEXT_PUBLIC_API_SECRET || ""
   },
-  fetchApi: (input: string | URL | Request, init?: RequestInit) =>
-    fetch(input, {
+  fetchApi: (input: string | URL | Request, init?: RequestInit) => {
+    const filteredHeaders = Object.fromEntries(
+      Object.entries(baseApiConfig.headers).filter(([_, value]) => value !== undefined)
+    );
+
+    return fetch(input, {
       ...init,
       headers: {
-        ...baseApiConfig.headers, // Ensure headers are passed
-        ...init?.headers // Allow additional headers
+        ...filteredHeaders, // Use filtered headers
+        ...(init?.headers as HeadersInit) // Ensure additional headers are merged properly
       }
-    })
+    });
+  }
 };

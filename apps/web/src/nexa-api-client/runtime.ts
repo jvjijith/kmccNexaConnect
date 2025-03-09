@@ -13,7 +13,7 @@
  */
 
 
-export const BASE_PATH = "http://localhost:9999".replace(/\/+$/, "");
+export const BASE_PATH = "https://storeapi-vewo.onrender.com".replace(/\/+$/, "");
 
 export interface ConfigurationParameters {
     basePath?: string; // override base path
