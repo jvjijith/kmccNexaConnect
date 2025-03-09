@@ -3,7 +3,7 @@
 import { Typography, Button, Container, Box, ThemeProvider } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { KeyboardArrowRight } from "@mui/icons-material";
-import { theme } from "../theme.js";
+import { theme } from "../theme";
 
 // Styled Button
 const ActionButton = styled(Button, {

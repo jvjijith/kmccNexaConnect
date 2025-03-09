@@ -1,11 +1,11 @@
 import React from "react";
 import { Card, CardContent, CardMedia, Typography, Button, Box } from "@mui/material";
-import About from '../newComponents/about.js'
-import Image from '../newComponents/image.js'
-import ImageLeftCard from '../newComponents/imageLeftCard.js'
-import ImageRightCard from '../newComponents/imageRightCard.js'
-import NoImageCard from '../newComponents/noImageCard.js'
-import ImageOnlyCard from '../newComponents/imageOnlyCard.js'
+import About from '../newComponents/about'
+import Image from '../newComponents/image'
+import ImageLeftCard from '../newComponents/imageLeftCard'
+import ImageRightCard from '../newComponents/imageRightCard'
+import NoImageCard from '../newComponents/noImageCard'
+import ImageOnlyCard from '../newComponents/imageOnlyCard'
 
 const FundraiserCard = ({
   elementData,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent, IconButton, styled, ThemeProvider, useTheme } from '@mui/material';
 import { ArrowOutwardOutlined as ArrowOutwardOutlinedIcon } from '@mui/icons-material';
-import { theme } from '../theme.js';
+import { theme } from '../theme';
 
 // Custom styled components using theme
 const StyledCard = styled(Card)(({ theme }) => ({

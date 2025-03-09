@@ -15,7 +15,7 @@ import {ShoppingCart as ShoppingCartIcon} from '@mui/icons-material';
 import {PictureAsPdf as PictureAsPdfIcon} from '@mui/icons-material';
 import {ArrowForward as ArrowForwardIcon} from '@mui/icons-material';
 import {Star as StarIcon} from '@mui/icons-material';
-import { theme } from '../theme.js';
+import { theme } from '../theme';
 
 const LandingPage: React.FC<{ elementData: any; containerTitle: string; }> = ({ elementData, containerTitle }) => {
     const { cardOptions, description, imageUrl } = elementData;

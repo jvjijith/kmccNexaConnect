@@ -1,7 +1,19 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "ESNext",  // Ensures proper module resolution
+    "moduleResolution": "Bundler", // Use "Bundler" for proper TSX resolution
+    "allowJs": true,
+    "jsx": "react-jsx",  // Ensure JSX is compiled properly
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "paths": {
+      "@repo/ui/*": ["./src/*"] // Fixes TypeScript path resolution
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

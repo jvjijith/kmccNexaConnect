@@ -7,7 +7,6 @@
     "./button": "./src/button.tsx",
     "./code": "./src/code.tsx",
     "./mui": "./src/mui.tsx",
-    "./theme": "./src/theme.tsx",
     "./herosection": "./src/components/HeroSection.tsx",
     "./movingcarousel": "./src/components/MovingTextCarousel.tsx",
     "./imagecard": "./src/components/ImageCard.tsx",

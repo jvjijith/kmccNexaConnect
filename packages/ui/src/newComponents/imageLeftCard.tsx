@@ -11,7 +11,7 @@ import {
   ThemeProvider,
 } from "@mui/material";
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
-import { theme } from '../theme.js';
+import { theme } from '../theme';
 
 interface ChildrensWorshipProps {
   elementData: any;

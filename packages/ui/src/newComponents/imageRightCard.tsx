@@ -16,7 +16,7 @@ import {School as SchoolIcon} from '@mui/icons-material';
 import {People as PeopleIcon} from '@mui/icons-material';
 import {Handshake as HandshakeIcon} from '@mui/icons-material';
 import {ArrowForward as ArrowForwardIcon} from '@mui/icons-material';
-import { theme } from '../theme.js';
+import { theme } from '../theme';
 
 
 const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; }> = ({ elementData, containerTitle }) => {
