@@ -44,6 +44,7 @@ models/LayoutResponseLogosInner.ts
 models/MenuResponse.ts
 models/MenuResponseItemsInner.ts
 models/MenuResponseItemsInnerMultiItemsInner.ts
+models/PageBySlugResponse.ts
 models/PageResponse.ts
 models/PageResponseAvailableInner.ts
 models/PageResponseMetaDescriptionInner.ts

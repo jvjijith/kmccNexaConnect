@@ -20,7 +20,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: https://smartbear.com/terms-of-use/
 servers:
-- url: http://localhost:9999/
+- url: https://storeapi-vewo.onrender.com/
   description: Local Dev environment
 - url: https://staging.api.nexalogics.com.au/
   description: Staging Environment
@@ -1189,7 +1189,7 @@ paths:
       security:
       - ApiKeyAuth: []
         AppSecretAuth: []
-      operationId: getElement
+      operationId: getByIdElement
       parameters:
       - schema:
           type: string

@@ -40,6 +40,7 @@ export * from './LayoutResponseLogosInner';
 export * from './MenuResponse';
 export * from './MenuResponseItemsInner';
 export * from './MenuResponseItemsInnerMultiItemsInner';
+export * from './PageBySlugResponse';
 export * from './PageResponse';
 export * from './PageResponseAvailableInner';
 export * from './PageResponseMetaDescriptionInner';

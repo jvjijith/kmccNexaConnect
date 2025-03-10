@@ -22,6 +22,7 @@ import type {
   GetColorsByMode422Response,
   LayoutResponse,
   MenuResponse,
+  PageBySlugResponse,
   PageResponse,
 } from '../models/index';
 import {
@@ -39,18 +40,75 @@ import {
     LayoutResponseToJSON,
     MenuResponseFromJSON,
     MenuResponseToJSON,
+    PageBySlugResponseFromJSON,
+    PageBySlugResponseToJSON,
     PageResponseFromJSON,
     PageResponseToJSON,
 } from '../models/index';
 
+export interface GetByIdElementRequest {
+    elementId: string;
+}
+
 export interface GetColorsByModeRequest {
     mode: GetColorsByModeModeEnum;
+}
+
+export interface GetContainerbyidRequest {
+    containerId: string;
+}
+
+export interface GetPageByIdRequest {
+    pageId: string;
+}
+
+export interface GetPageBySlugRequest {
+    slug: string;
 }
 
 /**
  * 
  */
 export class AppsApi extends runtime.BaseAPI {
+
+    /**
+     */
+    async getByIdElementRaw(requestParameters: GetByIdElementRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ElementResponse>> {
+        if (requestParameters['elementId'] == null) {
+            throw new runtime.RequiredError(
+                'elementId',
+                'Required parameter "elementId" was null or undefined when calling getByIdElement().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/element/{elementId}`.replace(`{${"elementId"}}`, encodeURIComponent(String(requestParameters['elementId']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ElementResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getByIdElement(requestParameters: GetByIdElementRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ElementResponse> {
+        const response = await this.getByIdElementRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      */
@@ -107,7 +165,7 @@ export class AppsApi extends runtime.BaseAPI {
         }
 
         const response = await this.request({
-            path: `/apps/container/`,
+            path: `/apps/container`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -120,6 +178,45 @@ export class AppsApi extends runtime.BaseAPI {
      */
     async getContainer(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ContainerResponse> {
         const response = await this.getContainerRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getContainerbyidRaw(requestParameters: GetContainerbyidRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ContainerResponse>> {
+        if (requestParameters['containerId'] == null) {
+            throw new runtime.RequiredError(
+                'containerId',
+                'Required parameter "containerId" was null or undefined when calling getContainerbyid().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/container/{containerId}`.replace(`{${"containerId"}}`, encodeURIComponent(String(requestParameters['containerId']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ContainerResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getContainerbyid(requestParameters: GetContainerbyidRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ContainerResponse> {
+        const response = await this.getContainerbyidRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -139,7 +236,7 @@ export class AppsApi extends runtime.BaseAPI {
         }
 
         const response = await this.request({
-            path: `/apps/element/`,
+            path: `/apps/element`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -171,7 +268,7 @@ export class AppsApi extends runtime.BaseAPI {
         }
 
         const response = await this.request({
-            path: `/apps/layout/`,
+            path: `/apps/layout`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -203,7 +300,7 @@ export class AppsApi extends runtime.BaseAPI {
         }
 
         const response = await this.request({
-            path: `/apps/menu/`,
+            path: `/apps/menu`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -235,7 +332,7 @@ export class AppsApi extends runtime.BaseAPI {
         }
 
         const response = await this.request({
-            path: `/apps/page/`,
+            path: `/apps/page`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -248,6 +345,84 @@ export class AppsApi extends runtime.BaseAPI {
      */
     async getPage(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PageResponse> {
         const response = await this.getPageRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getPageByIdRaw(requestParameters: GetPageByIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PageResponse>> {
+        if (requestParameters['pageId'] == null) {
+            throw new runtime.RequiredError(
+                'pageId',
+                'Required parameter "pageId" was null or undefined when calling getPageById().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/page/{pageId}`.replace(`{${"pageId"}}`, encodeURIComponent(String(requestParameters['pageId']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PageResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPageById(requestParameters: GetPageByIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PageResponse> {
+        const response = await this.getPageByIdRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getPageBySlugRaw(requestParameters: GetPageBySlugRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PageBySlugResponse>> {
+        if (requestParameters['slug'] == null) {
+            throw new runtime.RequiredError(
+                'slug',
+                'Required parameter "slug" was null or undefined when calling getPageBySlug().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-AppSecret"] = await this.configuration.apiKey("X-Nexa-AppSecret"); // AppSecretAuth authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Nexa-Appid"] = await this.configuration.apiKey("X-Nexa-Appid"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/apps/page/slug/{slug}`.replace(`{${"slug"}}`, encodeURIComponent(String(requestParameters['slug']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PageBySlugResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPageBySlug(requestParameters: GetPageBySlugRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PageBySlugResponse> {
+        const response = await this.getPageBySlugRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

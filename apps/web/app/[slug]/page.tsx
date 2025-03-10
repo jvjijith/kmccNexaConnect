@@ -8,15 +8,19 @@ interface PageData {
   [key: string]: any;
 }
 
-interface DynamicPageProps {
-  params: {
-    slug: string ;
-  };
+// Updated interface to match Next.js 15 requirements
+interface PageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams: Record<string, string | string[] | undefined>;
 }
 
 // This is now a server component that fetches data during server rendering
-export default async function DynamicPage({ params }: DynamicPageProps) {
-  const slug =  params.slug; // Ensure slug is a string
+export default async function DynamicPage({ params, searchParams }: PageProps) {
+  // Await the params object before accessing its properties
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   
   // Use try/catch for error handling during data fetching
   try {
