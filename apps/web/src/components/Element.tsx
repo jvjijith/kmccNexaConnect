@@ -104,7 +104,7 @@ async function Element({ elementData, containerTitle }: ElementProps) {
       containerTitle={containerTitle}
       colors={colors}
       pages={pages}
-      containers={containers}
+      pageArray={containers}
       theme={themes.ramadan}
     />
   );

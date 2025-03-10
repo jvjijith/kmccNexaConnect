@@ -20,6 +20,7 @@
     "./imageonlycard": "./src/newComponents/imageOnlyCard.tsx",
     "./footer": "./src/newComponents/footer.tsx",
     "./banner": "./src/newComponents/banner.tsx",
+    "./slider": "./src/newComponents/slider.tsx",
     "./grid": "./src/newComponents/grid.tsx",
     "./NavBar": "./src/components/NavBar.tsx",
     "./theme": "./src/theme/theme.tsx"

@@ -6,6 +6,7 @@ import Hero from "@repo/ui/herosection";
 import MovingCarousel from "@repo/ui/movingcarousel";
 import About from "@repo/ui/about";
 import Card from "@repo/ui/card";
+import Slider from "@repo/ui/slider";
 import Banner from "@repo/ui/banner";
 import { withOpacity } from "../utils/colors";
 
@@ -14,7 +15,7 @@ interface ClientElementProps {
   containerTitle: string;
   colors: any;
   pages: any[];
-  containers: any;
+  pageArray: any;
   theme: any;
 }
 
@@ -23,7 +24,7 @@ const ClientElement: React.FC<ClientElementProps> = ({
   containerTitle, 
   colors, 
   pages, 
-  containers,
+  pageArray,
   theme
 }) => {
   const renderContent = () => {
@@ -35,12 +36,18 @@ const ClientElement: React.FC<ClientElementProps> = ({
 
       case "swimlane":
         return (
-          <MovingCarousel
-            text={elementData?.description?.[0]?.paragraph ?? ""}
-            theme={theme}
-            withOpacity={withOpacity}
-            speed={elementData.swiperOptions?.speed ?? 30}
-          />
+          // <MovingCarousel
+          //   text={elementData?.description?.[0]?.paragraph ?? ""}
+          //   theme={theme}
+          //   withOpacity={withOpacity}
+          //   speed={elementData.swiperOptions?.speed ?? 30}
+          // />
+
+          <Slider
+          elementData={elementData}
+          pageArray={pageArray}
+          >
+          </Slider>
         );
 
       case "video":

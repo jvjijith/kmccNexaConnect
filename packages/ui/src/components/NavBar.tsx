@@ -1,6 +1,6 @@
 "use client"; // Add this at the top to mark it as a client component
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -34,6 +34,25 @@ const Navbar: React.FC<NavbarProps> = ({ menuData }) => {
   // Add state for dropdown menus
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [openMenuIndex, setOpenMenuIndex] = React.useState<number | null>(null);
+  const [activePath, setActivePath] = useState<string>('');
+
+  // Update active path when component mounts or path changes
+  useEffect(() => {
+    // Get the current path from window.location
+    const path = window.location.pathname;
+    setActivePath(path);
+    
+    // Listen for path changes
+    const handleRouteChange = () => {
+      setActivePath(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, []);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>, index: number) => {
     setAnchorElNav(event.currentTarget);
@@ -43,6 +62,16 @@ const Navbar: React.FC<NavbarProps> = ({ menuData }) => {
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
     setOpenMenuIndex(null);
+  };
+
+  // Function to check if a menu item is active
+  const isActive = (itemPath: string) => {
+    // For home page
+    if (itemPath === '/' && activePath === '/') {
+      return true;
+    }
+    // For other pages
+    return activePath === itemPath || activePath.startsWith(`${itemPath}/`);
   };
 
   return (
@@ -72,60 +101,89 @@ const Navbar: React.FC<NavbarProps> = ({ menuData }) => {
           
           {/* Desktop Navigation */}
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: "center" }}>
-            {menuData?.items?.map((item, index) => (
-              <React.Fragment key={index}>
-                {item.menuType === 'multiple' && item.multiItems?.length ? (
-                  <>
-                    <Button
-                      color="inherit"
-                      endIcon={<KeyboardArrowDownIcon />}
-                      sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}
-                      onClick={(e) => handleOpenNavMenu(e, index)}
-                      aria-controls={openMenuIndex === index ? `menu-${index}` : undefined}
-                      aria-haspopup="true"
-                      aria-expanded={openMenuIndex === index ? 'true' : undefined}
+            {menuData?.items?.map((item, index) => {
+              const itemPath = `/${item.menuName.toLowerCase().replace(/ /g, '-')}`;
+              const active = isActive(itemPath);
+              
+              return (
+                <React.Fragment key={index}>
+                  {item.menuType === 'multiple' && item.multiItems?.length ? (
+                    <>
+                      <Button
+                        color="inherit"
+                        endIcon={<KeyboardArrowDownIcon />}
+                        sx={{ 
+                          color: active ? '#FF5722' : 'white', 
+                          mx: 2, 
+                          '&:hover': { color: '#FF5722' },
+                          // Add underline or any other style for active state
+                          borderBottom: active ? '2px solid #FF5722' : 'none',
+                          paddingBottom: '4px'
+                        }}
+                        onClick={(e) => handleOpenNavMenu(e, index)}
+                        aria-controls={openMenuIndex === index ? `menu-${index}` : undefined}
+                        aria-haspopup="true"
+                        aria-expanded={openMenuIndex === index ? 'true' : undefined}
+                      >
+                        {item.menuName}
+                      </Button>
+                      <Menu
+                        id={`menu-${index}`}
+                        anchorEl={anchorElNav}
+                        anchorOrigin={{
+                          vertical: 'bottom',
+                          horizontal: 'left',
+                        }}
+                        keepMounted
+                        transformOrigin={{
+                          vertical: 'top',
+                          horizontal: 'left',
+                        }}
+                        open={openMenuIndex === index}
+                        onClose={handleCloseNavMenu}
+                      >
+                        {item.multiItems.map((subItem, subIndex) => {
+                          const subItemPath = `/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`;
+                          const subActive = isActive(subItemPath);
+                          
+                          return (
+                            <MenuItem 
+                              key={subIndex} 
+                              component="a" 
+                              href={subItemPath}
+                              onClick={handleCloseNavMenu}
+                              sx={{
+                                color: subActive ? '#FF5722' : 'inherit',
+                                backgroundColor: subActive ? 'rgba(255, 87, 34, 0.1)' : 'inherit',
+                                '&:hover': { backgroundColor: 'rgba(255, 87, 34, 0.1)' }
+                              }}
+                            > 
+                              {subItem.menuName}
+                            </MenuItem>
+                          );
+                        })}
+                      </Menu>
+                    </>
+                  ) : (
+                    <Button 
+                      color="inherit" 
+                      component="a" 
+                      href={itemPath} 
+                      sx={{ 
+                        color: active ? '#FF5722' : 'white', 
+                        mx: 2, 
+                        '&:hover': { color: '#FF5722' },
+                        // Add underline or any other style for active state
+                        // borderBottom: active ? '2px solid #FF5722' : 'none',
+                        paddingBottom: '4px'
+                      }}
                     >
                       {item.menuName}
                     </Button>
-                    <Menu
-                      id={`menu-${index}`}
-                      anchorEl={anchorElNav}
-                      anchorOrigin={{
-                        vertical: 'bottom',
-                        horizontal: 'left',
-                      }}
-                      keepMounted
-                      transformOrigin={{
-                        vertical: 'top',
-                        horizontal: 'left',
-                      }}
-                      open={openMenuIndex === index}
-                      onClose={handleCloseNavMenu}
-                    >
-                      {item.multiItems.map((subItem, subIndex) => (
-                        <MenuItem 
-                          key={subIndex} 
-                          component="a" 
-                          href={`/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`}
-                          onClick={handleCloseNavMenu}
-                        > 
-                          {subItem.menuName}
-                        </MenuItem>
-                      ))}
-                    </Menu>
-                  </>
-                ) : (
-                  <Button 
-                    color="inherit" 
-                    component="a" 
-                    href={`/${item.menuName.toLowerCase().replace(/ /g, '-')}`} 
-                    sx={{ color: 'white', mx: 2, '&:hover': { color: '#FF5722' } }}
-                  >
-                    {item.menuName}
-                  </Button>
-                )}
-              </React.Fragment>
-            ))}
+                  )}
+                </React.Fragment>
+              );
+            })}
           </Box>
           
           {/* Donate Button */}
