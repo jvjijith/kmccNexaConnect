@@ -13,14 +13,17 @@ interface PageProps {
   params: Promise<{
     slug: string;
   }>;
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 // This is now a server component that fetches data during server rendering
 export default async function DynamicPage({ params, searchParams }: PageProps) {
-  // Await the params object before accessing its properties
+  // Await both params and searchParams objects before accessing their properties
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
+  
+  // We're also awaiting searchParams even though we're not using it in this component
+  await searchParams;
   
   // Use try/catch for error handling during data fetching
   try {
