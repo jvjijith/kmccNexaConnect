@@ -59,7 +59,7 @@ const handleButtonClick = () => {
 
   const theme = createDynamicTheme({ themes });
 
-  console.log("elementData from normal card",elementData)
+  console.log("elementData from normal card   ",elementData)
 
   return (
       <ThemeProvider theme={theme}>
