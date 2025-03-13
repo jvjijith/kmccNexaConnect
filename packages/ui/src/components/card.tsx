@@ -74,7 +74,7 @@ const FundraiserCard = ({
       {
         (cardOptions.imagePosition === "top" && cardOptions.titlePosition === "bottom" && cardOptions.descriptionPosition  === "bottom" )&&
         <NormalCard 
-        elementData={elementData} containerTitle={containerTitle}
+        elementData={elementData}
         themes={theme}  />
         }
       

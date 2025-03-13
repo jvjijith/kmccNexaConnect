@@ -28,7 +28,6 @@ interface Event {
 interface EventCardProps {
   elementData: any;
   themes: any;
-  containerTitle: string;
 }
 
 // Helper function to format date
@@ -43,7 +42,7 @@ const formatDate = (dateString: string): string => {
 
 
 
-const EventCard: React.FC<EventCardProps> = ({ elementData, themes, containerTitle }) => {
+const EventCard: React.FC<EventCardProps> = ({ elementData, themes }) => {
 
   const [openModal, setOpenModal] = useState(false);
 
@@ -64,7 +63,7 @@ const handleButtonClick = () => {
 
   return (
       <ThemeProvider theme={theme}>
-    <Card sx={{ maxWidth: 650, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', mb: "10%", borderRadius: "30px", margin:5 }}>
+    <Card sx={{ maxWidth: 650,minHeight: 650, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', mb: "10%", borderRadius: "30px", margin:2 }}>
       {/* Image section with category badge */}
       <Box sx={{ position: 'relative', height: 360 }}>
         <img
@@ -93,7 +92,7 @@ const handleButtonClick = () => {
       </Box>
 
       {/* Card header with title */}
-      <CardContent sx={{ pt: 4, px: 4, pb: 2 }}>
+      <CardContent sx={{ pt: 4, px: 4, pb: 2, minHeight: 135 }}>
       {titles.map((title: string, index: string) => (
         <Typography key={index} variant="h4" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
           {title}

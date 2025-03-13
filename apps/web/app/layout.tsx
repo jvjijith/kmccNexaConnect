@@ -1,9 +1,8 @@
 import React from "react";
 import Footer from "@repo/ui/footer";
 import { getColor, getMenu } from "../src/data/loader";
-import NavbarWrapper from "../src/NavbarWrapper";
-import TopLoader from "./components/TopLoader";
 import NextTopLoader from "nextjs-toploader";
+import Navbar from "@repo/ui/NavBar";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let menuData = null;
@@ -28,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           showSpinner={false}
           height={3}
         />
-        <NavbarWrapper menuData={menuData} colors={colors} />
+        <Navbar menuData={menuData} themes={colors} />
         <main>{children}</main>
         <Footer />
       </body>

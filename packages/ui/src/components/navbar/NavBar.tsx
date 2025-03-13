@@ -19,11 +19,10 @@ import {
   Collapse
 } from '@mui/material';
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material';
-import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
-import { createDynamicTheme } from '@repo/ui/theme/theme';
+import { createDynamicTheme } from '../../theme/theme';
 
 interface MenuItemType {
   menuName: string;

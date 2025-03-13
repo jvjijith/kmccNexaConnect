@@ -165,7 +165,8 @@ const Containers = async ({ containerData }: ContainerProps) => {
           switch (layoutOptions?.layout) {
             case "grid":
               return (
-                <GridPage containerData={containerData}/>
+                
+                <GridPage layoutOptions={layoutOptions} items={items} elementDataMap={elementDataMap} containerTitle={title} description={description} />
               );
               
             case "stack":

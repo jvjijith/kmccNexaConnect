@@ -122,6 +122,7 @@ const LandingPage: React.FC<{ elementData: any; containerTitle?: string; themes:
               ))}
                 {elementData?.description?.map((desc: { paragraph: string }, index: number) => (
                 <Typography 
+                key={index}
                   variant='body2'
                   sx={{ 
                     fontWeight: 'bold',

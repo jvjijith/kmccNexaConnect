@@ -47,9 +47,10 @@ interface ElementData {
 interface ChildrensMinistryCardProps {
   elementData: ElementData
   containerTitle?: string
+  themes: any;
 }
 
-export default function ChildrensMinistryCard({ elementData, containerTitle }: ChildrensMinistryCardProps) {
+export default function ChildrensMinistryCard({ elementData, containerTitle, themes }: ChildrensMinistryCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const theme = useTheme()
@@ -80,6 +81,7 @@ export default function ChildrensMinistryCard({ elementData, containerTitle }: C
             boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
             position: "relative",
             cursor: "pointer",
+            margin:5,
             "&:hover": {
               boxShadow: "0 12px 45px rgba(0,0,0,0.15)",
             },
