@@ -1,7 +1,9 @@
 import React from "react";
 import Element from "./Element";
-import { getElement } from "../data/loader";
-import { Box, Typography } from "@repo/ui/mui";
+import { getColor, getElement } from "../data/loader";
+import { ArrowRight, Box, Button, Typography } from "@repo/ui/mui";
+import { createDynamicTheme } from "@repo/ui/theme";
+import GridPage from "./GridPage";
 
 interface LayoutOptions {
   layout?: "grid" | "stack" | "tab" | "fluid";
@@ -80,6 +82,29 @@ interface ContainerProps {
   containerData: ContainerData[]; // Expecting an array of containers
 }
 
+// Define an interface for the color data
+interface ColorData {
+  theme?: {
+    palette: {
+      primary: {
+        main: string;
+        [key: string]: any;
+      };
+      [key: string]: any;
+    };
+    transitions: {
+      create: (prop: string, options?: any) => string;
+      duration: {
+        shorter: number;
+        [key: string]: any;
+      };
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
 // Function to fetch elements for all containers
 async function getElementsData(containerData: ContainerData[]) {
   const elementDataMap: { [key: string]: any } = {};
@@ -106,7 +131,20 @@ const Containers = async ({ containerData }: ContainerProps) => {
   // Fetch all element data at the server
   const elementDataMap = await getElementsData(containerData);
 
+  // Fetch colors server-side
+  let colors: ColorData = {};
+  try {
+    const colorData = await getColor("light");
+    if (colorData?.theme?.palette?.primary?.main) {
+      colors = colorData as ColorData;
+    }
+  } catch (error) {
+    console.error("Error fetching theme colors:", error);
+  }
+
   console.log("containerData", containerData);
+  
+  const theme = createDynamicTheme({colors});
   
   return (
     <div>
@@ -127,59 +165,7 @@ const Containers = async ({ containerData }: ContainerProps) => {
           switch (layoutOptions?.layout) {
             case "grid":
               return (
-                <>
-                {title && (
-                    <Box textAlign="center" py={2} sx={{ mb: "5%" }}>
-                      <Typography
-                        variant="h1"
-                        fontWeight="bold"
-                        color="text.primary"
-                        sx={{
-                          display: "inline-block",
-                          whiteSpace: "pre-line",
-                          wordWrap: "break-word",
-                          maxWidth: "80%", // Adjust as needed
-                          fontSize: "3.5rem",
-                        }}
-                      >
-                        {title.length > 30
-                          ? title.replace(/(.{30})/, "$1\n") // Insert a break after 30 characters
-                          : title}
-                      </Typography>
-                    </Box>
-                  )}
-
-                <div
-                  style={{
-                    display: layoutOptions.gridOptions?.direction?.includes("row") ? "flex" : "grid",
-                    gap: `${(layoutOptions.gridOptions?.spacing || 0) * 4}px`, // Adjusted spacing
-                    gridTemplateColumns: layoutOptions.gridOptions?.direction?.includes("row")
-                      ? undefined
-                      : `repeat(${layoutOptions.gridOptions?.columns || 1}, 1fr)`,
-                    justifyContent: layoutOptions.gridOptions?.justifyContent || "flex-start",
-                    alignItems: layoutOptions.gridOptions?.alignItems || "stretch",
-                    flexWrap: layoutOptions.gridOptions?.wrap as React.CSSProperties["flexWrap"] || "wrap",
-                    flexDirection: layoutOptions.gridOptions?.direction as React.CSSProperties["flexDirection"] || "row",
-                  }}
-                >
-                  {items.map((item, itemIndex) => {
-                    const columnSize = layoutOptions.gridOptions?.sizeData?.[itemIndex]?.size || {};
-                    const mdSize = columnSize.md ?? 1; // Default fallback to 1 if undefined
-              
-                    const elements = elementDataMap[item.element] || []; // Ensure it's an array
-                    return elements.map((elementData: any, index: number) => (
-                      <div
-                        key={`${item.element}-${index}`}
-                        style={{
-                          gridColumn: `span ${mdSize}`, // Use the safely assigned `mdSize`
-                        }}
-                      >
-                        <Element elementData={elementData} containerTitle={title} />
-                      </div>
-                    ));
-                  })}
-                </div>
-                </>
+                <GridPage containerData={containerData}/>
               );
               
             case "stack":
@@ -244,6 +230,7 @@ const Containers = async ({ containerData }: ContainerProps) => {
         };
 
         return (
+          
           <div key={index} style={containerStyle}>
             {renderLayout()}
           </div>

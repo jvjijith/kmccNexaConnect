@@ -1,122 +1,198 @@
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
-  Container, 
-  Card, 
-  CardContent, 
   Button, 
-  useTheme, 
-  ThemeProvider, 
-  createTheme 
+  ThemeProvider
 } from '@mui/material';
 import {Grid2 as Grid} from '@mui/material';
-import {Favorite as FavoriteIcon} from '@mui/icons-material';
-import {School as SchoolIcon} from '@mui/icons-material';
-import {People as PeopleIcon} from '@mui/icons-material';
-import {Handshake as HandshakeIcon} from '@mui/icons-material';
 import {ArrowForward as ArrowForwardIcon} from '@mui/icons-material';
-import { theme } from '../theme';
+import { createDynamicTheme } from '../theme/theme';
 
-
-const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; }> = ({ elementData, containerTitle }) => {
-    const { cardOptions, description, imageUrl } = elementData;
-    const isVisible = (position: string) => position !== "none" && position !== "hidden";
-    const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
+const ChurchAboutUs: React.FC<{ elementData: any; containerTitle?: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
+  // Use state to control client-side rendering
+  const [isClient, setIsClient] = useState(false);
   
-    return (
-      <ThemeProvider theme={theme}>
-        <Box sx={{ width: '100%', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: "center", mt: 8, mb: 8 }}>
-          <Grid container spacing={10}>
-            {/* Content Section - Now First */}
-            <Grid size={{ xs: 12, sm: 12, md: 6 }}>
-              <Box sx={{ p: 2, height: '100%', width: '80%', minHeight: "100vh", alignContent: "center", ml: 30 }}>
-                {containerTitle && (
+  // Safely access data with fallbacks to prevent undefined errors
+  const cardOptions = elementData?.cardOptions || {};
+  const description = elementData?.description || [];
+  const imageUrl = elementData?.imageUrl || '';
+  const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
+  
+  // Helper function for visibility checks
+  const isVisible = (position: string) => position !== "none" && position !== "hidden";
+  
+  // Set client-side state after hydration completes
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Create theme
+  const theme = createDynamicTheme({ themes });
+  
+  // Process description text (limit to 50 words total)
+  const processedDescriptions = React.useMemo(() => {
+    if (!description || !Array.isArray(description)) return [];
+    
+    const result = [];
+    let totalWords = 0;
+    const MAX_WORDS = 500;
+    
+    for (const desc of description) {
+      if (!desc.paragraph) continue;
+      
+      const words = desc.paragraph.split(/\s+/);
+      const wordsToTake = Math.min(words.length, MAX_WORDS - totalWords);
+      
+      if (wordsToTake <= 0) break;
+      
+      const truncatedParagraph = words.slice(0, wordsToTake).join(" ") + 
+                               (wordsToTake < words.length ? "..." : "");
+      
+      result.push(truncatedParagraph);
+      totalWords += wordsToTake;
+      
+      if (totalWords >= MAX_WORDS) break;
+    }
+    
+    return result;
+  }, [description]);
+  
+  // Server-side safe rendering approach
+  return (
+    <ThemeProvider theme={theme}>
+      <Box sx={{ width: '100%', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: "center", mt: 5}}>
+        <Grid container spacing={10} direction="row-reverse">
+          {/* Images Section */}
+          <Grid size={{ xs: 12, sm: 12, md: 6 }}>
+            <Box
+              sx={{
+                position: 'relative',
+                height: '100%',
+                minHeight: "50vh",
+                overflow: 'hidden',
+              }}
+            >
+              {/* Main image */}
+              <Box
+                component="img"
+                src={imageUrl}
+                alt="Church interior"
+                sx={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '95%',
+                  height: '85%',
+                  objectFit: 'cover',
+                  borderRadius: 10,
+                }}
+              />
+            </Box>
+          </Grid>
+          
+          {/* Content Section */}
+          <Grid size={{ xs: 12, sm: 12, md: 6 }}
+           sx={{
+            display: 'flex',
+            justifyContent: { xs: 'center', sm: 'center', md: 'flex-end' },
+            alignItems: 'center',
+          }}>
+            <Box sx={{ 
+              p: 2,
+              height: '100%',
+              width: '80%',
+              minHeight: "50vh",
+              alignContent: "center" 
+            }}>
+              {/* Title Section */}
+              {containerTitle && (
+                <div>
                   <Typography 
                     variant="subtitle1" 
                     component="div" 
-                    sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontSize: '1.5rem', mb: 2 }}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      color: 'primary.main',
+                      fontSize: '1.5rem',
+                      mb: 2,
+                    }}
                   >
-                    <Box component="span" sx={{ mr: 1, fontSize: '1.5rem', fontWeight: 'bold' }}>✦</Box>
+                    <Box 
+                      component="span" 
+                      sx={{ 
+                        mr: 1, 
+                        fontSize: '1.5rem', 
+                        fontWeight: 'bold' 
+                      }}
+                    >
+                      ✦
+                    </Box>
                     {containerTitle}
                   </Typography>
-                )}
-  
-                {titles.length > 0 && (
-                  <Typography variant="h2" component="h1" sx={{ mb: 2 }}>
+                </div>
+              )}
+              
+              {/* Main Title */}
+              {titles.length > 0 && (
+                <div>
+                  <Typography variant="h2" component="h1" color='text.primary' sx={{ mb: 2 }}>
                     {titles[0]}
                   </Typography>
-                )}
-  
-                {titles.slice(1).map((title: string, index: string) => (
-                  <Typography key={index} variant="h3" component="h2" sx={{ mb: 2 }}>
+                </div>
+              )}
+
+              {/* Subtitle(s) */}
+              {titles.slice(1).map((title: string, index: number) => (
+                <div key={`title-${index}`}>
+                  <Typography variant="h3" component="h2" sx={{ mb: 2 }}>
                     {title}
                   </Typography>
-                ))}
-  
-                {isVisible(cardOptions.descriptionPosition) && (() => {
-                  let wordCount = 0;
-                  let truncated = false;
-  
-                  return description?.map((desc: { paragraph: string }, index: number) => {
-                    const words = desc.paragraph.split(" ");
-                    if (wordCount + words.length > 50) {
-                      truncated = true;
-                      const remainingWords = 50 - wordCount;
-                      desc.paragraph = words.slice(0, remainingWords).join(" ") + "...";
-                    }
-  
-                    wordCount += words.length;
-                    if (truncated && wordCount >= 50) return null;
-  
-                    return (
-                      <Typography key={index} component="p" variant="h4" sx={{ mb: 3, color: 'text.secondary' }}>
-                        {desc.paragraph}
-                      </Typography>
-                    );
-                  });
-                })()}
-  
-                {cardOptions.actionButtonPosition === "bottom" && (
+                </div>
+              ))}
+              
+              {/* Description Paragraphs - Only render if visible */}
+              {isVisible(cardOptions.descriptionPosition) && processedDescriptions.map((paragraph, index) => (
+                <div key={`paragraph-${index}`}>
+                  <Typography component="div" variant="h4" sx={{ mb: 3, color: 'text.secondary' }}>
+                    <p>{paragraph}</p>
+                  </Typography>
+                </div>
+              ))}
+              
+              {/* Action Button - Only render on client side */}
+              {isClient && cardOptions.actionButtonPosition === "bottom" && (
+                <div>
                   <Button 
                     variant="contained" 
                     color="primary" 
                     size="large"
                     endIcon={<ArrowForwardIcon />}
-                    href={cardOptions.actionButtonUrl}
-                    sx={{ borderRadius: 50, px: 4, py: 1.5, height: 70, textTransform: 'none', fontWeight: 'bold', fontSize: "1rem", mt: 5 }}
+                    sx={{ 
+                      borderRadius: 50, 
+                      px: 4, 
+                      py: 1.5,
+                      height: 70,
+                      textTransform: 'none',
+                      fontWeight: 'bold',
+                      fontSize: "1rem",
+                      mt: 10
+                    }}
                   >
-                    {cardOptions.actionButtonText}
+                    {cardOptions.actionButtonText || "Learn More"}
                   </Button>
-                )}
-              </Box>
-            </Grid>
-  
-            {/* Image Section - Now on Right */}
-            <Grid size={{ xs: 12, sm: 12, md: 6 }}>
-              <Box sx={{ position: 'relative', height: '100%', minHeight: "100vh", borderRadius: '0 0 50px 0', overflow: 'hidden', mr:20 }}>
-                <Box
-                  component="img"
-                  src={imageUrl}
-                  alt="Church interior main hall"
-                  sx={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '95%',
-                    height: '75%',
-                    objectFit: 'cover',
-                    borderRadius: '0 0 200px 0',
-                  }}
-                />
-              </Box>
-            </Grid>
+                </div>
+              )}
+            </Box>
           </Grid>
-        </Box>
-      </ThemeProvider>
-    );
-  };
-  
-  export default ChurchAboutUs;
-  
+        </Grid>
+      </Box>
+    </ThemeProvider>
+  );
+};
+
+export default ChurchAboutUs;

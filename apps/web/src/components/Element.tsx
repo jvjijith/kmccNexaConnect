@@ -6,7 +6,7 @@ import { themes } from "../utils/colors";
 import ClientElement from "./clientElement";
 
 interface ElementProps {
-  containerTitle: string;
+  containerTitle?: string;
   elementData: {
     componentType:
       | "swimlane"

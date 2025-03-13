@@ -6,6 +6,17 @@ import ImageLeftCard from '../newComponents/imageLeftCard'
 import ImageRightCard from '../newComponents/imageRightCard'
 import NoImageCard from '../newComponents/noImageCard'
 import ImageOnlyCard from '../newComponents/imageOnlyCard'
+import NormalCard from '../newComponents/normalCard'
+
+const event = {
+  id: '123',
+  title: 'Tech Conference 2025',
+  description: 'Join us for the biggest tech event of the year with speakers from around the globe discussing the latest innovations.',
+  date: '2025-04-15',
+  location: 'San Francisco, CA',
+  category: 'technology',
+  image: '/images/tech-conference.jpg'
+};
 
 const FundraiserCard = ({
   elementData,
@@ -16,7 +27,7 @@ const FundraiserCard = ({
   elementData: any;
   theme: any;
   withOpacity: (color: string, opacity: number) => string;
-  containerTitle: string;
+  containerTitle?: string;
 }) => {
   const { cardOptions, title, description, imageUrl } = elementData;
 
@@ -50,13 +61,21 @@ const FundraiserCard = ({
       (cardOptions.imagePosition === "right" && cardOptions.titlePosition === "left" && cardOptions.descriptionPosition  === "left" )&&
       <ImageRightCard 
       elementData={elementData} containerTitle={containerTitle}
+      themes={theme} 
        />
       }
       {
         (cardOptions.imagePosition === "top" && cardOptions.titlePosition === "top" && cardOptions.descriptionPosition  === "none" )&&
         <ImageOnlyCard 
         elementData={elementData} containerTitle={containerTitle}
+        themes={theme} 
          />
+        }
+      {
+        (cardOptions.imagePosition === "top" && cardOptions.titlePosition === "bottom" && cardOptions.descriptionPosition  === "bottom" )&&
+        <NormalCard 
+        elementData={elementData} containerTitle={containerTitle}
+        themes={theme}  />
         }
       
     </>

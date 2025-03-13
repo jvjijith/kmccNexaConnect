@@ -1,9 +1,9 @@
 "use client";
 
-import { Typography, Button, Container, Box, ThemeProvider } from "@mui/material";
+import { Typography, Button, Container, Box, ThemeProvider, useMediaQuery, useTheme as useMuiTheme } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { KeyboardArrowRight } from "@mui/icons-material";
-import { theme } from "../theme";
+import { createDynamicTheme } from "../theme/theme";
 
 // Styled Button
 const ActionButton = styled(Button, {
@@ -52,43 +52,93 @@ const HeroSection = styled("div")<{ overlayColor: string; url: string; }>(({ the
     bottom: 0,
     backgroundColor: overlayColor || theme.palette.secondary.main,
   },
+  [theme.breakpoints.down('sm')]: {
+    backgroundAttachment: "scroll", // Better mobile performance
+  }
 }));
 
 export default function Hero({
   elementData,
   withOpacity,
+  themes
 }: {
   elementData: any;
   withOpacity: (color: string, opacity: number) => string;
+  themes: any;
 }) {
+  const theme = createDynamicTheme({ themes });
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(muiTheme.breakpoints.between('sm', 'md'));
+
   return (
     <ThemeProvider theme={theme}>
-      <HeroSection overlayColor={withOpacity(theme.palette.secondary.main, 0.7)} url={elementData?.imageUrl}>
-        <Container maxWidth="lg">
+      <HeroSection overlayColor={withOpacity(theme.palette.secondary.main, 0)} url={elementData?.imageUrl}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
           <Box position="relative" zIndex={1}>
-            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold", color: theme.palette.primary.main, fontSize: '1.5rem' }}>
+            {/* <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold", color: theme.palette.primary.main, fontSize: '1.5rem' }}>
             ✦ {elementData?.description?.[0]?.paragraph}
-            </Typography>
+            </Typography> */}
 
             <Typography
               variant="h1"
               component="h1"
-              sx={{ mb: 3, fontWeight: "bold", textTransform: "uppercase", color: "white", fontSize: '5.5rem' }}
+              sx={{ 
+                mb: { xs: 2, sm: 2.5, md: 3 }, 
+                fontWeight: "bold", 
+                textTransform: "uppercase", 
+                color: "white", 
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '3.5rem', xl: '5.5rem' },
+                lineHeight: { xs: 1.2, sm: 1.3, md: 1.2 },
+                padding: { xs: '0 10px', sm: 0 }
+              }}
+            >
+              {elementData?.description?.[0]?.paragraph}
+            </Typography>
+
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                mb: { xs: 3, sm: 3.5, md: 4 }, 
+                maxWidth: "600px", 
+                mx: "auto", 
+                color: theme.palette.primary.contrastText, 
+                fontSize: { xs: '0.875rem', sm: '0.925rem', md: '1rem' }, 
+                fontWeight: "bold",
+                padding: { xs: '0 15px', sm: '0 20px', md: 0 },
+                lineHeight: { xs: 1.5, md: 1.6 }
+              }}
             >
               {elementData?.description?.[1]?.paragraph}
             </Typography>
 
-            <Typography variant="body1" sx={{ mb: 4, maxWidth: "600px", mx: "auto", color: theme.palette.secondary.main, fontSize: '1rem', fontWeight: "bold" }}>
-            {elementData?.description?.[2]?.paragraph}
-            </Typography>
-
-            {/* <Box sx={{ display: "flex", gap: 2, mt: 2, justifyContent: "center", alignItems: "center" }}>
-              <ActionButton btnColor={theme.palette.primary.main}>
+            {/* <Box sx={{ 
+              display: "flex", 
+              gap: { xs: 1, sm: 1.5, md: 2 }, 
+              mt: { xs: 1, sm: 1.5, md: 2 }, 
+              justifyContent: "center", 
+              alignItems: "center",
+              flexDirection: { xs: 'column', sm: 'row' } 
+            }}>
+              <ActionButton btnColor={theme.palette.primary.main} sx={{
+                padding: { xs: '10px 20px', sm: '10px 24px', md: '12px 32px' },
+                fontSize: { xs: '0.875rem', sm: '0.925rem', md: '1rem' },
+                width: { xs: '100%', sm: 'auto' }
+              }}>
                 Join In Person
                 <KeyboardArrowRight />
               </ActionButton>
 
-              <ActionButton btnColor="transparent" borderColor={theme.palette.primary.main}>
+              <ActionButton 
+                btnColor="transparent" 
+                borderColor={theme.palette.primary.main}
+                sx={{
+                  padding: { xs: '10px 20px', sm: '10px 24px', md: '12px 32px' },
+                  fontSize: { xs: '0.875rem', sm: '0.925rem', md: '1rem' },
+                  width: { xs: '100%', sm: 'auto' },
+                  mt: { xs: 1, sm: 0 }
+                }}
+              >
                 Donate Now
                 <KeyboardArrowRight />
               </ActionButton>

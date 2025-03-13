@@ -17,7 +17,7 @@ import { theme } from '../theme';
 
 interface ChildrensWorshipProps {
   elementData: any;
-  containerTitle: string;
+  containerTitle?: string;
   onClick?: () => void;
 }
 

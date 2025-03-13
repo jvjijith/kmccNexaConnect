@@ -2,23 +2,18 @@ import React from 'react';
 import { 
   Box, 
   Typography, 
-  Button, 
   Container, 
   ThemeProvider, 
   CssBaseline,
   AppBar,
-  Toolbar,
-  IconButton
+  Toolbar
 } from '@mui/material';
 import {Grid2 as Grid} from '@mui/material';
-import {ShoppingCart as ShoppingCartIcon} from '@mui/icons-material';
-import {PictureAsPdf as PictureAsPdfIcon} from '@mui/icons-material';
-import {ArrowForward as ArrowForwardIcon} from '@mui/icons-material';
 import {Star as StarIcon} from '@mui/icons-material';
 import { createDynamicTheme } from '../theme/theme';
 
-const LandingPage: React.FC<{ elementData: any; containerTitle: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
-    const { cardOptions, description, imageUrl } = elementData;
+const LandingPage: React.FC<{ elementData: any; containerTitle?: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
+    const { description, imageUrl } = elementData;
     const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
     const theme = createDynamicTheme({themes});
   
@@ -27,7 +22,7 @@ const LandingPage: React.FC<{ elementData: any; containerTitle: string; themes: 
       <CssBaseline />
       
       <Box sx={{ 
-        minHeight: { xs: '65vh', md: '65vh' }, // Reduced to 65vh
+        minHeight: { xs: '100vh', sm: '70vh', md: '65vh', lg: '25vh' },
         position: 'relative',
         backgroundImage: {
           xs: 'none',
@@ -35,7 +30,7 @@ const LandingPage: React.FC<{ elementData: any; containerTitle: string; themes: 
         },
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right center',
-        backgroundSize: '50% 100%',
+        backgroundSize: { md: '60% 100%', lg: '50% 100%' },
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -63,7 +58,7 @@ const LandingPage: React.FC<{ elementData: any; containerTitle: string; themes: 
           top: 0,
           left: 0,
           width: '100%',
-          height: '28vh',
+          height: { xs: '40vh', sm: '35vh' },
           backgroundImage: `url(${imageUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -81,14 +76,18 @@ const LandingPage: React.FC<{ elementData: any; containerTitle: string; themes: 
         {/* Main content */}
         <Container maxWidth={false} sx={{ position: 'relative', zIndex: 2, height: '100%' }}>
           <Grid container sx={{ minHeight: { xs: '65vh', md: '65vh' } }}>
-            <Grid size={{xs:12, md:6}} sx={{ 
-              padding: { xs: 2.5, md: 5 },
-              paddingTop: { xs: '30vh', md: 5 },
+            <Grid size={{xs: 12, sm: 12, md: 8, lg: 6}} sx={{ 
+              padding: { xs: 2.5, sm: 3, md: 5 },
+              paddingTop: { xs: '45vh', sm: '40vh', md: 5 },
               display: 'flex',
               flexDirection: 'column',
               justifyContent: { xs: 'flex-start', md: 'center' }
             }}>
-              <Box sx={{ mb: 3, ml: 40 }}>
+              <Box sx={{ 
+                mb: 3, 
+                ml: { xs: 0, sm: 2, md: 3, lg: 4 },
+                maxWidth: { xs: '100%', sm: '90%', md: '85%' }
+              }}>
                 {containerTitle &&
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
                   <StarIcon color="primary" fontSize="small" />
@@ -106,42 +105,37 @@ const LandingPage: React.FC<{ elementData: any; containerTitle: string; themes: 
                   </Typography>
                 </Box>}
                 
-              {titles.length > 0 && (
-                <Typography variant="h1" component="h1" sx={{ 
-                  fontWeight: 'bold',
-                  fontSize: '3.745rem',
-                  mb: 1,
-                  lineHeight: 1
-                }}>
-                  {titles[0]}
-                </Typography>
-              )}
-                
-              {titles.slice(1).map((title: string, index: string) => (
+              {titles.map((title: string, index: number) => (
                 <Typography
-                key={index} variant="h2" component="div" color="primary" sx={{ 
+                key={index} 
+                variant="h2" 
+                component="div" 
+                color="primary" 
+                sx={{ 
                   fontWeight: 'bold',
-                  fontSize: '3.745rem',
+                  fontSize: { xs: '2.5rem', sm: '3rem', md: '3.745rem' },
                   mb: 4,
-                  lineHeight: 1
+                  lineHeight: 1.1
                 }}>
                   {title}
                 </Typography>
               ))}
-                
-                <Typography variant='body2'
-                sx={{ 
+                {elementData?.description?.map((desc: { paragraph: string }, index: number) => (
+                <Typography 
+                  variant='body2'
+                  sx={{ 
                     fontWeight: 'bold',
-                  mb: 4,
-                  fontSize: '1.25rem',
-                }}>
-                  Life is a church dedicated to loving God and serving people. We foster a welcoming community
-                  where faith and compassion drive everything we do, striving to make a positive impact both
-                  spiritually and socially. Join us in this journey.
+                    mb: 4,
+                    fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+                    lineHeight: 1.5
+                  }}
+                >
+          {desc.paragraph}
                 </Typography>
+              ))}
               </Box>
             </Grid>
-            <Grid size={{xs:12, md:6}}></Grid>
+            <Grid size={{xs: 12, md: 4, lg: 6}}></Grid>
           </Grid>
         </Container>
       </Box>

@@ -11,7 +11,7 @@ import {Grid2 as Grid} from '@mui/material';
 import {ArrowForward as ArrowForwardIcon} from '@mui/icons-material';
 import { createDynamicTheme } from '../theme/theme';
 
-const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
+const ChurchAboutUs: React.FC<{ elementData: any; containerTitle?: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
   // Use state to control client-side rendering
   const [isClient, setIsClient] = useState(false);
   
@@ -38,7 +38,7 @@ const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; themes
     
     const result = [];
     let totalWords = 0;
-    const MAX_WORDS = 50;
+    const MAX_WORDS = 500;
     
     for (const desc of description) {
       if (!desc.paragraph) continue;
@@ -63,7 +63,7 @@ const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; themes
   // Server-side safe rendering approach
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ width: '100%', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: "center", mt: 8, mb: 8 }}>
+      <Box sx={{ width: '100%', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: "center", mt: 10}}>
         <Grid container spacing={10}>
           {/* Images Section */}
           <Grid size={{ xs: 12, sm: 12, md: 6 }}>
@@ -71,8 +71,7 @@ const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; themes
               sx={{
                 position: 'relative',
                 height: '100%',
-                minHeight: "100vh",
-                borderRadius: '0 0 50px 0',
+                minHeight: "50vh",
                 overflow: 'hidden',
               }}
             >
@@ -87,21 +86,26 @@ const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; themes
                   top: '50%',
                   transform: 'translate(-50%, -50%)',
                   width: '95%',
-                  height: '75%',
+                  height: '85%',
                   objectFit: 'cover',
-                  borderRadius: '0 0 200px 0',
+                  borderRadius: 10,
                 }}
               />
             </Box>
           </Grid>
           
           {/* Content Section */}
-          <Grid size={{ xs: 12, sm: 12, md: 6 }}>
+          <Grid size={{ xs: 12, sm: 12, md: 6 }}
+           sx={{
+            display: 'flex',
+            justifyContent: { xs: 'center', sm: 'center', md: 'flex-start' },
+            alignItems: 'center',
+          }}>
             <Box sx={{ 
               p: 2,
               height: '100%',
               width: '80%',
-              minHeight: "100vh",
+              minHeight: "50vh",
               alignContent: "center" 
             }}>
               {/* Title Section */}
@@ -136,7 +140,7 @@ const ChurchAboutUs: React.FC<{ elementData: any; containerTitle: string; themes
               {/* Main Title */}
               {titles.length > 0 && (
                 <div>
-                  <Typography variant="h2" component="h1" color='text.secondary' sx={{ mb: 2 }}>
+                  <Typography variant="h2" component="h1" color='text.primary' sx={{ mb: 2 }}>
                     {titles[0]}
                   </Typography>
                 </div>

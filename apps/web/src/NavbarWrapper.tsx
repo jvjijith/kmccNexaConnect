@@ -4,9 +4,12 @@ import Navbar from "@repo/ui/NavBar";
 
 interface NavbarWrapperProps {
   menuData: any;
+  colors: any;
 }
 
-export default function NavbarWrapper({ menuData }: NavbarWrapperProps) {
+export default function NavbarWrapper({ menuData, colors }: NavbarWrapperProps) {
   if (!menuData) return null;
-  return <Navbar menuData={menuData} />;
+  return <Navbar 
+  menuData={menuData}
+   themes={colors}  />;
 }

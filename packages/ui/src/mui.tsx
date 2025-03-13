@@ -13,4 +13,5 @@ export { default as MenuIcon } from '@mui/icons-material/Menu';
 export { styled } from '@mui/material/styles';
 export { ThemeProvider } from "@mui/material/styles";
 export { default as CssBaseline } from "@mui/material/CssBaseline";
-export { Grid2 } from '@mui/material';
+export { Grid2 as Grid } from '@mui/material';
+export { ArrowRight } from '@mui/icons-material';

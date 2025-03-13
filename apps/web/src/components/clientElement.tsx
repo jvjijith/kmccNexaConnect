@@ -8,11 +8,13 @@ import About from "@repo/ui/about";
 import Card from "@repo/ui/card";
 import Slider from "@repo/ui/slider";
 import Banner from "@repo/ui/banner";
+import Paragraph from "@repo/ui/biography";
+import TextBanner from "@repo/ui/textbanner";
 import { withOpacity } from "../utils/colors";
 
 interface ClientElementProps {
   elementData: any;
-  containerTitle: string;
+  containerTitle?: string;
   colors: any;
   pages: any[];
   pageArray: any;
@@ -31,7 +33,7 @@ const ClientElement: React.FC<ClientElementProps> = ({
     switch (elementData.componentType) {
       case "image":
         return (
-          <Hero elementData={elementData} withOpacity={withOpacity} />
+          <Hero elementData={elementData} withOpacity={withOpacity} themes={colors} />
         );
 
       case "swimlane":
@@ -62,7 +64,7 @@ const ClientElement: React.FC<ClientElementProps> = ({
 
       case "textParagraph":
         return (
-          <About elementData={elementData} theme={theme} withOpacity={withOpacity} />
+          <Paragraph/>
         );
 
       case "card":
@@ -77,11 +79,20 @@ const ClientElement: React.FC<ClientElementProps> = ({
 
       case "banner":
         return (
-          <Banner 
+          <>
+          {elementData.imageUrl != null &&
+            <Banner 
             elementData={elementData} 
             containerTitle={containerTitle}
             themes={colors} 
-          />
+          />}
+          {elementData.imageUrl == null &&
+            <TextBanner 
+            elementData={elementData} 
+            containerTitle={containerTitle}
+            themes={colors} 
+          />}
+          </>
         );
 
       default:

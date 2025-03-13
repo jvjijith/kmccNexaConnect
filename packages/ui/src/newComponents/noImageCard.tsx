@@ -1,16 +1,16 @@
 "use client";
 
 import React from 'react';
-import { Box, Typography, Card, CardContent, IconButton, styled, ThemeProvider, useTheme } from '@mui/material';
+import { Box, Typography, Card, CardContent, IconButton, styled, ThemeProvider, useTheme, useMediaQuery } from '@mui/material';
 import { ArrowOutwardOutlined as ArrowOutwardOutlinedIcon } from '@mui/icons-material';
 import { createDynamicTheme } from '../theme/theme';
 
-// Custom styled components using theme
+// Custom styled components using theme with responsive adjustments
 const StyledCard = styled(Card)(({ theme }) => ({
   borderBottomRightRadius: "60px",
   boxShadow: theme.shadows[3],
   backgroundColor: theme.palette.background.default,
-  maxWidth: 350,
+  maxWidth: 650,
   minHeight: 440,
   padding: theme.spacing(3),
   position: 'relative',
@@ -18,7 +18,13 @@ const StyledCard = styled(Card)(({ theme }) => ({
   margin: '0 auto',
   display: 'flex',
   flexDirection: 'column',
-  marginBottom: theme.spacing(30),
+  marginBottom: theme.spacing(3),
+  marginTop: theme.spacing(5),
+  [theme.breakpoints.down('sm')]: {
+    minHeight: 380,
+    padding: theme.spacing(2),
+    borderBottomRightRadius: "40px",
+  },
 }));
 
 const IconContainer = styled(Box)(({ theme }) => ({
@@ -32,6 +38,11 @@ const IconContainer = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
   alignSelf: 'flex-start',
   marginRight: theme.spacing(2),
+  [theme.breakpoints.down('sm')]: {
+    width: theme.spacing(9),
+    height: theme.spacing(9),
+    marginBottom: theme.spacing(2),
+  },
 }));
 
 const CircleButton = styled(IconButton)(({ theme }) => ({
@@ -46,15 +57,25 @@ const CircleButton = styled(IconButton)(({ theme }) => ({
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
   },
+  [theme.breakpoints.down('sm')]: {
+    width: theme.spacing(6),
+    height: theme.spacing(6),
+    bottom: theme.spacing(2),
+    right: theme.spacing(2),
+  },
 }));
 
-const CardWrapper = styled(Box)({
+const CardWrapper = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   width: '100%',
   minHeight: '300px',
-});
+  padding: theme.spacing(0, 2),
+  [theme.breakpoints.down('sm')]: {
+    minHeight: '250px',
+  },
+}));
 
 // Interface for component props
 interface SupportCardProps {
@@ -63,63 +84,80 @@ interface SupportCardProps {
   icon?: React.ReactNode;
 }
 
-const SupportCard: React.FC<{ elementData: any; containerTitle: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
-
-const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
-
-const theme = createDynamicTheme({themes});
+const SupportCard: React.FC<{ elementData: any; containerTitle?: string; themes: any; }> = ({ elementData, containerTitle, themes }) => {
+  const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
+  const theme = createDynamicTheme({themes});
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   return (
     <ThemeProvider theme={theme}>
       <CardWrapper>
         <StyledCard>
-          <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+          <CardContent sx={{ 
+            p: 0, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            flex: 1 
+          }}>
             <IconContainer>
-            <Box component="img" src={elementData?.imageUrl} alt="Church Icon" sx={{ height: 40, mr: 1 }} />
+              <Box 
+                component="img" 
+                src={elementData?.imageUrl} 
+                alt="Church Icon" 
+                sx={{ 
+                  height: { xs: 30, sm: 35, md: 40 }, 
+                  mr: 1 
+                }} 
+              />
             </IconContainer>
 
-            
             {elementData?.description?.map((desc: { paragraph: string }, index: number) => (
-          <Typography 
-          key={index}
-            variant="body2" 
-            color="text.secondary"
-            sx={{ 
-              mb: 2, 
-              mt: 2,
-              fontSize: '1.25rem', 
-              lineHeight: 1.6,
-              textAlign: 'center',
-              maxWidth: '90%' 
-            }}
-          >
-            {desc.paragraph}
-          </Typography>
-              ))}
+              <Typography 
+                key={index}
+                variant="body2" 
+                color="text.secondary"
+                sx={{ 
+                  mb: { xs: 1.5, sm: 2 }, 
+                  mt: { xs: 1.5, sm: 2 },
+                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' }, 
+                  lineHeight: 1.6,
+                  textAlign: 'center',
+                  maxWidth: { xs: '95%', sm: '90%' },
+                  px: { xs: 1, sm: 0 }
+                }}
+              >
+                {desc.paragraph}
+              </Typography>
+            ))}
           
-          <Box sx={{ flexGrow: 1 }} /> {/* Spacer that grows to push content apart */}
+            <Box sx={{ flexGrow: 1 }} /> {/* Spacer that grows to push content apart */}
           
-          {titles.map((title: string, index: string) => (
-          <Typography 
-          key={index}
-            variant="subtitle1" 
-            component="div"
-            color='text.secondary'
-            sx={{ 
-              fontWeight: 600, 
-              fontSize: '1.9rem',
-              position: 'absolute',
-              bottom: 24,
-              left: 24
-            }}
-          >
-            {title}
-          </Typography>
-              ))}
+            {titles.map((title: string, index: string) => (
+              <Typography 
+                key={index}
+                variant="subtitle1" 
+                component="div"
+                color='text.primary'
+                sx={{ 
+                  fontWeight: 600, 
+                  fontSize: { xs: '1.5rem', sm: '1.7rem', md: '1.9rem' },
+                  position: 'absolute',
+                  bottom: { xs: 18, sm: 20, md: 24 },
+                  left: { xs: 18, sm: 20, md: 24 },
+                  lineHeight: 1.2,
+                  maxWidth: { xs: '60%', sm: 'auto' }
+                }}
+              >
+                {title}
+              </Typography>
+            ))}
 
-            <CircleButton aria-label="navigate">
-              <ArrowOutwardOutlinedIcon />
-            </CircleButton>
+            {elementData?.cardOptions?.actionButtonPosition != "hidden" && 
+              <CircleButton aria-label="navigate">
+              <ArrowOutwardOutlinedIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            </CircleButton>}
           </CardContent>
         </StyledCard>
       </CardWrapper>

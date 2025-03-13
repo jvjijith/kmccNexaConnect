@@ -1,187 +1,155 @@
-"use client";  // 👈 Add this line at the top
+"use client";
 
 import React from 'react';
 import { 
   Box, 
   Container, 
   Typography, 
-  Link, 
-  List, 
-  ListItem, 
-  ListItemIcon, 
-  ListItemText,
+  Link,
   IconButton,
-  Divider,
   styled
 } from '@mui/material';
-import { 
-  Facebook as FacebookIcon,
-  Twitter as TwitterIcon,
-  LinkedIn as LinkedInIcon,
-  Instagram as InstagramIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  LocationOn as LocationIcon
-} from '@mui/icons-material';
 import { Grid2 as Grid } from '@mui/material';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
 
 // Custom styled components
-const StyledListItem = styled(ListItem)({
-  padding: '4px 0',
-});
-
-const StyledListItemIcon = styled(ListItemIcon)({
-  minWidth: '30px',
-  color: '#FF5722', // Orange color for icons
-});
-
 const StyledLink = styled(Link)({
-  color: 'white',
+  color: '#667085',
   textDecoration: 'none',
+  display: 'block',
+  marginBottom: '12px',
   '&:hover': {
-    textDecoration: 'underline',
-    color: '#FF5722', // Orange color on hover
+    color: '#1D2939',
   },
 });
 
-const BulletPoint = styled('span')({
-  color: '#FF5722',
-  marginRight: '8px',
+const SocialIconButton = styled(IconButton)({
+  color: '#667085',
+  padding: '8px',
+  '&:hover': {
+    color: '#1D2939',
+    background: 'rgba(0, 0, 0, 0.04)',
+  },
 });
 
-const Footer: React.FC = () => {
+const ContactItem = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: '12px',
+  color: '#667085',
+});
+
+const ContactIcon = styled(Box)({
+  marginRight: '12px',
+  color: '#667085',
+  display: 'flex',
+  alignItems: 'center',
+});
+
+const Footer = () => {
   return (
-    <Box sx={{ bgcolor: 'black', color: 'white', py: 6 }}>
+    <Box sx={{ bgcolor: '#F9FAFB', py: 5, borderTop: '1px solid #EAECF0' }}>
       <Container maxWidth="lg">
         <Grid container spacing={4}>
           {/* Logo and Description */}
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box component="img" src="/church-icon.svg" alt="Church Icon" sx={{ height: 40, mr: 1 }} />
-              <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                <Box component="span" sx={{ color: 'white' }}>AVE</Box>
-                <Box component="span" sx={{ color: '#FF5722' }}>NIX</Box>
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, color: 'rgba(255,255,255,0.7)' }}>
-              Lorem Ipsum is simply dummy text of printing and typesetting industry. Lorem Ipsum has been the industry's.
+          <Grid size={{xs:12, md:3}}>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', mb: 2 }}>
+              KMCC Australia
             </Typography>
-            <Box sx={{ mt: 2 }}>
-              <IconButton color="inherit" aria-label="Facebook">
-                <FacebookIcon />
-              </IconButton>
-              <IconButton color="inherit" aria-label="Twitter">
-                <TwitterIcon />
-              </IconButton>
-              <IconButton color="inherit" aria-label="LinkedIn">
-                <LinkedInIcon />
-              </IconButton>
-              <IconButton color="inherit" aria-label="Instagram">
-                <InstagramIcon />
-              </IconButton>
+            <Typography variant="body2" sx={{ color: '#667085', mb: 2 }}>
+              Kerala Muslim Cultural Centre Australia - Serving the Muslim community in Australia
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <SocialIconButton aria-label="Facebook">
+                <FacebookIcon fontSize="small" />
+              </SocialIconButton>
+              <SocialIconButton aria-label="Instagram">
+                <InstagramIcon fontSize="small" />
+              </SocialIconButton>
+              <SocialIconButton aria-label="Twitter">
+                <TwitterIcon fontSize="small" />
+              </SocialIconButton>
+              <SocialIconButton aria-label="YouTube">
+                <YouTubeIcon fontSize="small" />
+              </SocialIconButton>
             </Box>
           </Grid>
 
           {/* Quick Links */}
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
+          <Grid size={{xs:12, md:3}}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
               Quick Links
             </Typography>
-            <List dense disablePadding>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Home</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">About Us</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Services</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Blog</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Contact Us</StyledLink>
-              </StyledListItem>
-            </List>
+            <Box>
+              <StyledLink href="#">Home</StyledLink>
+              <StyledLink href="#">About Us</StyledLink>
+              <StyledLink href="#">Projects</StyledLink>
+              <StyledLink href="#">Resources</StyledLink>
+              <StyledLink href="#">Our Legends</StyledLink>
+              <StyledLink href="#">Sponsors</StyledLink>
+              <StyledLink href="#">Contact</StyledLink>
+            </Box>
           </Grid>
 
-          {/* Our Services */}
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Our Services
+          {/* Resources */}
+          <Grid size={{xs:12, md:3}}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Resources
             </Typography>
-            <List dense disablePadding>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Support Groups</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Special Events</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Online Services</StyledLink>
-              </StyledListItem>
-              <StyledListItem>
-                <BulletPoint>•</BulletPoint>
-                <StyledLink href="#">Pastoral Care</StyledLink>
-              </StyledListItem>
-            </List>
+            <Box>
+              <StyledLink href="#">Career Opportunities</StyledLink>
+              <StyledLink href="#">Accommodation Guide</StyledLink>
+              <StyledLink href="#">Mosques & Musallahs</StyledLink>
+              <StyledLink href="#">Events Calendar</StyledLink>
+              <StyledLink href="#">News & Updates</StyledLink>
+            </Box>
           </Grid>
 
           {/* Contact */}
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Contact
+          <Grid size={{xs:12, md:3}}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Contact Us
             </Typography>
-            <List dense disablePadding>
-              <StyledListItem>
-                <StyledListItemIcon>
-                  <PhoneIcon />
-                </StyledListItemIcon>
-                <ListItemText primary="(+01) 789 3456 012" />
-              </StyledListItem>
-              <StyledListItem>
-                <StyledListItemIcon>
-                  <EmailIcon />
-                </StyledListItemIcon>
-                <ListItemText primary="domain@gmail.com" />
-              </StyledListItem>
-              <StyledListItem>
-                <StyledListItemIcon>
-                  <LocationIcon />
-                </StyledListItemIcon>
-                <ListItemText primary="24/11 Robert Road,New York,USA" />
-              </StyledListItem>
-            </List>
+            <Box>
+              <ContactItem>
+                <ContactIcon>
+                  <LocationOnIcon fontSize="small" />
+                </ContactIcon>
+                <Typography variant="body2">
+                  123 Main Street, Melbourne, VIC 3000, Australia
+                </Typography>
+              </ContactItem>
+              <ContactItem>
+                <ContactIcon>
+                  <PhoneIcon fontSize="small" />
+                </ContactIcon>
+                <Typography variant="body2">
+                  +61 3 1234 5678
+                </Typography>
+              </ContactItem>
+              <ContactItem>
+                <ContactIcon>
+                  <EmailIcon fontSize="small" />
+                </ContactIcon>
+                <Typography variant="body2">
+                  info@kmccaustralia.org
+                </Typography>
+              </ContactItem>
+            </Box>
           </Grid>
         </Grid>
 
-        {/* Bottom section */}
-        <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <Grid container justifyContent="space-between" alignItems="center">
-            <Grid>
-              <Typography variant="body2" color="text.secondary" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                Copyright 2024 Avenix. All Rights Reserved.
-              </Typography>
-            </Grid>
-            <Grid>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <StyledLink href="#">Term & Condition</StyledLink>
-                <Typography color="text.secondary" sx={{ color: 'rgba(255,255,255,0.7)' }}>/</Typography>
-                <StyledLink href="#">Support</StyledLink>
-                <Typography color="text.secondary" sx={{ color: 'rgba(255,255,255,0.7)' }}>/</Typography>
-                <StyledLink href="#">Privacy Policy</StyledLink>
-              </Box>
-            </Grid>
-          </Grid>
+        {/* Copyright section */}
+        <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #EAECF0', textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: '#667085' }}>
+            © 2025 KMCC Australia. All rights reserved.
+          </Typography>
         </Box>
       </Container>
     </Box>

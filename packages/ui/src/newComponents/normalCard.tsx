@@ -1,93 +1,178 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
+  CardActions, 
   Typography, 
+  Button, 
+  Chip, 
   Box, 
-  Chip,
-  styled
+  ThemeProvider
 } from '@mui/material';
-import { Person, Category, Schedule } from '@mui/icons-material';
+import { CalendarToday, LocationOn } from '@mui/icons-material';
+import { createDynamicTheme } from '../theme/theme';
+import ChildrensMinistryDetail from './model';
 
-// Styled components
-const DateBadge = styled(Box)(({ theme }) => ({
-  position: 'absolute',
-  top: 16,
-  left: 16,
-  backgroundColor: '#FF5733', // Orange color from the image
-  color: 'white',
-  padding: '8px 12px',
-  borderRadius: 4,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontWeight: 'bold',
-}));
+// Define the event interface
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  location: string;
+  category: string;
+  image?: string;
+}
 
-const SermonCard = () => {
+// Props for the component
+interface EventCardProps {
+  elementData: any;
+  themes: any;
+  containerTitle: string;
+}
+
+// Helper function to format date
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
+
+
+
+const EventCard: React.FC<EventCardProps> = ({ elementData, themes, containerTitle }) => {
+
+  const [openModal, setOpenModal] = useState(false);
+
+const handleButtonClick = () => {
+  if (elementData?.withDescription) {
+    setOpenModal(true);
+  } else {
+    window.location.href = `/${elementData?.cardOptions?.actionButtonUrl}`;
+  }
+};
+
+
+  const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
+
+  const theme = createDynamicTheme({ themes });
+
+  console.log("elementData from normal card",elementData)
+
   return (
-    <Card sx={{ 
-      maxWidth: 400, 
-      position: 'relative',
-      borderRadius: 4,
-      overflow: 'visible',
-      boxShadow: 3,
-    }}>
-      {/* Image section */}
-      <Box sx={{ 
-        height: 300, 
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
-        <img 
-          src="/path/to/church-image.jpg" 
-          alt="Person in church"
+      <ThemeProvider theme={theme}>
+    <Card sx={{ maxWidth: 650, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', mb: "10%", borderRadius: "30px", margin:5 }}>
+      {/* Image section with category badge */}
+      <Box sx={{ position: 'relative', height: 360 }}>
+        <img
+          src={elementData?.imageUrl}
+          alt={elementData?.referenceName}
           style={{ 
             width: '100%', 
             height: '100%', 
-            objectFit: 'cover',
+            objectFit: 'cover' 
           }}
         />
-        <DateBadge>
-          <Typography variant="h6" fontWeight="bold">03</Typography>
-          <Typography variant="caption" fontWeight="bold">Aug</Typography>
-        </DateBadge>
+        {/* <Chip
+          label={event.category}
+          color="primary"
+          size="medium"
+          sx={{ 
+            position: 'absolute', 
+            top: 20, 
+            right: 20, 
+            textTransform: 'capitalize',
+            fontSize: '1rem',
+            padding: '6px 4px',
+            height: 'auto'
+          }}
+        /> */}
       </Box>
 
-      {/* Content section */}
-      <CardContent sx={{ 
-        bgcolor: '#FFF8F5', // Light peach background
-        borderRadius: '0 0 16px 16px',
-        padding: 3,
-      }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Start A New Way Of Living
+      {/* Card header with title */}
+      <CardContent sx={{ pt: 4, px: 4, pb: 2 }}>
+      {titles.map((title: string, index: string) => (
+        <Typography key={index} variant="h4" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
+          {title}
         </Typography>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-          <Person sx={{ color: '#FF5733' }} />
-          <Typography variant="body2">
-            Sermon From : <strong>James Mitchell</strong>
+      ))}
+
+        {/* Date and location info */}
+       {elementData?.info?.length > 0 &&
+        <>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <CalendarToday sx={{ fontSize: 24, color: 'primary.main' }} />
+          <Typography variant="h6" color="text.secondary">
+            {formatDate('2025-04-15')}
           </Typography>
         </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-          <Category sx={{ color: '#FF5733' }} />
-          <Typography variant="body2">
-            Categories : <strong>Faith & Trust</strong>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+          <LocationOn sx={{ fontSize: 24, color: 'primary.main' }} />
+          <Typography variant="h6" color="text.secondary">
+            {'San Francisco, CA'}
           </Typography>
         </Box>
+        </>
+        }
+
+        {/* Description with line clamp */}
         
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Schedule sx={{ color: '#FF5733' }} />
-          <Typography variant="body2">
-            Date & Time : <strong>7:00 Am To 10:00 Am</strong>
-          </Typography>
-        </Box>
+        {/* {elementData?.description?.map((desc: { paragraph: string }, index: number) => ( */}
+        {elementData?.description?.length > 0 &&
+        <Typography 
+        // key={index}
+          variant="body1" 
+          color="text.secondary"
+          sx={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            mb: 3,
+            lineHeight: 1.8,
+            fontSize: '1.1rem'
+          }}
+        >
+          {elementData?.description[0]?.paragraph}
+        </Typography>
+      }
+              {/* ))} */}
       </CardContent>
+
+      {/* Card footer with button */}
+
+      {elementData?.cardOptions?.actionButtonPosition == "bottom" && 
+      <CardActions sx={{ p: 4, pt: 0 }}>
+        <Button 
+          variant="outlined" 
+          fullWidth 
+          onClick={handleButtonClick}
+          size="large"
+          sx={{ 
+            py: 2,
+            fontSize: '1.2rem',
+            textTransform: 'none',
+            borderRadius: 2,
+            borderWidth: 2
+          }}
+        >
+          {elementData?.cardOptions?.actionButtonText}
+        </Button>
+
+      </CardActions>}
     </Card>
+    <ChildrensMinistryDetail
+        elementData={elementData}
+        open={openModal}
+        themes={themes}
+        onClose={() => setOpenModal(false)}
+      />
+    </ThemeProvider>
   );
 };
 
-export default SermonCard;
+export default EventCard;

@@ -61,7 +61,7 @@ const CircleButton = styled(IconButton)(({ theme }) => ({
 
 interface YouthWorshipCardProps {
   elementData: any;
-  containerTitle: string;
+  containerTitle?: string;
 }
 
 const YouthWorshipCard: React.FC<YouthWorshipCardProps> = ({
