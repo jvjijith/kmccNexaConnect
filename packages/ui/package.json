@@ -26,6 +26,7 @@
     "./paragraph": "./src/newComponents/paragraph.tsx",
     "./biography": "./src/newComponents/biography.tsx",
     "./contact": "./src/newComponents/contactUs.tsx",
+    "./productcard": "./src/newComponents/productCard.tsx",
     "./NavBar": "./src/components/navbar/NavBar.tsx",
     "./theme": "./src/theme/theme.tsx"
   },

@@ -6,13 +6,15 @@ import Hero from "@repo/ui/herosection";
 import MovingCarousel from "@repo/ui/movingcarousel";
 import About from "@repo/ui/about";
 import Card from "@repo/ui/card";
-import Slider from "@repo/ui/slider";
 import Banner from "@repo/ui/banner";
 import Paragraph from "@repo/ui/biography";
 import TextBanner from "@repo/ui/textbanner";
 import { withOpacity } from "../utils/colors";
+import SliderPage from "./slider";
+import { Box, Typography } from "@repo/ui/mui";
 
 interface ClientElementProps {
+  description?: string;
   elementData: any;
   containerTitle?: string;
   colors: any;
@@ -23,6 +25,7 @@ interface ClientElementProps {
 
 const ClientElement: React.FC<ClientElementProps> = ({ 
   elementData, 
+  description,
   containerTitle, 
   colors, 
   pages, 
@@ -38,18 +41,29 @@ const ClientElement: React.FC<ClientElementProps> = ({
 
       case "swimlane":
         return (
-          // <MovingCarousel
-          //   text={elementData?.description?.[0]?.paragraph ?? ""}
-          //   theme={theme}
-          //   withOpacity={withOpacity}
-          //   speed={elementData.swiperOptions?.speed ?? 30}
-          // />
+          <>
+           {/* <MovingCarousel
+            text={elementData?.description?.[0]?.paragraph ?? ""}
+            theme={theme}
+            withOpacity={withOpacity}
+            speed={elementData.swiperOptions?.speed ?? 30}
+          /> */}
+          {containerTitle && (
+            <Box textAlign="center" py={2} sx={{ mb: "1%", mt: "5%" }}>
+              <Typography variant="h1" fontWeight="bold" sx={{ fontSize: "3rem" }}>
+                {containerTitle}
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 1 }}>
+                {description}
+              </Typography>
+              </Box>)
+              }
 
-          <Slider
-          elementData={elementData}
-          pageArray={pageArray}
+          <SliderPage
+          elementData={elementData} themes={colors}
           >
-          </Slider>
+          </SliderPage>
+          </>
         );
 
       case "video":

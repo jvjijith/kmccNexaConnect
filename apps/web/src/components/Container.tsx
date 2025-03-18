@@ -184,7 +184,7 @@ const Containers = async ({ containerData }: ContainerProps) => {
                   {items.map((item) => (
                     <div key={item.element}>
                       {elementDataMap[item.element]?.map((elementData: any, index: number) => (
-                        <Element key={index} elementData={elementData} containerTitle={title} />
+                        <Element key={index} elementData={elementData} containerTitle={title} description={description} />
                       ))}
                     </div>
                   ))}
@@ -206,7 +206,7 @@ const Containers = async ({ containerData }: ContainerProps) => {
                   {items.map((item) => (
                     <div key={item.element}>
                       {elementDataMap[item.element]?.map((elementData: any, index: number) => (
-                        <Element key={index} elementData={elementData} containerTitle={title} />
+                        <Element key={index} elementData={elementData} containerTitle={title} description={description} />
                       ))}
                     </div>
                   ))}
@@ -220,7 +220,7 @@ const Containers = async ({ containerData }: ContainerProps) => {
                  {items.map((item) => (
                     <div key={item.element}>
                       {elementDataMap[item.element]?.map((elementData: any, index: number) => (
-                        <Element key={index} elementData={elementData} containerTitle={title} />
+                        <Element key={index} elementData={elementData} containerTitle={title} description={description} />
                       ))}
                     </div>
                   ))}

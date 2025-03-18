@@ -7,6 +7,7 @@ import ClientElement from "./clientElement";
 
 interface ElementProps {
   containerTitle?: string;
+  description?: string;
   elementData: {
     componentType:
       | "swimlane"
@@ -60,7 +61,7 @@ interface ElementProps {
   };
 }
 
-async function Element({ elementData, containerTitle }: ElementProps) {
+async function Element({ elementData, containerTitle, description }: ElementProps) {
   if (!elementData) return null;
 
   // Fetch data server-side
@@ -106,6 +107,7 @@ async function Element({ elementData, containerTitle }: ElementProps) {
       pages={pages}
       pageArray={containers}
       theme={themes.ramadan}
+      description={description}
     />
   );
 }

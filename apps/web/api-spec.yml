@@ -20,7 +20,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: https://smartbear.com/terms-of-use/
 servers:
-- url: https://storeapi-vewo.onrender.com/
+- url: http://localhost:9999/
   description: Local Dev environment
 - url: https://staging.api.nexalogics.com.au/
   description: Staging Environment
@@ -859,6 +859,96 @@ components:
       - referenceName
       - description
       - layoutOptions
+    ProductResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        brand:
+          type: string
+        subBrand:
+          type: string
+        subCategory:
+          type: string
+        stock:
+          type: number
+        images:
+          type: array
+          items:
+            nullable: true
+        RFQ:
+          type: boolean
+        HSN:
+          type: string
+        model:
+          type: string
+        productCode:
+          type: string
+        notes:
+          type: array
+          items:
+            nullable: true
+        variants:
+          type: array
+          items:
+            nullable: true
+        active:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      required:
+      - name
+      - description
+      - category
+      - brand
+      - stock
+      - HSN
+      - model
+      - productCode
+    CatalogResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        catType:
+          type: string
+        productIds:
+          type: array
+          items:
+            nullable: true
+        customParams:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldName:
+                type: string
+              fieldType:
+                type: string
+              fieldValue:
+                type: string
+              _id:
+                type: string
+            required:
+            - fieldName
+            - fieldType
+            - fieldValue
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      required:
+      - name
+      - description
+      - catType
     CreateTokenResponse:
       type: object
       properties:
@@ -1189,7 +1279,7 @@ paths:
       security:
       - ApiKeyAuth: []
         AppSecretAuth: []
-      operationId: getByIdElement
+      operationId: getElement
       parameters:
       - schema:
           type: string
@@ -1267,6 +1357,74 @@ paths:
                 "$ref": "#/components/schemas/ContainerResponse"
         '404':
           description: Container not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/product/{productId}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getProductById
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: productId
+        in: path
+      responses:
+        '200':
+          description: The requested Product of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ProductResponse"
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/apps/catalog/{catalogId}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getCatalogById
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: catalogId
+        in: path
+      responses:
+        '200':
+          description: The requested Catalog of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CatalogResponse"
+        '404':
+          description: Product not found
           content:
             application/json:
               schema:
