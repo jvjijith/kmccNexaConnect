@@ -30,6 +30,7 @@ export const createDynamicTheme = (data: any) => {
   }
   
   console.log("colors.primary", colors);
+  console.log("data", data);
   
   return createTheme({
     palette: {

@@ -20,7 +20,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: https://smartbear.com/terms-of-use/
 servers:
-- url: http://localhost:9999/
+- url: https://storeapi-vewo.onrender.com/
   description: Local Dev environment
 - url: https://staging.api.nexalogics.com.au/
   description: Staging Environment
@@ -985,6 +985,153 @@ components:
       - phone
       - storeUser
       - language
+    EventResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+          required:
+          - name
+          - description
+        location:
+          type: string
+        GeoAllow:
+          type: object
+          properties:
+            location:
+              type: string
+            coordinates:
+              type: array
+              items:
+                type: number
+          required:
+          - location
+          - coordinates
+        allowGuest:
+          type: boolean
+        allowLogin:
+          type: boolean
+        allowMemberLogin:
+          type: boolean
+        seatsAvailable:
+          type: number
+        totalregisteredSeats:
+          type: number
+        registrationFields:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              displayName:
+                type: string
+              type:
+                type: string
+              options:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    fieldName:
+                      type: string
+                    parentName:
+                      type: string
+                    labelName:
+                      type: string
+                    _id:
+                      type: string
+              valueType:
+                type: string
+              fixedValue:
+                nullable: true
+              userValue:
+                nullable: true
+              truthValue:
+                nullable: true
+              falseValue:
+                nullable: true
+              formula:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    fieldName:
+                      type: string
+                    operationName:
+                      type: string
+                    _id:
+                      type: string
+                  required:
+                  - type
+              _id:
+                type: string
+            required:
+            - name
+            - displayName
+            - type
+            - valueType
+        createdBy:
+          type: string
+        updatedBy:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        eventStatus:
+          type: string
+        startingDate:
+          type: string
+        endingDate:
+          type: string
+        paymentType:
+          type: string
+        priceConfig:
+          type: object
+          properties:
+            type:
+              type: string
+            amount:
+              type: number
+            dependantField:
+              type: string
+          required:
+          - type
+          - amount
+        registrationStartDate:
+          type: string
+        registrationEndDate:
+          type: string
+      required:
+      - name
+      - description
+      - type
+      - metadata
+      - location
+      - seatsAvailable
+      - createdBy
+      - updatedBy
+      - eventStatus
+      - startingDate
+      - endingDate
+      - paymentType
+      - priceConfig
+      - registrationStartDate
+      - registrationEndDate
   parameters: {}
 paths:
   "/":
@@ -1521,3 +1668,37 @@ paths:
                 required:
                 - success
                 - error
+  "/apps/event/{eventId}":
+    get:
+      tags:
+      - Apps
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getEventById
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: eventId
+        in: path
+      responses:
+        '200':
+          description: The requested Event of App
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EventResponse"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found

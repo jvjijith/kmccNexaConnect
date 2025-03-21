@@ -19,6 +19,10 @@ export async function getCatalog(catalogId: string) {
   return await fetchApi(`/apps/catalog/${catalogId}`);
 }
 
+export async function getEvent(eventId: string) {
+  return await fetchApi(`/apps/event/${eventId}`);
+}
+
 export async function getProduct(productId: string) {
   return await fetchApi(`/apps/product/${productId}`);
 }

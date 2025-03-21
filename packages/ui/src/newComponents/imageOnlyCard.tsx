@@ -130,7 +130,7 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
               {elementData?.description?.length > 0 && (
                   <Typography 
                     variant="body1" 
-                    color="text.secondary"
+                    color="white"
                     sx={{
                       display: '-webkit-box',
                       WebkitLineClamp: 3,

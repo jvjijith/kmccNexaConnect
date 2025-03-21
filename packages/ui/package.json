@@ -27,6 +27,8 @@
     "./biography": "./src/newComponents/biography.tsx",
     "./contact": "./src/newComponents/contactUs.tsx",
     "./productcard": "./src/newComponents/productCard.tsx",
+    "./eventdetails": "./src/newComponents/event/eventDetailPage.tsx",
+    "./event": "./src/newComponents/event/event.ts",
     "./NavBar": "./src/components/navbar/NavBar.tsx",
     "./theme": "./src/theme/theme.tsx"
   },
@@ -60,6 +62,7 @@
     "@types/react-helmet": "^6.1.11",
     "framer-motion": "^12.5.0",
     "gsap": "^3.12.7",
+    "lucide-react": "^0.483.0",
     "react": "^19.0.0",
     "react-anchor-link-smooth-scroll": "^1.0.12",
     "react-dom": "^19.0.0",
