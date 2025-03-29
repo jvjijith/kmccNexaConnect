@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import Navbar from "@repo/ui/NavBar";
+import Navbar from "../app/components/navbar/NavBar";
 
 interface NavbarWrapperProps {
   menuData: any;

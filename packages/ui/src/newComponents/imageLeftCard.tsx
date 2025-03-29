@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import {
   Box,
   Typography,
@@ -11,6 +11,7 @@ import {
   useTheme,
   useMediaQuery,
   ThemeProvider,
+  Skeleton,
 } from "@mui/material";
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
 import { theme } from '../theme';
@@ -21,99 +22,148 @@ interface ChildrensWorshipProps {
   onClick?: () => void;
 }
 
-const ChildrensWorship: React.FC<ChildrensWorshipProps> = ({
-  elementData,
-  containerTitle,
-  onClick = () => console.log("Children's worship clicked"),
-}) => {
-//   const theme = useTheme();
+// Skeleton Component
+function ChildrensWorshipSkeleton() {
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  return (
+    <Card
+      sx={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        overflow: "hidden",
+        maxWidth: "100%",
+        borderRadius: "0 0 100px 0",
+        boxShadow: "none",
+      }}
+    >
+      <Skeleton
+        variant="rectangular"
+        sx={{
+          width: isMobile ? "100%" : "50%",
+          height: isMobile ? "300px" : "600px",
+          borderRadius: "0 0 100px 0",
+        }}
+        animation="wave"
+      />
+
+      <CardContent
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: theme.spacing(4),
+          width: isMobile ? "100%" : "50%",
+          backgroundColor: theme.palette.background.default,
+        }}
+      >
+        <Skeleton 
+          variant="text" 
+          width="80%" 
+          height={80} 
+          animation="wave"
+          sx={{ mb: 1 }}
+        />
+        <Skeleton 
+          variant="text" 
+          width="60%" 
+          height={60} 
+          animation="wave"
+          sx={{ mb: 3 }}
+        />
+        <Skeleton 
+          variant="text" 
+          width="90%" 
+          height={30} 
+          animation="wave"
+          sx={{ mb: 2 }}
+        />
+        <Skeleton 
+          variant="text" 
+          width="85%" 
+          height={30} 
+          animation="wave"
+          sx={{ mb: 2 }}
+        />
+
+        <Box sx={{ mt: 10 }}>
+          <Skeleton 
+            variant="circular" 
+            width={48} 
+            height={48} 
+            animation="wave"
+          />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Main Content Component
+function ChildrensWorshipContent({ elementData, containerTitle, onClick = () => console.log("Children's worship clicked") }: ChildrensWorshipProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { cardOptions, description, imageUrl } = elementData;
   const isVisible = (position: string) => position !== "none" && position !== "hidden";
   const titles = elementData?.title?.map((t: { name: string }) => t.name) || [];
 
-
   return (
-    <ThemeProvider theme={theme}>
-      <Card
+    <Card
+      sx={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        overflow: "hidden",
+        maxWidth: "100%",
+        borderRadius: "0 0 100px 0",
+        boxShadow: "none",
+      }}
+    >
+      <CardMedia
+        component="img"
+        sx={{
+          width: isMobile ? "100%" : "50%",
+          borderRadius: "0 0 100px 0",
+          objectFit: "cover",
+        }}
+        image={imageUrl}
+        alt="Children gathered in church for worship"
+      />
+
+      <CardContent
         sx={{
           display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          overflow: "hidden",
-          maxWidth: "100%",
-          borderRadius: "0 0 100px 0",
-          boxShadow: "none",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: theme.spacing(4),
+          width: isMobile ? "100%" : "50%",
+          backgroundColor: theme.palette.background.default,
         }}
       >
-        <CardMedia
-          component="img"
-          sx={{
-            width: isMobile ? "100%" : "50%",
-            borderRadius: "0 0 100px 0",
-            objectFit: "cover",
-          }}
-          image={imageUrl}
-          alt="Children gathered in church for worship"
-        />
-
-        <CardContent
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            padding: theme.spacing(4),
-            width: isMobile ? "100%" : "50%",
-            backgroundColor: theme.palette.background.default, // Theme-based background
-          }}
+        <Typography 
+          variant="h1" 
+          component="h1" 
+          fontWeight="bold" 
+          mb={1} 
+          color="text.primary"
+          sx={{ fontSize: { xs: "2rem", sm: "3rem", md: "4rem" } }}
         >
+          {titles[0]}
+        </Typography>
+
+        {titles.slice(1).map((title: string, index: number) => (
           <Typography 
-              variant="h1" 
-              component="h1" 
-              fontWeight="bold" 
-              mb={1} 
-              color="text.primary"
-              sx={{ fontSize: { xs: "2rem", sm: "3rem", md: "4rem" } }} // Responsive font sizes
-            >
-              {titles[0]}
-            </Typography>
-
-            {titles.slice(1).map((title: string, index: string) => (
-            <Typography 
             key={index}
-              variant="body1" 
-              component="p" // Corrected: "p" is a valid HTML tag
-              color="text.secondary" 
-              mb={3}
-              sx={{ fontSize: { xs: "0.875rem", sm: "1rem", md: "2.125rem" } }} // Responsive font sizes
-            >
-              {title}
-            </Typography>
-              ))}
+            variant="body1" 
+            component="p"
+            color="text.secondary" 
+            mb={3}
+            sx={{ fontSize: { xs: "0.875rem", sm: "1rem", md: "2.125rem" } }}
+          >
+            {title}
+          </Typography>
+        ))}
 
-
-          <Box>
-            
-          {/* <Button 
-              variant="contained" 
-              color="primary" 
-              size="large"
-              endIcon={<ArrowForwardIcon />}
-              href={cardOptions.actionButtonUrl}
-              sx={{ 
-                borderRadius: 50, 
-                px: 4, 
-                py: 1.5,
-                height: 70,
-                textTransform: 'none',
-                fontWeight: 'bold',
-                fontSize: "1rem",
-                mt: 10
-              }}
-            >
-          {cardOptions.actionButtonText}
-          
-        </Button> */}
-            {cardOptions.actionButtonPosition === "bottom" &&
+        <Box>
+          {cardOptions.actionButtonPosition === "bottom" &&
             <Button
               variant="contained"
               sx={{
@@ -121,18 +171,29 @@ const ChildrensWorship: React.FC<ChildrensWorshipProps> = ({
                 minWidth: "48px",
                 height: "48px",
                 padding: 0,
-                backgroundColor: theme.palette.primary.main, // Primary color from theme
+                backgroundColor: theme.palette.primary.main,
                 "&:hover": {
-                  backgroundColor: theme.palette.primary.dark, // Darker on hover
+                  backgroundColor: theme.palette.primary.dark,
                 },
               }}
               onClick={onClick}
             >
               <ArrowForwardIcon />
-            </Button>}
-          </Box>
-        </CardContent>
-      </Card>
+            </Button>
+          }
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Main Component with Suspense
+const ChildrensWorship: React.FC<ChildrensWorshipProps> = (props) => {
+  return (
+    <ThemeProvider theme={theme}>
+      <Suspense fallback={<ChildrensWorshipSkeleton />}>
+        <ChildrensWorshipContent {...props} />
+      </Suspense>
     </ThemeProvider>
   );
 };

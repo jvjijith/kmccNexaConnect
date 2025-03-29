@@ -16,13 +16,22 @@ import {
   List,
   ListItem,
   ListItemText,
-  Collapse
+  Collapse,
+  Badge,
+  Avatar,
+  Tooltip
 } from '@mui/material';
-import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material';
-import { Menu as MenuIcon } from '@mui/icons-material';
-import { Close as CloseIcon } from '@mui/icons-material';
-import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
-import { createDynamicTheme } from '../../theme/theme';
+import { 
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon, 
+  ExpandLess as ExpandLessIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Person as PersonIcon,
+  AccountCircle as AccountCircleIcon
+} from '@mui/icons-material';
+import { createDynamicTheme } from '@repo/ui/theme';
 
 interface MenuItemType {
   menuName: string;
@@ -49,9 +58,12 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [scrolled, setScrolled] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [expandedMobileMenus, setExpandedMobileMenus] = useState<number[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [cartItemCount, setCartItemCount] = useState<number>(0);
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   
   const isMobile = useMediaQuery('(max-width:1000px)');
-  const isHomePage = activePath === '/home';
+  const isHomePage = activePath === '/';
 
   // Update active path when component mounts or path changes
   useEffect(() => {
@@ -72,6 +84,18 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
       }
     };
 
+    // Check if user is logged in (example - replace with your auth logic)
+    const checkLoginStatus = () => {
+      // This is a placeholder - replace with your actual auth check
+      const userToken = localStorage.getItem('userToken');
+      setIsLoggedIn(!!userToken);
+      
+      // Example cart count - replace with your actual cart logic
+      const cartItems = localStorage.getItem('cartItems');
+      setCartItemCount(cartItems ? JSON.parse(cartItems).length : 0);
+    };
+    
+    checkLoginStatus();
     window.addEventListener('popstate', handleRouteChange);
     window.addEventListener('scroll', handleScroll);
     
@@ -101,6 +125,21 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
         ? prev.filter(i => i !== index) 
         : [...prev, index]
     );
+  };
+
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  const handleLogout = () => {
+    // Implement your logout logic here
+    localStorage.removeItem('userToken');
+    setIsLoggedIn(false);
+    handleCloseUserMenu();
   };
 
   // Function to check if a menu item is active
@@ -163,21 +202,6 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 </Box>
               </Box>
             </Box>
-            
-            {/* Mobile menu icon */}
-            {isMobile && (
-              <IconButton
-                edge="end"
-                color="inherit"
-                aria-label="menu"
-                onClick={toggleMobileMenu}
-                sx={{ 
-                  color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
-                }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
             
             {/* Desktop Navigation */}
             {!isMobile && (
@@ -276,25 +300,100 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               </Box>
             )}
             
-            {/* Contact/Donate Button */}
-            {/* {!isMobile && (
-              <Button
-                variant="contained"
-                color="primary"
-                href="/contact"
-                sx={{
-                  borderRadius: '4px',
-                  px: 2,
-                  py: 0.75,
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  whiteSpace: 'nowrap'
+            {/* Cart and Login/Profile Buttons */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+              {/* Cart Button */}
+              <IconButton 
+                color="inherit" 
+                aria-label="cart"
+                href="/cart"
+                sx={{ 
+                  color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
                 }}
               >
-                Contact
-              </Button>
-            )} */}
+                <Badge badgeContent={cartItemCount} color="error">
+                  <ShoppingCartIcon />
+                </Badge>
+              </IconButton>
+              
+              {/* Login Button or Profile Menu */}
+              {isLoggedIn ? (
+                <>
+                  <Tooltip title="Open settings">
+                    <IconButton 
+                      onClick={handleOpenUserMenu} 
+                      sx={{ 
+                        p: 0,
+                        color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
+                      }}
+                    >
+                      <AccountCircleIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Menu
+                    sx={{ mt: '45px' }}
+                    id="menu-appbar"
+                    anchorEl={anchorElUser}
+                    anchorOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    keepMounted
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    open={Boolean(anchorElUser)}
+                    onClose={handleCloseUserMenu}
+                  >
+                    <MenuItem component="a" href="/profile" onClick={handleCloseUserMenu}>
+                      <ListItemText primary="Profile" />
+                    </MenuItem>
+                    <MenuItem component="a" href="/orders" onClick={handleCloseUserMenu}>
+                      <ListItemText primary="My Orders" />
+                    </MenuItem>
+                    <MenuItem onClick={handleLogout}>
+                      <ListItemText primary="Logout" />
+                    </MenuItem>
+                  </Menu>
+                </>
+              ) : (
+                <Button
+                  variant="outlined"
+                  startIcon={<PersonIcon />}
+                  href="/login"
+                  sx={{
+                    color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
+                    borderColor: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    },
+                    textTransform: 'none',
+                    fontSize: '0.9rem',
+                    display: { xs: 'none', sm: 'flex' }
+                  }}
+                >
+                  Login
+                </Button>
+              )}
+              
+              {/* Mobile menu icon */}
+              {isMobile && (
+                <IconButton
+                  edge="end"
+                  color="inherit"
+                  aria-label="menu"
+                  onClick={toggleMobileMenu}
+                  sx={{ 
+                    color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
+                  }}
+                >
+                  <MenuIcon />
+                </IconButton>
+              )}
+            </Box>
           </Toolbar>
         </Container>
       </AppBar>
@@ -386,21 +485,82 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               </React.Fragment>
             );
           })}
-          {/* <ListItem sx={{ mt: 2 }}>
+          
+          {/* Mobile Login/Profile Button */}
+          <ListItem sx={{ mt: 2 }}>
+            {isLoggedIn ? (
+              <Button
+                variant="outlined"
+                startIcon={<AccountCircleIcon />}
+                href="/profile"
+                fullWidth
+                sx={{
+                  borderRadius: '4px',
+                  py: 1,
+                  textTransform: 'none'
+                }}
+              >
+                My Profile
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                startIcon={<PersonIcon />}
+                href="/login"
+                fullWidth
+                sx={{
+                  borderRadius: '4px',
+                  py: 1,
+                  textTransform: 'none'
+                }}
+              >
+                Login
+              </Button>
+            )}
+          </ListItem>
+          
+          {/* Mobile Cart Button */}
+          <ListItem>
             <Button
               variant="contained"
               color="primary"
-              href="/contact"
+              startIcon={
+                <Badge badgeContent={cartItemCount} color="error">
+                  <ShoppingCartIcon />
+                </Badge>
+              }
+              href="/cart"
               fullWidth
               sx={{
                 borderRadius: '4px',
                 py: 1,
-                textTransform: 'none'
+                textTransform: 'none',
+                mt: 1
               }}
             >
-              Contact
+              Cart
             </Button>
-          </ListItem> */}
+          </ListItem>
+          
+          {/* Logout Button (Mobile) */}
+          {isLoggedIn && (
+            <ListItem>
+              <Button
+                variant="text"
+                color="error"
+                onClick={handleLogout}
+                fullWidth
+                sx={{
+                  borderRadius: '4px',
+                  py: 1,
+                  textTransform: 'none',
+                  mt: 1
+                }}
+              >
+                Logout
+              </Button>
+            </ListItem>
+          )}
         </List>
       </Drawer>
     </ThemeProvider>

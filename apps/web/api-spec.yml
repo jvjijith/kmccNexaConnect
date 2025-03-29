@@ -952,38 +952,69 @@ components:
     CreateTokenResponse:
       type: object
       properties:
+        accessToken:
+          type: string
+          description: The Access Token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: The Refresh Token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        id:
+          type: string
+          description: The Id of user
+          example: 65f92c5e8a9e3b001ccf3d5a
+      required:
+      - accessToken
+      - refreshToken
+      - id
+    CreateTokenParams:
+      type: object
+      properties:
+        emailId:
+          type: string
+          description: The Email id of the user trying to Login
+          example: you@domain.com
+      required:
+      - emailId
+    RegisterParams:
+      type: object
+      properties:
+        emailId:
+          type: string
+          description: The Email id of the user trying to register
+          example: you@domain.com
         name:
           type: string
-        email:
-          type: string
-          pattern: "\\/.+@.+\\..+\\/,Please enter a valid email address"
+          description: The name of the user trying to register
+          example: John Doe
         phone:
           type: string
+          description: The phone number of the user trying to register
+          example: 91 99xxxxxxx
         customerUserId:
           type: string
-        country:
-          type: string
-        shippingAddress:
-          type: string
-        billingAddress:
-          type: string
+          description: The Firebase user id
+          example: 65f92c5e8a9e3b001ccf3d5a
         storeUser:
           type: boolean
-        active:
+          description: Whether the User is a storeuser
+          example: true
+        individual:
           type: boolean
+          description: Whether the User is a individual
+          example: true
         language:
           type: string
-        currency:
-          type: string
-        _id:
-          type: string
-        __v:
-          type: number
+          description: The language of the user trying to register
+          example: en
       required:
+      - emailId
       - name
-      - email
       - phone
+      - customerUserId
       - storeUser
+      - individual
       - language
     EventResponse:
       type: object
@@ -1132,6 +1163,72 @@ components:
       - priceConfig
       - registrationStartDate
       - registrationEndDate
+    CartResponseSchema:
+      type: object
+      properties:
+        customer:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+              quantity:
+                type: number
+              price:
+                type: number
+              notes:
+                type: string
+            required:
+            - product
+            - quantity
+            - price
+        totalAmount:
+          type: number
+        active:
+          type: boolean
+      required:
+      - customer
+      - items
+      - totalAmount
+      - active
+    UpdateCartItemSchema:
+      type: object
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: number
+          minimum: 1
+      required:
+      - productId
+      - quantity
+    removeCartItemSchema:
+      type: object
+      properties:
+        productId:
+          type: string
+      required:
+      - productId
+    CartItemSchema:
+      type: object
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: number
+          minimum: 1
+        price:
+          type: number
+          minimum: 0
+        notes:
+          type: string
+      required:
+      - productId
+      - quantity
+      - price
   parameters: {}
 paths:
   "/":
@@ -1584,7 +1681,7 @@ paths:
                 example:
                   message: Not Found
   "/auth/createToken":
-    get:
+    post:
       tags:
       - Auth
       security:
@@ -1592,14 +1689,12 @@ paths:
         AppSecretAuth: []
         FirebaserUserAuth: []
       operationId: createToken
-      parameters:
-      - schema:
-          type: string
-          description: The Email id of the user trying to Login
-          example: you@domain.com
-        required: true
-        name: emailId
-        in: path
+      requestBody:
+        description: CreateTokenRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateTokenParams"
       responses:
         '200':
           description: Logged IN User Token
@@ -1668,6 +1763,125 @@ paths:
                 required:
                 - success
                 - error
+  "/auth/register":
+    post:
+      tags:
+      - Auth
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        FirebaserUserAuth: []
+      operationId: registerUser
+      requestBody:
+        description: RegistrationRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RegisterParams"
+      responses:
+        '200':
+          description: Logged IN User Token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CreateTokenResponse"
+        '404':
+          description: User Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - emailId
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - name
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - phone
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - customerUserId
+                        message: Required
+                      - code: invalid_type
+                        expected: boolean
+                        received: undefined
+                        path:
+                        - storeUser
+                        message: Required
+                      - code: invalid_type
+                        expected: boolean
+                        received: undefined
+                        path:
+                        - individual
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - language
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error
   "/apps/event/{eventId}":
     get:
       tags:
@@ -1702,3 +1916,267 @@ paths:
                 - message
                 example:
                   message: Not Found
+  "/cart":
+    get:
+      tags:
+      - Cart
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        NexaUserAuth: []
+      operationId: getActiveCart
+      responses:
+        '200':
+          description: Active Cart
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CartResponseSchema"
+        '404':
+          description: Cart Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/cart/clear":
+    delete:
+      tags:
+      - Cart
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        NexaUserAuth: []
+      operationId: clearCart
+      responses:
+        '200':
+          description: Cart Cleared
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CartResponseSchema"
+        '404':
+          description: Item Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/cart/update":
+    put:
+      tags:
+      - Cart
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        NexaUserAuth: []
+      operationId: updateCartItem
+      requestBody:
+        description: UpdateCartItemRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UpdateCartItemSchema"
+      responses:
+        '200':
+          description: Updated Cart
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CartResponseSchema"
+        '404':
+          description: Item Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - productId
+                        message: Required
+                      - code: invalid_type
+                        expected: number
+                        received: undefined
+                        path:
+                        - quantity
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error
+  "/cart/remove":
+    delete:
+      tags:
+      - Cart
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        NexaUserAuth: []
+      operationId: removeCartItem
+      requestBody:
+        description: RemoveCartItemRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/removeCartItemSchema"
+      responses:
+        '200':
+          description: Updated Cart
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CartResponseSchema"
+        '404':
+          description: Item Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/cart/add":
+    post:
+      tags:
+      - Cart
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        NexaUserAuth: []
+      operationId: addToCart
+      requestBody:
+        description: AddToCartRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CartItemSchema"
+      responses:
+        '200':
+          description: Updated Cart
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CartResponseSchema"
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - productId
+                        message: Required
+                      - code: invalid_type
+                        expected: number
+                        received: undefined
+                        path:
+                        - quantity
+                        message: Required
+                      - code: invalid_type
+                        expected: number
+                        received: undefined
+                        path:
+                        - price
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error

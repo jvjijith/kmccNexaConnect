@@ -2,7 +2,7 @@ import React from "react";
 import Footer from "@repo/ui/footer";
 import { getColor, getMenu } from "../src/data/loader";
 import NextTopLoader from "nextjs-toploader";
-import Navbar from "@repo/ui/NavBar";
+import Navbar from "./components/navbar/NavBar";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let menuData = null;

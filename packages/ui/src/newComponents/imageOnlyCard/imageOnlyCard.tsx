@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { Card, CardMedia, Typography, Box, IconButton, Dialog, DialogContent, Divider, useMediaQuery, useTheme } from "@mui/material"
-import {Grid2 as Grid} from '@mui/material';
+import {Grid2 as Grid} from '@mui/material'
 import { motion } from "framer-motion"
 import { ZoomIn, Close } from "@mui/icons-material"
+import { ChildrensMinistryCardSkeleton, ChildrensMinistryModalSkeleton } from "./imageOnlyCardSkeleton"
 
 // Define the elementData type
 interface ElementData {
@@ -50,18 +51,18 @@ interface ChildrensMinistryCardProps {
   themes: any;
 }
 
-export default function ChildrensMinistryCard({ elementData, containerTitle, themes }: ChildrensMinistryCardProps) {
+function ChildrensMinistryCardContent({ elementData, containerTitle, themes }: ChildrensMinistryCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-  
+
   const title = elementData?.title?.[0]?.name || ""
-  
+
   const handleOpenModal = () => {
     setModalOpen(true)
   }
-  
+
   const handleCloseModal = () => {
     setModalOpen(false)
   }
@@ -81,7 +82,7 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
             boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
             position: "relative",
             cursor: "pointer",
-            margin:5,
+            margin:1,
             "&:hover": {
               boxShadow: "0 12px 45px rgba(0,0,0,0.15)",
             },
@@ -102,7 +103,7 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
                 transform: isHovered ? "scale(1.05)" : "scale(1)",
               }}
             />
-            
+          
             <Box
               sx={{
                 position: "absolute",
@@ -144,7 +145,6 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
                     {elementData.description[0].paragraph}
                   </Typography>
                 )}
-
             </Box>
 
             <motion.div 
@@ -169,7 +169,7 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
           </Box>
         </Card>
       </motion.div>
-      
+    
       {/* Modal Dialog */}
       <Dialog
         open={modalOpen}
@@ -177,17 +177,18 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
         maxWidth="md"
         fullWidth
         fullScreen={isMobile}
-        slotProps={{ paper:{
-          sx: {
-            borderRadius: isMobile ? 0 : 3,
-            overflow: "hidden",
-            bgcolor: "background.paper",
-          },},
+        slotProps={{ 
+          paper: {
+            sx: {
+              borderRadius: isMobile ? 0 : 3,
+              overflow: "hidden",
+              bgcolor: "background.paper",
+            },
+          },
           transition: {
             timeout: 0
           }
         }}
-        
       >
         <Box sx={{ position: "relative" }}>
           <IconButton
@@ -208,53 +209,61 @@ export default function ChildrensMinistryCard({ elementData, containerTitle, the
           </IconButton>
 
           <DialogContent sx={{ p: 0 }}>
-            <Grid container>
-              <Grid size = {{xs:12, md:5}} sx={{ position: "relative", height: { xs: 300, md: "auto" } }}>
-                {/* Using CardMedia instead of Next.js Image to avoid hostname config error */}
-                <CardMedia
-                  component="img"
-                  image={elementData.imageUrl}
-                  alt={title}
-                  sx={{
-                    height: "100%",
-                    minHeight: { md: 600 },
-                    objectFit: "cover",
-                  }}
-                />
+            <Suspense fallback={<ChildrensMinistryModalSkeleton />}>
+              <Grid container>
+                <Grid size={{xs:12, md:5}} sx={{ position: "relative", height: { xs: 300, md: "auto" } }}>
+                  <CardMedia
+                    component="img"
+                    image={elementData.imageUrl}
+                    alt={title}
+                    sx={{
+                      height: "100%",
+                      minHeight: { md: 600 },
+                      objectFit: "cover",
+                    }}
+                  />
+                </Grid>
+
+                <Grid size={{xs:12, md:7}}>
+                  <Box sx={{ p: 4 }}>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                      <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 700 }}>
+                        {title}
+                      </Typography>
+                    </motion.div>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                      <Typography 
+                        variant="body1" 
+                        component="p" 
+                        sx={{ mt: 5 }}
+                      >
+                        {elementData.description && elementData.description.length > 0 
+                          ? elementData.description.map((desc: { paragraph: string }, index: number) => (
+                              <Typography key={index} fontSize={'1.2rem'} sx={{ mb: 2 }}>
+                                {desc.paragraph}
+                              </Typography>
+                            ))
+                          : "No additional information available."}
+                      </Typography>
+                    </motion.div>
+                  </Box>
+                </Grid>
               </Grid>
-
-              <Grid size = {{xs:12, md:7}}>
-                <Box sx={{ p: 4 }}>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                    <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 700 }}>
-                      {title}
-                    </Typography>
-                  </motion.div>
-
-                  <Divider sx={{ my: 3 }} />
-
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-                    <Typography 
-                      variant="body1" 
-                      component="p" 
-                      sx={{ mt: 5 }} // Center align text
-                    >
-                      {elementData.description && elementData.description.length > 0 
-                        ? elementData.description.map((desc: { paragraph: string }, index: number) => (
-                            <Typography key={index} fontSize={'1.2rem'} sx={{ mb: 2 }}> {/* Ensure Box content is centered */}
-                              {desc.paragraph}
-                            </Typography>
-                          ))
-                        : "No additional information available."}
-                    </Typography>
-                  </motion.div>
-
-                </Box>
-              </Grid>
-            </Grid>
+            </Suspense>
           </DialogContent>
         </Box>
       </Dialog>
     </>
+  )
+}
+
+export default function ChildrensMinistryCard(props: ChildrensMinistryCardProps) {
+  return (
+    <Suspense fallback={<ChildrensMinistryCardSkeleton />}>
+      <ChildrensMinistryCardContent {...props} />
+    </Suspense>
   )
 }

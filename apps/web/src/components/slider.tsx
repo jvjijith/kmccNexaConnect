@@ -464,340 +464,327 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   };
 
   // Render event card
-
-  const renderEventCard = (slide: SlideData, index: number) => (
-    <Box sx={{
-      maxWidth: { xs: "280px", sm: "400px", md: "450px" },
-      minWidth: { xs: "280px", sm: "400px", md: "450px" },
-      minHeight: { xs: "420px", sm: "480px", md: "600px" },
-      overflow: 'hidden',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-      borderRadius: { xs: "16px", sm: "20px", md: "24px" },
-      backgroundColor: theme.palette.background.paper,
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0px 12px 30px rgba(0, 0, 0, 0.16)"
-      }
-    }}>
-      <Box sx={{ flex: 1 }}>
-        {/* Image section */}
-        <Box sx={{ position: 'relative', height: { xs: 180, sm: 220, md: 250 } }}>
-          <img
-            src={slide.image || '/api/placeholder/400/360'}
-            alt={slide.title || `Event ${index + 1}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-        </Box>
-  
-        {/* Card header with title */}
-        <Box sx={{
-          pt: { xs: 2, sm: 2.5, md: 3 },
-          px: { xs: 2, sm: 2.5, md: 3 },
-          pb: 1.5,
-          minHeight: { xs: 80, sm: 90, md: 100 }
-        }}>
-          <Typography
-            variant="h5"
-            gutterBottom
-            fontWeight="bold"
-            sx={{
-              mb: 2,
-              fontSize: { xs: '1.2rem', sm: '1.35rem', md: '1.5rem' }
-            }}
-          >
-            {slide.title}
-          </Typography>
-  
-          {/* Date and location info */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-            <CalendarToday sx={{
-              fontSize: { xs: 16, sm: 18, md: 20 },
-              color: 'primary.main'
-            }} />
-            <Typography
-              variant="subtitle1"
-              color="text.secondary"
-              sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' } }}
-            >
-              {formatDate(slide.date || '')}
-            </Typography>
-          </Box>
-  
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-            <LocationOn sx={{
-              fontSize: { xs: 16, sm: 18, md: 20 },
-              color: 'primary.main'
-            }} />
-            <Typography
-              variant="subtitle1"
-              color="text.secondary"
-              sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' } }}
-            >
-              {slide.location || 'Location TBA'}
-            </Typography>
-          </Box>
-  
-          {/* Description with line clamp */}
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              mb: 2,
-              lineHeight: 1.6,
-              fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' }
-            }}
-          >
-            {slide.description}
-          </Typography>
-        </Box>
-      </Box>
-  
-      {/* Card footer with button - always at bottom */}
+// Render product card
+const renderProductCard = (slide: any, index: any) => (
+  <Box sx={{
+    width: "100%",
+    maxWidth: { xs: "280px", sm: "300px", md: "320px" }, // Match ProductCardSkeleton dimensions
+    borderRadius: { xs: "12px", sm: "16px" },
+    overflow: 'hidden',
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)", // Match skeleton shadow
+    backgroundColor: theme.palette.background.paper,
+    transition: "transform 0.3s ease, box-shadow 0.3s ease",
+    display: 'flex',
+    flexDirection: 'column',
+    "&:hover": {
+      transform: "translateY(-4px)",
+      boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.12)"
+    }
+  }}>
+    {/* Bestseller badge */}
+    {slide.isBestseller && (
       <Box sx={{
-        p: { xs: 2, sm: 2.5, md: 3 },
-        pt: 0,
-        marginTop: 'auto'
+        position: "absolute",
+        top: { xs: 8, sm: 10, md: 12 },
+        left: { xs: 8, sm: 10, md: 12 },
+        backgroundColor: 'action.active',
+        color: 'common.white',
+        fontWeight: "bold",
+        px: { xs: 1, sm: 1.2, md: 1.5 },
+        py: 0.5,
+        borderRadius: "16px",
+        fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
+        zIndex: 2
       }}>
-        {/* <Link href={`/event/${slide.id}`} passHref> */}
-          <Button
-            variant="outlined"
-            fullWidth
-            size={isMobile ? "small" : "medium"}
-            href={`/event/${slide.id}`}
-            sx={{
-              py: { xs: 1, sm: 1.25, md: 1.5 },
-              fontSize: { xs: '0.9rem', sm: '0.95rem', md: '1rem' },
-              textTransform: 'none',
-              borderRadius: 1.5,
-              borderWidth: 1.5
-            }}
-          >
-            {slide.cardOptions?.actionButtonText || 'Learn More'}
-          </Button>
-        {/* </Link> */}
+        BESTSELLER
       </Box>
-    </Box>
-  );
+    )}
 
-  // Render product card
-  const renderProductCard = (slide: any, index: any) => (
-    <Box sx={{
-      maxWidth: { xs: "280px", sm: "400px", md: "450px" },
-      minWidth: { xs: "280px", sm: "400px", md: "450px" },
-      minHeight: { xs: "420px", sm: "480px", md: "600px" },
-      overflow: 'hidden',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-      borderRadius: { xs: "16px", sm: "20px", md: "24px" },
-      backgroundColor: theme.palette.background.paper,
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+    {/* Image section */}
+    <Box sx={{ 
+      width: "100%",
       position: 'relative',
+      height: { xs: 180, sm: 200, md: 220 }, // Match skeleton height
+      overflow: 'hidden'
+    }}>
+      <img
+        src={slide.image}
+        alt={slide.title}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
+      />
+    </Box>
+
+    {/* Content section */}
+    <Box sx={{
+      flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0px 12px 30px rgba(0, 0, 0, 0.16)"
-      }
+      padding: { xs: "12px", sm: "14px", md: "16px" } // Match skeleton padding
     }}>
-      <Box sx={{ flex: 1 }}>
-        {/* Bestseller badge */}
-        {slide.isBestseller && (
-          <Box sx={{
-            position: "absolute",
-            top: { xs: "8px", sm: "10px", md: "12px" },
-            left: { xs: "8px", sm: "10px", md: "12px" },
-            backgroundColor: 'action.active',
-            color: 'common.white',
-            fontWeight: "bold",
-            padding: { xs: "4px 8px", sm: "4px 10px", md: "4px 12px" },
-            borderRadius: "20px",
-            fontSize: { xs: "10px", sm: "11px", md: "12px" },
-            zIndex: 2
-          }}>
-            BESTSELLER
-          </Box>
-        )}
+      {/* Title */}
+      <Typography
+        variant="h6"
+        gutterBottom
+        fontWeight="bold"
+        sx={{
+          fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+          mb: 1.5,
+          lineHeight: 1.2
+        }}
+      >
+        {slide.title}
+      </Typography>
 
-        {/* Product image */}
-        <Box sx={{ position: 'relative', height: { xs: 180, sm: 220, md: 250 } }}>
-          <img
-            src={slide.image}
-            alt={slide.title}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-        </Box>
-
-        {/* Product details */}
-        <Box sx={{
-          pt: { xs: 2, sm: 2.5, md: 3 },
-          px: { xs: 2, sm: 2.5, md: 3 },
-          pb: 1.5,
-          minHeight: { xs: 80, sm: 90, md: 100 }
-        }}>
-          <Typography
-            variant="h5"
-            gutterBottom
-            fontWeight="bold"
-            sx={{
-              mb: 2,
-              fontSize: { xs: '1.2rem', sm: '1.35rem', md: '1.5rem' }
-            }}
-          >
-            {slide.title}
-          </Typography>
-
-          {/* Rating */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} sx={{
-                color: i < Math.floor(slide.rating) ? 'primary.main' : 'action.disabled',
-                fontSize: { xs: 16, sm: 18, md: 20 }
-              }} />
-            ))}
-            <Typography
-              variant="subtitle1"
-              color="text.secondary"
-              sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' } }}
-            >
-              ({slide.rating})
-            </Typography>
-          </Box>
-
-          {/* Description */}
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              mb: 2,
-              lineHeight: 1.6,
-              fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' }
-            }}
-          >
-            {slide.description}
-          </Typography>
-        </Box>
+      {/* Rating */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        mb: 1.5
+      }}>
+        {renderRating(slide.rating)}
       </Box>
 
-      {/* Price and cart button - keeping the original styling */}
+      {/* Description */}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          mb: 2,
+          fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
+          lineHeight: 1.5
+        }}
+      >
+        {slide.description}
+      </Typography>
+
+      {/* Price and Cart Button */}
       <Box sx={{
-        p: { xs: 2, sm: 2.5, md: 3 },
-        pt: 0,
-        marginTop: 'auto',
+        mt: 'auto',
+        pt: 1.5,
         borderTop: '1px solid',
-        borderColor: 'divider'
+        borderColor: 'divider',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
       }}>
-        <Box sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
-        }}>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'primary.main',
-              fontWeight: "bold",
-              fontSize: {
-                xs: "1rem",
-                sm: "1.1rem",
-                md: "1.25rem"
-              }
-            }}
-          >
-            ${slide.price?.toFixed(2)}
-          </Typography>
+        <Typography
+          variant="h6"
+          sx={{
+            color: 'primary.main',
+            fontWeight: "bold",
+            fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' }
+          }}
+        >
+          ${slide.price?.toFixed(2)}
+        </Typography>
 
-          <Button
-            variant="contained"
-            color="primary"
-            sx={{
-              borderRadius: '50%',
-              minWidth: 'auto',
-              width: {
-                xs: "36px",
-                sm: "40px",
-                md: "44px"
-              },
-              height: {
-                xs: "36px",
-                sm: "40px",
-                md: "44px"
-              },
-              p: 0
-            }}
-          >
-            <ShoppingCartIcon sx={{
-              fontSize: {
-                xs: "18px",
-                sm: "20px",
-                md: "22px"
-              }
-            }} />
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{
+            minWidth: 'auto',
+            width: { xs: 36, sm: 38, md: 40 },
+            height: { xs: 36, sm: 38, md: 40 },
+            borderRadius: '50%',
+            p: 0
+          }}
+        >
+          <ShoppingCartIcon />
+        </Button>
       </Box>
     </Box>
-  );
+  </Box>
+);
+
+// Render event card
+const renderEventCard = (slide: SlideData, index: number) => (
+  <Box sx={{
+    width: "100%",
+    maxWidth: { xs: "280px", sm: "300px", md: "350px" },
+    borderRadius: { xs: "12px", sm: "16px" },
+    overflow: 'hidden',
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
+    backgroundColor: theme.palette.background.paper,
+    transition: "transform 0.3s ease, box-shadow 0.3s ease",
+    display: 'flex',
+    flexDirection: 'column',
+    "&:hover": {
+      transform: "translateY(-4px)",
+      boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.12)"
+    }
+  }}>
+    {/* Image section */}
+    <Box sx={{ 
+      width: "100%",
+      position: 'relative',
+      height: { xs: 180, sm: 200, md: 220 },
+      overflow: 'hidden'
+    }}>
+      <img
+        src={slide.image || '/api/placeholder/400/360'}
+        alt={slide.title || `Event ${index + 1}`}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
+      />
+    </Box>
+
+    {/* Content section */}
+    <Box sx={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: { xs: "12px", sm: "14px", md: "16px" }
+    }}>
+      {/* Title */}
+      <Typography
+        variant="h6"
+        sx={{
+          fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+          fontWeight: "bold",
+          mb: 1,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden'
+        }}
+      >
+        {slide.title}
+      </Typography>
+
+      {/* Date and Location - Compact version */}
+      <Box sx={{ mb: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: 0.5,
+          gap: 1
+        }}>
+          <CalendarToday sx={{
+            fontSize: '1rem',
+            color: 'primary.main'
+          }} />
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: '0.85rem' }}
+          >
+            {formatDate(slide.date || '')}
+          </Typography>
+        </Box>
+
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <LocationOn sx={{
+            fontSize: '1rem',
+            color: 'primary.main'
+          }} />
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ 
+              fontSize: '0.85rem',
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
+            }}
+          >
+            {slide.location || 'Location TBA'}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Description */}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{
+          fontSize: '0.85rem',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          mb: 1.5,
+          lineHeight: 1.5
+        }}
+      >
+        {slide.description}
+      </Typography>
+
+      {/* Button */}
+      <Button
+        variant="contained"
+        fullWidth
+        href={`/event/${slide.id}`}
+        sx={{
+          mt: 'auto',
+          py: 1,
+          fontSize: '0.9rem',
+          textTransform: 'none',
+          borderRadius: 1.5
+        }}
+      >
+        {slide.cardOptions?.actionButtonText || 'Learn More'}
+      </Button>
+    </Box>
+  </Box>
+);
 
   return (
     <Swiper
-      breakpoints={getResponsiveConfig()}
-      loop={loop}
-      effect={effect !== "none" ? effect : undefined}
-      speed={speed * 1000}
-      autoplay={
-        autoplay && autoplay.delay !== undefined
-          ? {
-              delay: autoplay.delay * 1000,
-              disableOnInteraction: autoplay.disableOnInteraction,
-            }
-          : false
-      }
-      navigation={!isMobile}
-      pagination={isMobile}
-      modules={swiperModules}
-      className="mySwiper"
-      style={{ 
-        width: "100%",
-        justifyContent: "center",
-        padding: "0 4px"  // add minimal padding
-      }}
-    >
-      {slides.map((slide, index) => (
-        <SwiperSlide 
-          key={`${slide.type}-${slide.id}-${index}`}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "2px"
-          }}
-        >
-          {slide.type === 'event' 
-            ? renderEventCard(slide, index) 
-            : renderProductCard(slide, index)}
-        </SwiperSlide>
-      ))}
-    </Swiper>
+    breakpoints={getResponsiveConfig()}
+    loop={loop}
+    effect={effect !== "none" ? effect : undefined}
+    speed={speed * 1000}
+    autoplay={
+      autoplay && autoplay.delay !== undefined
+        ? {
+            delay: autoplay.delay * 1000,
+            disableOnInteraction: autoplay.disableOnInteraction,
+          }
+        : false
+    }
+    navigation={!isMobile}
+    pagination={isMobile}
+    modules={swiperModules}
+    className="mySwiper"
+    style={{ 
+      width: "100%",
+      justifyContent: "center",
+      padding: "0 4px"
+    }}
+  >
+    {slides.map((slide, index) => (
+      <SwiperSlide 
+        key={`${slide.type}-${slide.id}-${index}`}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "4px"
+        }}
+      >
+        {slide.type === 'event' 
+          ? renderEventCard(slide, index) 
+          : renderProductCard(slide, index)}
+      </SwiperSlide>
+    ))}
+  </Swiper>
   );
 };
 
@@ -835,18 +822,18 @@ const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, 
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          marginTop: { xs: 5, sm: 8, md: 10 },
-          marginBottom: { xs: 5, sm: 8, md: 10 },
-          px: { xs: 2, sm: 3, md: 4 },
+          marginTop: { xs: 4, sm: 6, md: 8 }, // reduced margins
+          marginBottom: { xs: 4, sm: 6, md: 8 },
+          px: { xs: 1, sm: 2, md: 3 }, // reduced horizontal padding
           backgroundColor: theme.palette.background.default
         }}>
           <Box sx={{
-            width:  { 
-                  xs: "100%", 
-                  sm: "90%", 
-                  md: "100%", 
-                  lg: "95%" 
-                },
+            width: { 
+              xs: "100%", 
+              sm: "95%", 
+              md: "100%", 
+              lg: "90%" 
+            }, // increased width percentages
             overflow: "hidden",
             display: "flex",
             justifyContent: "center",

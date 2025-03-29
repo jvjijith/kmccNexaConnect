@@ -1,4 +1,4 @@
-import { fetchApi } from "../utils/api";
+import { deleteApi, fetchApi, postApi, putApi } from "../utils/api";
 
 export async function getPage(slug?: string) {
   if (slug) {
@@ -37,4 +37,59 @@ export async function getColor(mode: string) {
 
 export async function getMenu() {
   return await fetchApi(`/apps/menu`);
+}
+
+export async function getAuth(data: any, headers?: any) {
+  try {
+    return await postApi('/auth/register', data, headers)
+  } catch (error: any) {
+    throw new Error(error || 'Registration failed')
+  }
+}
+export async function login(data: any, headers?: any) {
+  try {
+    return await postApi('/auth/createToken', data, headers)
+  } catch (error: any) {
+    throw new Error(error || 'Registration failed')
+  }
+}
+
+export async function getCart(headers?: HeadersInit) {
+  try {
+    return await fetchApi('/cart', { headers });
+  } catch (error: any) {
+    throw new Error(error || 'Failed to fetch cart');
+  }
+}
+
+export async function addToCart(data: any, headers?: HeadersInit) {
+  try {
+    return await postApi('/cart/add', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to add item to cart');
+  }
+}
+
+export async function updateCart(data: any, headers?: HeadersInit) {
+  try {
+    return await putApi('/cart/update', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to update cart');
+  }
+}
+
+export async function removeFromCart(data: any, headers?: HeadersInit) {
+  try {
+    return await deleteApi('/cart/remove', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to remove item from cart');
+  }
+}
+
+export async function clearCart(headers?: HeadersInit) {
+  try {
+    return await deleteApi('/cart/clear', undefined, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to clear cart');
+  }
 }

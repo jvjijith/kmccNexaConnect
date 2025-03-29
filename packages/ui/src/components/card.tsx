@@ -5,7 +5,7 @@ import Image from '../newComponents/image'
 import ImageLeftCard from '../newComponents/imageLeftCard'
 import ImageRightCard from '../newComponents/imageRightCard'
 import NoImageCard from '../newComponents/noImageCard'
-import ImageOnlyCard from '../newComponents/imageOnlyCard'
+import ImageOnlyCard from '../newComponents/imageOnlyCard/imageOnlyCard'
 import NormalCard from '../newComponents/normalCard'
 
 const event = {
