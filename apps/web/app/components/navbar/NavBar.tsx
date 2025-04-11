@@ -63,7 +63,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   
   const isMobile = useMediaQuery('(max-width:1000px)');
-  const isHomePage = activePath === '/';
+  const isHomePage = activePath === '/home';
 
   // Update active path when component mounts or path changes
   useEffect(() => {
@@ -145,7 +145,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   // Function to check if a menu item is active
   const isActive = (itemPath: string) => {
     // For home page
-    if (itemPath === '/' && activePath === '/') {
+    if (itemPath === '/home' && activePath === '/home') {
       return true;
     }
     // For other pages
@@ -194,7 +194,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                   sx={{
                     fontWeight: 700,
                     fontSize: { xs: '1rem', md: '1.25rem' },
-                    color: scrolled ? 'white' : 'text.primary',
+                    color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
                     display: { xs: 'none', sm: 'inline' }
                   }}
                 >
