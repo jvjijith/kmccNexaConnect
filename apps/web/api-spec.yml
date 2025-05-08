@@ -1229,6 +1229,174 @@ components:
       - productId
       - quantity
       - price
+    PaymentLinkResponseSchema:
+      type: object
+      properties:
+        url:
+          type: string
+          description: The URL to the Stripe checkout page
+        sessionId:
+          type: string
+          description: The Stripe session ID
+      required:
+      - url
+      - sessionId
+    EventRegisterResponse:
+      type: object
+      properties:
+        eventId:
+          type: string
+        userId:
+          type: string
+        email:
+          type: string
+        eventData:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldName:
+                type: string
+              fieldValue:
+                nullable: true
+              _id:
+                type: string
+            required:
+            - fieldName
+        price:
+          type: string
+        stripeId:
+          type: string
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        status:
+          type: string
+        paymentStatus:
+          type: string
+        registrationDate:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        _id:
+          type: string
+        __v:
+          type: number
+      required:
+      - eventId
+      - eventData
+      - price
+      - currency
+      - status
+      - paymentStatus
+      - registrationDate
+    EventRegisterSchema:
+      type: object
+      properties:
+        eventId:
+          type: string
+        userId:
+          type: string
+        email:
+          type: string
+        eventData:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldName:
+                type: string
+              fieldValue:
+                nullable: true
+            required:
+            - fieldName
+          minItems: 1
+        price:
+          type: string
+        stripeId:
+          type: string
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        status:
+          type: string
+          enum:
+          - pending
+          - confirmed
+          - cancelled
+          - completed
+        paymentStatus:
+          type: string
+          enum:
+          - unpaid
+          - paid
+          - refunded
+          - free
+      required:
+      - eventId
+      - eventData
+      - price
+      - currency
+      - status
+      - paymentStatus
+    EventRegisterGuestSchema:
+      type: object
+      properties:
+        eventId:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        eventData:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldName:
+                type: string
+              fieldValue:
+                nullable: true
+            required:
+            - fieldName
+          minItems: 1
+        price:
+          type: string
+        stripeId:
+          type: string
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        status:
+          type: string
+          enum:
+          - pending
+          - confirmed
+          - cancelled
+          - completed
+        paymentStatus:
+          type: string
+          enum:
+          - unpaid
+          - paid
+          - refunded
+          - free
+      required:
+      - eventId
+      - name
+      - phone
+      - eventData
+      - price
+      - currency
+      - status
+      - paymentStatus
   parameters: {}
 paths:
   "/":
@@ -2175,6 +2343,423 @@ paths:
                         received: undefined
                         path:
                         - price
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error
+  "/payments/create/:registrationId":
+    post:
+      tags:
+      - Payment
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: createPaymentLink
+      parameters:
+      - schema:
+          type: string
+          description: The ID of the event registration
+        required: true
+        description: The ID of the event registration
+        name: registrationId
+        in: path
+      responses:
+        '200':
+          description: Payment link created successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PaymentLinkResponseSchema"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Error message
+                required:
+                - message
+        '404':
+          description: Event registration not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Error message
+                required:
+                - message
+  "/events/:registerId":
+    get:
+      tags:
+      - Events
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: getRegisteredEvent
+      parameters:
+      - schema:
+          type: string
+        required: true
+        name: registerId
+        in: path
+      responses:
+        '200':
+          description: Registered Event
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EventRegisterResponse"
+        '404':
+          description: Event Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+  "/events/register":
+    post:
+      tags:
+      - Events
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+        NexaUserAuth: []
+      operationId: registerEvent
+      requestBody:
+        description: RegisterEventRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/EventRegisterSchema"
+      responses:
+        '200':
+          description: Registered Event Successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EventRegisterResponse"
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - eventId
+                        message: Required
+                      - code: invalid_type
+                        expected: array
+                        received: undefined
+                        path:
+                        - eventData
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - price
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - currency
+                        message: Required
+                      - expected: "'pending' | 'confirmed' | 'cancelled' | 'completed'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - status
+                        message: Required
+                      - expected: "'unpaid' | 'paid' | 'refunded' | 'free'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - paymentStatus
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error
+  "/events/register/guest":
+    post:
+      tags:
+      - Events
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: registerGuestEvent
+      requestBody:
+        description: RegisterEventGuestRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/EventRegisterGuestSchema"
+      responses:
+        '200':
+          description: Registered Event Successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EventRegisterResponse"
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - eventId
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - name
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - phone
+                        message: Required
+                      - code: invalid_type
+                        expected: array
+                        received: undefined
+                        path:
+                        - eventData
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - price
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - currency
+                        message: Required
+                      - expected: "'pending' | 'confirmed' | 'cancelled' | 'completed'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - status
+                        message: Required
+                      - expected: "'unpaid' | 'paid' | 'refunded' | 'free'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - paymentStatus
+                        message: Required
+                      name: ZodError
+                required:
+                - success
+                - error
+  "/events/update":
+    put:
+      tags:
+      - Events
+      security:
+      - ApiKeyAuth: []
+        AppSecretAuth: []
+      operationId: UpdateRegisteredEvent
+      requestBody:
+        description: RegisterEventRequestBody
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/EventRegisterSchema"
+      responses:
+        '200':
+          description: Updated Registered Event
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EventRegisterResponse"
+        '404':
+          description: Item Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+                example:
+                  message: Not Found
+        '422':
+          description: Invalid Data Format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                            path:
+                              type: array
+                              items:
+                                anyOf:
+                                - type: string
+                                - type: number
+                            message:
+                              type: string
+                          required:
+                          - code
+                          - path
+                      name:
+                        type: string
+                    required:
+                    - issues
+                    - name
+                    example:
+                      issues:
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - eventId
+                        message: Required
+                      - code: invalid_type
+                        expected: array
+                        received: undefined
+                        path:
+                        - eventData
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - price
+                        message: Required
+                      - code: invalid_type
+                        expected: string
+                        received: undefined
+                        path:
+                        - currency
+                        message: Required
+                      - expected: "'pending' | 'confirmed' | 'cancelled' | 'completed'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - status
+                        message: Required
+                      - expected: "'unpaid' | 'paid' | 'refunded' | 'free'"
+                        received: undefined
+                        code: invalid_type
+                        path:
+                        - paymentStatus
                         message: Required
                       name: ZodError
                 required:

@@ -26,6 +26,7 @@ export interface Option {
   export interface Metadata {
     name: string
     description: string
+    imageUrl: string
   }
   
   export interface GeoAllow {

@@ -74,7 +74,7 @@ const EventCard: React.FC<EventCardProps> = ({ elementData, themes }) => {
   const [openModal, setOpenModal] = useState(false);
 
   const handleButtonClick = () => {
-    if (elementData?.withDescription) {
+    if (!(elementData?.cardOptions?.actionButtonUrl)) {
       setOpenModal(true);
     } else {
       window.location.href = `/${elementData?.cardOptions?.actionButtonUrl}`;

@@ -39,7 +39,7 @@ export default function CartPageUI({
   onCheckout,
 }: CartPageUIProps) {
   const router = useRouter()
-
+console.log("cartItems",cartItems)
   return (
     <Container sx={{ py: 8, px: 4 }}>
       <Typography variant="h3" fontWeight="bold" sx={{ mb: 6 }}>

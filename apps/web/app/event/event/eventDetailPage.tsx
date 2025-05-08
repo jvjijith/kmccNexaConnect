@@ -25,6 +25,11 @@ import {
   ListItemIcon,
   ListItemText,
   ThemeProvider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from "@mui/material"
 import {
   CalendarMonth,
@@ -38,11 +43,12 @@ import {
   CheckCircle,
   Cancel,
   HowToReg,
+  Close as CloseIcon,
 } from "@mui/icons-material"
 import EventCountdown from "./eventCountdown"
 import EventMap from "./eventMap"
 import RegistrationForm from "./registrationForm"
-import { createDynamicTheme } from "../../theme/theme"
+import { createDynamicTheme } from "@repo/ui/theme"
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -69,9 +75,10 @@ function TabPanel(props: TabPanelProps) {
 interface EventDetailPageProps {
   event: Event
   themes: any;
+  id: any;
 }
 
-export default function EventDetailPage({ event, themes }: EventDetailPageProps) {
+export default function EventDetailPage({ event, themes, id }: EventDetailPageProps) {
   const theme = createDynamicTheme({themes});
   
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
@@ -80,6 +87,10 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
+  }
+
+  const handleCloseRegistration = () => {
+    setShowRegistration(false)
   }
 
   const formatDate = (dateString: string) => {
@@ -138,6 +149,8 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
     return formatDate(endDate.toISOString())
   }
 
+  console.log("event",event);
+
   return (
     <ThemeProvider theme={theme}>
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -145,7 +158,7 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
           <CardMedia
             component="img"
             height="300"
-            image="/placeholder.svg?height=300&width=1200"
+            image={event.metadata?.imageUrl}
             alt={event.name}
             sx={{ objectFit: "cover" }}
           />
@@ -238,8 +251,18 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
                     variant="contained"
                     color="primary"
                     fullWidth
-                    disabled={!isRegistrationOpen() || event.seatsAvailable <= event.totalregisteredSeats}
-                    onClick={() => setShowRegistration(!showRegistration)}
+                    // disabled={!isRegistrationOpen() || event.seatsAvailable <= event.totalregisteredSeats}
+                    onClick={() => {
+                      if (event.allowMemberLogin) {
+                        const accessToken = localStorage.getItem('accessToken');
+                        if (!accessToken) {
+                          // Show login message
+                          alert("Please login to your account first to register for this event.");
+                          return;
+                        }
+                      }
+                      setShowRegistration(true);
+                    }}
                     sx={{
                       backgroundColor: "#41bf40",
                       "&:hover": {
@@ -247,7 +270,7 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
                       }
                     }}
                   >
-                    {showRegistration ? "Hide Registration Form" : "Register Now"}
+                    Register Now
                   </Button>
                 </Paper>
               </Grid>
@@ -284,7 +307,7 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
               <Tab icon={<Description />} label="Description" id="event-tab-0" aria-controls="event-tabpanel-0" />
               <Tab icon={<Info />} label="Details" id="event-tab-1" aria-controls="event-tabpanel-1" />
               <Tab icon={<LocationOn />} label="Location" id="event-tab-2" aria-controls="event-tabpanel-2" />
-              {!isRegistrationOpen() || event.seatsAvailable <= event.totalregisteredSeats && 
+              {(isRegistrationOpen() && event.seatsAvailable > event.totalregisteredSeats) && 
               <Tab icon={<HowToReg />} label="Registration" id="event-tab-3" aria-controls="event-tabpanel-3" />}
             </Tabs>
           </Box>
@@ -536,23 +559,47 @@ export default function EventDetailPage({ event, themes }: EventDetailPageProps)
               </Grid>
             </Box>
           </TabPanel>
-          {!isRegistrationOpen() || event.seatsAvailable <= event.totalregisteredSeats &&
+          {(isRegistrationOpen() && event.seatsAvailable > event.totalregisteredSeats) &&
           <TabPanel value={tabValue} index={3}>
             <Typography variant="h5" gutterBottom>
               Registration
             </Typography>
-            <RegistrationForm event={event} />
+            <RegistrationForm eventData={event} id={id} />
           </TabPanel>}
         </Box>
 
-        {showRegistration && (
-          <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-            <Typography variant="h5" gutterBottom>
-              Registration Form
-            </Typography>
-            <RegistrationForm event={event} />
-          </Paper>
-        )}
+        {/* Registration Dialog Popup */}
+        <Dialog
+          open={showRegistration}
+          onClose={handleCloseRegistration}
+          maxWidth="md"
+          fullWidth
+          aria-labelledby="registration-dialog-title"
+        >
+          <DialogTitle id="registration-dialog-title" sx={{ m: 0, p: 2 }}>
+            <Typography variant="h6">Registration Form</Typography>
+            <IconButton
+              aria-label="close"
+              onClick={handleCloseRegistration}
+              sx={{
+                position: 'absolute',
+                right: 8,
+                top: 8,
+                color: (theme) => theme.palette.grey[500],
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers>
+            <RegistrationForm eventData={event} id={id} />
+          </DialogContent>
+          <DialogActions>
+            {/* <Button onClick={handleCloseRegistration} color="primary">
+              Cancel
+            </Button> */}
+          </DialogActions>
+        </Dialog>
       </Container>
     </ThemeProvider>
   )

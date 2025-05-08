@@ -27,10 +27,8 @@
     "./biography": "./src/newComponents/biography.tsx",
     "./contact": "./src/newComponents/contactUs.tsx",
     "./productcard": "./src/newComponents/productCard.tsx",
-    "./eventdetails": "./src/newComponents/event/eventDetailPage.tsx",
     "./login": "./src/newComponents/loginUI.tsx",
     "./register": "./src/newComponents/registerPageUI.tsx",
-    "./event": "./src/newComponents/event/event.ts",
     "./NavBar": "./src/components/navbar/NavBar.tsx",
     "./theme": "./src/theme/theme.tsx"
   },

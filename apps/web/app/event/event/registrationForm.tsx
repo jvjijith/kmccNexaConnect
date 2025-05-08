@@ -1,0 +1,1223 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  Box,
+  Button,
+  TextField,
+  Grid,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormControlLabel,
+  Paper,
+  Divider,
+  Radio,
+  RadioGroup,
+  Checkbox,
+  FormGroup,
+  FormLabel,
+  Alert,
+  InputAdornment,
+  Card,
+  CardContent,
+  Chip,
+  Stepper,
+  Step,
+  StepLabel,
+  CircularProgress,
+  styled,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material"
+import {
+  Event as EventIcon,
+  Person as PersonIcon,
+  Payment as PaymentIcon,
+  CheckCircle as CheckCircleIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+  Lock as LockIcon,
+} from "@mui/icons-material"
+
+// Import the API functions
+import { payment, registerEvent } from "../../../src/data/loader";
+
+// Define TypeScript interfaces
+interface Option {
+  fieldName: string;
+  parentName: string;
+  labelName: string;
+  _id?: string;
+}
+
+interface FormulaItem {
+  type: string;
+  fieldName?: string;
+  operationName?: string;
+  _id?: string;
+}
+
+interface RegistrationField {
+  name: string;
+  displayName: string;
+  type: string;
+  valueType: string;
+  options: Option[];
+  formula: FormulaItem[];
+  truthValue?: number;
+  falseValue?: number;
+  _id?: string;
+}
+
+interface GeoAllow {
+  location: string;
+  coordinates: number[];
+  _id?: string;
+}
+
+interface Metadata {
+  name: string;
+  description: string;
+  imageUrl: string;
+  _id?: string;
+}
+
+interface PriceConfig {
+  type: string;
+  amount: number;
+  dependantField?: string;
+  _id?: string;
+}
+
+interface EventData {
+  name: string;
+  description: string;
+  type: string;
+  metadata: Metadata;
+  location: string;
+  GeoAllow: GeoAllow;
+  allowGuest: boolean;
+  allowLogin: boolean;
+  allowMemberLogin: boolean;
+  seatsAvailable: number;
+  totalregisteredSeats: number;
+  registrationFields: RegistrationField[];
+  createdBy?: string;
+  updatedBy?: string;
+  eventStatus: string;
+  startingDate: string;
+  endingDate: string;
+  paymentType: string;
+  priceConfig: PriceConfig;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  _id?: string;
+}
+
+interface EventRegistrationFormProps {
+  eventData: EventData;
+  id?: string;
+}
+
+interface StepItem {
+  label: string;
+  icon: React.ReactNode;
+}
+
+// Styled components for enhanced visuals
+const StyledCard = styled(Card)(({ theme }) => ({
+  borderRadius: 12,
+  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
+  overflow: "visible",
+  transition: "transform 0.3s ease",
+}));
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  borderRadius: 12,
+  padding: theme.spacing(3),
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+  border: "1px solid rgba(0, 0, 0, 0.08)",
+}));
+
+const StyledStepLabel = styled(StepLabel)(({ theme }) => ({
+  "& .MuiStepLabel-label": {
+    marginTop: theme.spacing(1),
+    fontWeight: 500,
+  },
+}));
+
+const StyledFormControl = styled(FormControl)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  "& .MuiFormLabel-root": {
+    fontWeight: 500,
+    marginBottom: theme.spacing(1),
+  },
+}));
+
+const AnimatedButton = styled(Button)(({ theme }) => ({
+  transition: "all 0.3s ease",
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: "0 6px 12px rgba(0, 0, 0, 0.1)",
+  },
+}));
+
+const EventImage = styled('img')(({ theme }) => ({
+  width: '100%',
+  height: 200,
+  objectFit: 'cover',
+  borderRadius: theme.shape.borderRadius,
+  marginBottom: theme.spacing(2),
+}));
+
+const PriceSummary = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.primary.light,
+  color: theme.palette.primary.contrastText,
+  padding: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
+  marginTop: theme.spacing(2),
+}));
+
+const SecurePaymentBadge = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  color: theme.palette.success.main,
+  padding: theme.spacing(1),
+  borderRadius: theme.shape.borderRadius,
+  marginTop: theme.spacing(2),
+}));
+
+export default function EventRegistrationForm({ eventData, id }: EventRegistrationFormProps): JSX.Element {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
+  // Determine if this is a free event
+  const isFreeEvent = eventData.paymentType === "Free";
+  
+  // Define steps based on whether this is a free event
+  const [activeStep, setActiveStep] = useState<number>(0);
+  const steps: StepItem[] = isFreeEvent 
+    ? [
+        { label: "Event Details", icon: <EventIcon /> },
+        { label: "Attendee Information", icon: <PersonIcon /> },
+        { label: "Confirmation", icon: <CheckCircleIcon /> }
+      ]
+    : [
+        { label: "Event Details", icon: <EventIcon /> },
+        { label: "Attendee Information", icon: <PersonIcon /> },
+        { label: "Order Summary", icon: <PaymentIcon /> },
+        { label: "Confirmation", icon: <CheckCircleIcon /> }
+      ];
+
+  // Add personal information fields since they're not in the provided data
+  const personalInfoFields: RegistrationField[] = [
+    {
+      name: "fullName",
+      displayName: "Full Name",
+      type: "text",
+      valueType: "userInput",
+      options: [],
+      formula: []
+    },
+    {
+      name: "email",
+      displayName: "Email Address",
+      type: "text",
+      valueType: "userInput",
+      options: [],
+      formula: []
+    },
+    {
+      name: "phone",
+      displayName: "Phone Number",
+      type: "text",
+      valueType: "userInput",
+      options: [],
+      formula: []
+    }
+  ];
+
+  // State management and calculation functions
+  const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
+  const [calculatedValues, setCalculatedValues] = useState<Record<string, number>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isRegistrationComplete, setIsRegistrationComplete] = useState<boolean>(false);
+  const [confirmationNumber, setConfirmationNumber] = useState<string>("");
+  const [registrationId, setRegistrationId] = useState<string>("");
+
+  // Calculate dynamic field values whenever fieldValues change
+  useEffect(() => {
+    calculateDynamicFields();
+  }, [fieldValues]);
+
+  // Function to calculate values for dynamic fields based on formulas
+  const calculateDynamicFields = (): void => {
+    const newCalculatedValues = { ...calculatedValues };
+    
+    eventData.registrationFields.forEach(field => {
+      if (field.valueType === "dynamic" && field.formula && field.formula.length > 0) {
+        newCalculatedValues[field.name] = evaluateFormula(field.formula, fieldValues, newCalculatedValues);
+      }
+    });
+    
+    setCalculatedValues(newCalculatedValues);
+  };
+
+  // Function to evaluate a formula
+  const evaluateFormula = (
+    formula: FormulaItem[], 
+    values: Record<string, any>, 
+    calculatedVals: Record<string, number>
+  ): number => {
+    if (!formula || formula.length === 0) return 0;
+    
+    let result = 0;
+    let currentOperation = "+";
+    let isFirstValue = true;
+    
+    for (let i = 0; i < formula.length; i++) {
+      const item = formula[i];
+      if (!item) continue;
+      
+      // Handle operations
+      if (item.type === "operation") {
+        currentOperation = item.operationName || "+";
+        continue;
+      }
+      
+      // Extract value from the current item
+      let itemValue = 0;
+      
+      if (item.type === "number" && item.fieldName) {
+        itemValue = Number.parseFloat(item.fieldName);
+      } else if (item.type === "customField" && item.fieldName) {
+        if (calculatedVals[item.fieldName] !== undefined) {
+          itemValue = calculatedVals[item.fieldName];
+        } else if (values[item.fieldName] !== undefined) {
+          // Handle different data types
+          if (typeof values[item.fieldName] === "boolean") {
+            const field = eventData.registrationFields.find(f => f.name === item.fieldName);
+            itemValue = values[item.fieldName] ? (field?.truthValue || 1) : (field?.falseValue || 0);
+          } else if (typeof values[item.fieldName] === "string") {
+            itemValue = parseFloat(values[item.fieldName]) || 0;
+          } else if (Array.isArray(values[item.fieldName])) {
+            itemValue = values[item.fieldName].reduce((sum: number, val: string) => sum + (parseFloat(val) || 0), 0);
+          } else {
+            const fieldValue = Number.parseFloat(values[item.fieldName] || "0");
+            itemValue = isNaN(fieldValue) ? 0 : fieldValue;
+          }
+        }
+      }
+      
+      // Apply the operation
+      if (isFirstValue) {
+        result = itemValue;
+        isFirstValue = false;
+      } else {
+        switch (currentOperation) {
+          case "+":
+          case "add":
+            result += itemValue;
+            break;
+          case "-":
+          case "subtract":
+            result -= itemValue;
+            break;
+          case "*":
+          case "multiply":
+            result *= itemValue;
+            break;
+          case "/":
+          case "divide":
+            if (itemValue !== 0) {
+              result /= itemValue;
+            }
+            break;
+          case "%":
+          case "modulus":
+            // For percentage-based discounts
+            result = (result * itemValue) / 100;
+            break;
+          default:
+            result += itemValue;
+        }
+      }
+    }
+    
+    return result;
+  };
+
+  // Utility functions
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric'
+    }).format(date);
+  };
+
+  // Event handlers
+  const handleFieldValueChange = (fieldName: string, value: any): void => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  const handleRadioChange = (fieldName: string, value: string): void => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  const handleCheckboxChange = (fieldName: string, optionFieldName: string, checked: boolean): void => {
+    const currentValues = fieldValues[fieldName] || [];
+    let newValues: string[];
+    
+    if (checked) {
+      newValues = [...currentValues, optionFieldName];
+    } else {
+      newValues = currentValues.filter((v: string) => v !== optionFieldName);
+    }
+    
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: newValues
+    }));
+  };
+
+  const handleBooleanChange = (fieldName: string, checked: boolean): void => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: checked
+    }));
+  };
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+    let isValid = true;
+
+    if (step === 1) {
+      // Validate attendee information
+      personalInfoFields.forEach(field => {
+        if (!fieldValues[field.name]) {
+          newErrors[field.name] = `${field.displayName} is required`;
+          isValid = false;
+        } else if (field.name === "email" && !/\S+@\S+\.\S+/.test(fieldValues[field.name])) {
+          newErrors[field.name] = "Please enter a valid email address";
+          isValid = false;
+        } else if (field.name === "phone" && !/^\+?[0-9\s\-()]{10,15}$/.test(fieldValues[field.name])) {
+          newErrors[field.name] = "Please enter a valid phone number";
+          isValid = false;
+        }
+      });
+      
+      // Validate required registration fields
+      const requiredFields = eventData.registrationFields.filter(
+        field => field.valueType === "userInput" && 
+        (field.type === "radioButtonGroup" || field.type === "option")
+      );
+      
+      requiredFields.forEach(field => {
+        if (!fieldValues[field.name]) {
+          newErrors[field.name] = `${field.displayName} is required`;
+          isValid = false;
+        }
+      });
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleRegisterEvent = async (): Promise<void> => {
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare the registration data
+      const registrationData = {
+        eventId: id || eventData._id,
+        email: fieldValues.email,
+        name: fieldValues.fullName,
+        phone: fieldValues.phone,
+        eventData: Object.entries(fieldValues).map(([fieldName, fieldValue]) => ({
+          fieldName,
+          fieldValue: typeof fieldValue === 'object' ? JSON.stringify(fieldValue) : String(fieldValue)
+        })),
+        price: String(calculatedValues.totalPrice || 0),
+        currency: "USD", // Adjust as needed
+        status: isFreeEvent ? "completed" : "pending", // For free events, mark as completed
+        paymentStatus: isFreeEvent ? "free" : "unpaid" // For free events, mark as free
+      };
+      console.log("registrationData", registrationData);
+      
+      // Register the event
+      const registrationResult = await registerEvent(registrationData);
+      console.log("Registration result:", registrationResult);
+      
+      if (registrationResult && registrationResult._id) {
+        setRegistrationId(registrationResult._id);
+        setConfirmationNumber(registrationResult._id);
+        
+        if (isFreeEvent) {
+          // For free events, skip to confirmation
+          setIsRegistrationComplete(true);
+          setActiveStep(2); // Move to confirmation step (which is 2 for free events)
+        } else {
+          // For paid events, go to order summary
+          setActiveStep(2); // Move to Order Summary step
+        }
+      } else {
+        throw new Error("Registration failed. No registration ID received.");
+      }
+    } catch (error) {
+      console.error("Registration failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to register for event");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleProcessPayment = async (): Promise<void> => {
+    setIsSubmitting(true);
+    
+    try {
+      // Call the payment API with the registration ID
+      const paymentResult = await payment(registrationId);
+      console.log("Payment result:", paymentResult);
+      
+      // Redirect to payment URL if provided
+      if (paymentResult && paymentResult.url) {
+        window.location.href = paymentResult.url;
+        return;
+      }
+      
+      // If no payment URL or this is a free event, show confirmation
+      setConfirmationNumber(registrationId);
+      setIsRegistrationComplete(true);
+      setActiveStep(isFreeEvent ? 2 : 3); // Move to confirmation step
+    } catch (error) {
+      console.error("Payment processing failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to process payment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleNext = async (): Promise<void> => {
+    if (validateStep(activeStep)) {
+      if (activeStep === 1) {
+        // After Attendee Information, register the event
+        await handleRegisterEvent();
+      } else {
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleBack = (): void => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    
+    if (validateStep(activeStep)) {
+      if (activeStep === 2 && !isFreeEvent) {
+        // Process payment on final confirmation (only for paid events)
+        await handleProcessPayment();
+      }
+    }
+  };
+
+  // Render a field based on its type
+  const renderField = (field: RegistrationField): JSX.Element | null => {
+    // For dynamic fields, use the calculated value
+    const dynamicValue = field.valueType === "dynamic" ? calculatedValues[field.name] : undefined;
+
+    switch (field.type) {
+      case "text":
+        return (
+          <TextField
+            fullWidth
+            label={field.displayName}
+            name={field.name}
+            value={fieldValues[field.name] || ""}
+            onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
+            margin="normal"
+            required={field.valueType === "userInput"}
+            disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+            error={!!errors[field.name]}
+            helperText={errors[field.name]}
+            variant="outlined"
+            InputProps={{
+              sx: { borderRadius: 2 }
+            }}
+          />
+        );
+      case "number":
+        return (
+          <TextField
+            fullWidth
+            label={field.displayName}
+            name={field.name}
+            type="number"
+            value={dynamicValue !== undefined ? dynamicValue : fieldValues[field.name] || ""}
+            onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
+            margin="normal"
+            required={field.valueType === "userInput"}
+            disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+            error={!!errors[field.name]}
+            helperText={errors[field.name]}
+            variant="outlined"
+            InputProps={{
+              sx: { borderRadius: 2 },
+              startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") || 
+                              field.name === "subtotal" || field.name === "discount_amount" ? 
+                <InputAdornment position="start">$</InputAdornment> : undefined,
+              readOnly: field.valueType === "dynamic",
+            }}
+          />
+        );
+      case "boolean":
+        return (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!fieldValues[field.name]}
+                onChange={(e) => handleBooleanChange(field.name, e.target.checked)}
+                name={field.name}
+                disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+                color="primary"
+              />
+            }
+            label={
+              <Typography variant="body1">
+                {field.displayName}
+              </Typography>
+            }
+            sx={{ mb: 1 }}
+          />
+        );
+      case "checkBoxGroup":
+        return (
+          <StyledFormControl component="fieldset" margin="normal" fullWidth>
+            <FormLabel component="legend">{field.displayName}</FormLabel>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 1 }}>
+              <FormGroup>
+                {field.options?.map((option) => (
+                  <FormControlLabel
+                    key={option.fieldName}
+                    control={
+                      <Checkbox
+                        checked={fieldValues[field.name]?.includes(option.fieldName) || false}
+                        onChange={(e) => handleCheckboxChange(field.name, option.fieldName, e.target.checked)}
+                        name={option.fieldName}
+                        disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+                        color="primary"
+                      />
+                    }
+                    label={option.labelName}
+                  />
+                ))}
+              </FormGroup>
+            </Paper>
+            {errors[field.name] && (
+              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
+                {errors[field.name]}
+              </Typography>
+            )}
+          </StyledFormControl>
+        );
+      case "radioButtonGroup":
+      case "option":
+        return (
+          <StyledFormControl component="fieldset" margin="normal" fullWidth>
+            <FormLabel component="legend">{field.displayName}</FormLabel>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 1 }}>
+              <RadioGroup
+                name={field.name}
+                value={fieldValues[field.name] || ""}
+                onChange={(e) => handleRadioChange(field.name, e.target.value)}
+              >
+                {field.options?.map((option) => (
+                  <FormControlLabel
+                    key={option.fieldName}
+                    value={option.fieldName}
+                    control={<Radio color="primary" />}
+                    label={
+                      <Typography variant="body1">
+                        {option.labelName}
+                      </Typography>
+                    }
+                    disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+                    sx={{ mb: 1 }}
+                  />
+                ))}
+              </RadioGroup>
+            </Paper>
+            {errors[field.name] && (
+              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
+                {errors[field.name]}
+              </Typography>
+            )}
+          </StyledFormControl>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Render step content
+  const renderEventDetails = (): JSX.Element => (
+    <StyledPaper>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+        <EventIcon color="primary" sx={{ mr: 1 }} />
+        <Typography variant="h5">
+          Event Information
+        </Typography>
+      </Box>
+      
+      {eventData.metadata?.imageUrl && (
+        <EventImage src={eventData.metadata.imageUrl} alt={eventData.name} />
+      )}
+      
+      <Typography variant="h4" gutterBottom>
+        {eventData.name}
+      </Typography>
+      
+      <Typography variant="body1" paragraph>
+        {eventData.description}
+      </Typography>
+      
+      <Grid container spacing={2} sx={{ mt: 2 }}>
+        <Grid item xs={12} sm={6}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Location
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            {eventData.location}
+          </Typography>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Date & Time
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            {formatDate(eventData.startingDate)} to {formatDate(eventData.endingDate)}
+          </Typography>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Registration Period
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            {formatDate(eventData.registrationStartDate)} to {formatDate(eventData.registrationEndDate)}
+          </Typography>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Available Seats
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            {eventData.seatsAvailable - eventData.totalregisteredSeats} of {eventData.seatsAvailable}
+          </Typography>
+        </Grid>
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Registration Type
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            {isFreeEvent ? (
+              <Chip label="Free Event" color="success" size="small" />
+            ) : (
+              <Chip label="Paid Event" color="primary" size="small" />
+            )}
+          </Typography>
+        </Grid>
+      </Grid>
+      
+      <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+        Please review the event details and click "Next" to proceed with your registration.
+      </Alert>
+    </StyledPaper>
+  );
+
+  const renderAttendeeInformation = (): JSX.Element => {
+    // Use the personal info fields we defined
+    const registrationFields = eventData.registrationFields.filter(
+      field => field.valueType === "userInput"
+    );
+    
+    return (
+      <StyledPaper>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <PersonIcon color="primary" sx={{ mr: 1 }} />
+          <Typography variant="h5">
+            Attendee Information
+          </Typography>
+        </Box>
+        
+        <Typography variant="subtitle1" gutterBottom>
+          Personal Information
+        </Typography>
+        
+        {personalInfoFields.map((field) => (
+          <Box key={field.name}>
+            {renderField(field)}
+          </Box>
+        ))}
+        
+        {registrationFields.length > 0 && (
+          <>
+            <Divider sx={{ my: 3 }} />
+            
+            <Typography variant="subtitle1" gutterBottom>
+              Registration Options
+            </Typography>
+            
+            {registrationFields.map((field) => (
+              <Box key={field.name}>
+                {renderField(field)}
+              </Box>
+            ))}
+          </>
+        )}
+        
+        {/* Only show price summary for paid events */}
+        {!isFreeEvent && eventData.registrationFields.some(field => field.valueType === "dynamic") && (
+          <>
+            <Divider sx={{ my: 3 }} />
+            
+            <Typography variant="subtitle1" gutterBottom>
+              Price Summary
+            </Typography>
+            
+            <PriceSummary>
+              <Grid container spacing={1}>
+                {eventData.registrationFields
+                  .filter(field => field.valueType === "dynamic")
+                  .map((field) => (
+                    <Grid item xs={12} key={field.name} sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography variant="body1">
+                        {field.displayName}:
+                      </Typography>
+                      <Typography variant="body1" fontWeight={field.name === "totalPrice" ? "bold" : "normal"}>
+                        {formatCurrency(calculatedValues[field.name] || 0)}
+                      </Typography>
+                    </Grid>
+                  ))}
+              </Grid>
+            </PriceSummary>
+          </>
+        )}
+      </StyledPaper>
+    );
+  };
+
+  const renderOrderSummary = (): JSX.Element => {
+    // This is only shown for paid events
+    const totalPrice = calculatedValues.totalPrice || 0;
+    
+    return (
+      <StyledPaper>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <PaymentIcon color="primary" sx={{ mr: 1 }} />
+          <Typography variant="h5">
+            Order Summary
+          </Typography>
+        </Box>
+        
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          Please review your order details before proceeding to payment.
+        </Alert>
+        
+        <StyledPaper sx={{ mb: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Event
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {eventData.name}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Attendee
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {fieldValues.fullName || "N/A"}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Email
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {fieldValues.email || "N/A"}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Phone
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {fieldValues.phone || "N/A"}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Divider sx={{ my: 1 }} />
+            </Grid>
+            
+            {/* Dynamically render selected options */}
+            {Object.entries(fieldValues).map(([key, value]) => {
+              // Skip personal info fields and empty values
+              if (["fullName", "email", "phone"].includes(key) || !value) return null;
+              
+              const field = eventData.registrationFields.find(f => f.name === key);
+              if (!field) return null;
+              
+              return (
+                <Grid item xs={12} key={key}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {field.displayName}
+                  </Typography>
+                  {typeof value === "boolean" ? (
+                    <Typography variant="body1" gutterBottom>
+                      {value ? "Yes" : "No"}
+                    </Typography>
+                  ) : Array.isArray(value) ? (
+                    value.map((optionValue: string) => {
+                      const option = field.options.find(opt => opt.fieldName === optionValue);
+                      return (
+                        <Typography key={optionValue} variant="body1" gutterBottom>
+                          {option?.labelName || optionValue}
+                        </Typography>
+                      );
+                    })
+                  ) : (
+                    <Typography variant="body1" gutterBottom>
+                      {field.options.find(opt => opt.fieldName === value)?.labelName || value}
+                    </Typography>
+                  )}
+                </Grid>
+              );
+            })}
+          </Grid>
+        </StyledPaper>
+        
+        {eventData.registrationFields.some(field => field.valueType === "dynamic") && (
+          <PriceSummary>
+            <Grid container spacing={1}>
+              {eventData.registrationFields
+                .filter(field => field.valueType === "dynamic" && field.name !== "totalPrice")
+                .map((field) => (
+                  <Grid item xs={12} key={field.name} sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography variant="body1">
+                      {field.displayName}:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatCurrency(calculatedValues[field.name] || 0)}
+                    </Typography>
+                  </Grid>
+                ))}
+              
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+              </Grid>
+              
+              <Grid item xs={12} sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="h6">
+                  Total:
+                </Typography>
+                <Typography variant="h6" fontWeight="bold">
+                  {formatCurrency(calculatedValues.totalPrice || 0)}
+                </Typography>
+              </Grid>
+            </Grid>
+          </PriceSummary>
+        )}
+        
+        <SecurePaymentBadge>
+          <LockIcon sx={{ mr: 1 }} />
+          <Typography variant="body2">
+            You'll be redirected to our secure payment gateway after confirming your order
+          </Typography>
+        </SecurePaymentBadge>
+      </StyledPaper>
+    );
+  };
+
+  const renderConfirmation = (): JSX.Element => (
+    <StyledPaper>
+      <Box sx={{ textAlign: "center", py: 3 }}>
+        <CheckCircleIcon color="success" sx={{ fontSize: 64, mb: 2 }} />
+        
+        <Typography variant="h4" gutterBottom>
+          Registration Complete!
+        </Typography>
+        
+        <Typography variant="body1" paragraph>
+          Thank you for registering for {eventData.name}. Your registration has been confirmed.
+        </Typography>
+        
+        <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+          Confirmation Number
+        </Typography>
+        
+        <Chip 
+          label={confirmationNumber} 
+          color="primary" 
+          sx={{ fontSize: "1.2rem", py: 3, px: 2, mb: 3 }} 
+        />
+        
+        <Typography variant="body1" paragraph>
+          A confirmation email has been sent to {fieldValues.email} with all the details.
+        </Typography>
+        
+        <StyledPaper sx={{ textAlign: "left", mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Event Details
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Event
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {eventData.name}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Start Date
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {formatDate(eventData.startingDate)}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Location
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {eventData.location}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Attendee
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {fieldValues.fullName}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Divider sx={{ my: 1 }} />
+            </Grid>
+            
+            {!isFreeEvent && calculatedValues.totalPrice > 0 && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total Paid
+                </Typography>
+                <Typography variant="body1" fontWeight="bold" gutterBottom>
+                  {formatCurrency(calculatedValues.totalPrice || 0)}
+                </Typography>
+              </Grid>
+            )}
+            
+            {isFreeEvent && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Registration Type
+                </Typography>
+                <Chip label="Free Event" color="success" size="small" />
+              </Grid>
+            )}
+          </Grid>
+        </StyledPaper>
+        
+        <Box sx={{ mt: 4 }}>
+          <AnimatedButton
+            variant="contained"
+            color="primary"
+            size="large"
+            sx={{ borderRadius: 2, px: 4 }}
+            onClick={() => window.print()}
+          >
+            Print Confirmation
+          </AnimatedButton>
+        </Box>
+      </Box>
+    </StyledPaper>
+  );
+
+  const getStepContent = (step: number): JSX.Element | string => {
+    if (isFreeEvent) {
+      // For free events, we have only 3 steps
+      switch (step) {
+        case 0:
+          return renderEventDetails();
+        case 1:
+          return renderAttendeeInformation();
+        case 2:
+          return renderConfirmation();
+        default:
+          return "Unknown step";
+      }
+    } else {
+      // For paid events, we have 4 steps
+      switch (step) {
+        case 0:
+          return renderEventDetails();
+        case 1:
+          return renderAttendeeInformation();
+        case 2:
+          return renderOrderSummary();
+        case 3:
+          return renderConfirmation();
+        default:
+          return "Unknown step";
+      }
+    }
+  };
+
+  // Determine if payment step should be skipped for free events
+  const totalPrice = calculatedValues.totalPrice || 0;
+  const isPaid = !isFreeEvent && totalPrice > 0;
+
+  return (
+    <Box component="form" onSubmit={handleSubmit} noValidate>
+      <StyledCard elevation={3}>
+        <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+          <Typography variant="h4" gutterBottom>
+            Event Registration
+          </Typography>
+          
+          <Stepper 
+            activeStep={activeStep} 
+            alternativeLabel={!isMobile}
+            orientation={isMobile ? "vertical" : "horizontal"}
+            sx={{ 
+              mb: 4,
+              "& .MuiStepConnector-line": {
+                minHeight: 12,
+              },
+              "& .MuiStepIcon-root": {
+                fontSize: 28,
+              }
+            }}
+          >
+            {steps.map((step) => (
+              <Step key={step.label}>
+                <StyledStepLabel StepIconProps={{ icon: step.icon }}>
+                  {step.label}
+                </StyledStepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
+          <Box sx={{ mb: 4 }}>
+            {getStepContent(activeStep)}
+          </Box>
+
+          <Box sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            mt: 4,
+            pt: 2,
+            borderTop: "1px solid",
+            borderColor: "divider"
+          }}>
+            <AnimatedButton 
+              disabled={activeStep === 0 || activeStep === (isFreeEvent ? 2 : 3)} 
+              onClick={handleBack} 
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              sx={{ borderRadius: 2 }}
+            >
+              Back
+            </AnimatedButton>
+            
+            <Box>
+              {activeStep === (isFreeEvent ? 2 : 3) ? (
+                <AnimatedButton 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={() => window.location.href = "/"}
+                  sx={{ borderRadius: 2, px: 4 }}
+                >
+                  Return Home
+                </AnimatedButton>
+              ) : activeStep === 2 && !isFreeEvent ? (
+                <AnimatedButton 
+                  variant="contained" 
+                  color="primary" 
+                  type="submit"
+                  disabled={isSubmitting}
+                  sx={{ borderRadius: 2, px: 4 }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Proceed to Payment"
+                  )}
+                </AnimatedButton>
+              ) : (
+                <AnimatedButton 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={handleNext}
+                  disabled={activeStep === 1 && isSubmitting}
+                  endIcon={activeStep === 1 && isSubmitting ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
+                  sx={{ borderRadius: 2 }}
+                >
+                  {activeStep === 1 && isSubmitting ? "Processing..." : "Next"}
+                </AnimatedButton>
+              )}
+            </Box>
+          </Box>
+        </CardContent>
+      </StyledCard>
+    </Box>
+  );
+}

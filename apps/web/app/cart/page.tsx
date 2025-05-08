@@ -5,99 +5,105 @@ import { useRouter } from "next/navigation"
 import { CartItem, getPurchasedItems } from "../../src/lib/purchases"
 import CartPageUI from "./cartUI"
 import { isUserLoggedIn } from "../../src/lib/auth"
+import { getCart, addToCart, updateCart, removeFromCart as removeCartItem, clearCart as clearCartItems } from "../../src/data/loader"
+import { useSession, SessionProvider } from "next-auth/react"
 
-async function getCartItems(): Promise<CartItem[]> {
-    // In a real app, this would make an API call to get the cart items
-    // For demo purposes, we'll just get from localStorage
-  
-    const cartData = localStorage.getItem("cart")
-    if (!cartData) {
+function CartPageContent() {
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const { data: session } = useSession()
+
+  // Get cart items from API
+  async function fetchCartItems(): Promise<CartItem[]> {
+    if (!session?.accessToken) return []
+    
+    try {
+      const headers = {
+        Authorization: `Bearer ${session.accessToken}`
+      }
+      const response = await getCart(headers)
+      return response.items || []
+    } catch (error) {
+      console.error("Error fetching cart:", error)
       return []
     }
-  
-    return JSON.parse(cartData)
   }
 
+  // Update cart item quantity
   async function updateCartItemQuantity(productId: string, quantity: number): Promise<CartItem[]> {
-    if (quantity < 1) {
-      return getCartItems()
+    if (!session?.accessToken || quantity < 1) return cartItems
+
+    try {
+      const headers = {
+        Authorization: `Bearer ${session.accessToken}`
+      }
+      
+      const data = {
+        productCode: productId,
+        quantity
+      }
+
+      await updateCart(data, headers)
+      return await fetchCartItems()
+    } catch (error) {
+      console.error("Error updating cart:", error)
+      return cartItems
     }
-  
-    const currentCart = await getCartItems()
-  
-    const updatedCart = currentCart.map((item) => (item.productCode === productId ? { ...item, quantity } : item))
-  
-    // Save to localStorage
-    localStorage.setItem("cart", JSON.stringify(updatedCart))
-  
-    return updatedCart
   }
 
+  // Remove item from cart
   async function removeFromCart(productId: string): Promise<CartItem[]> {
-    const currentCart = await getCartItems()
-  
-    const updatedCart = currentCart.filter((item) => item.productCode !== productId)
-  
-    // Save to localStorage
-    localStorage.setItem("cart", JSON.stringify(updatedCart))
-  
-    return updatedCart
+    if (!session?.accessToken) return cartItems
+
+    try {
+      const headers = {
+        Authorization: `Bearer ${session.accessToken}`
+      }
+      
+      const data = {
+        productCode: productId
+      }
+
+      await removeCartItem(data, headers)
+      return await fetchCartItems()
+    } catch (error) {
+      console.error("Error removing item:", error)
+      return cartItems
+    }
   }
 
+  // Clear cart
   async function clearCart(): Promise<CartItem[]> {
-    // Save to localStorage
-    localStorage.setItem("cart", JSON.stringify([]))
-  
-    return []
+    if (!session?.accessToken) return cartItems
+
+    try {
+      const headers = {
+        Authorization: `Bearer ${session.accessToken}`
+      }
+
+      await clearCartItems(headers)
+      return []
+    } catch (error) {
+      console.error("Error clearing cart:", error)
+      return cartItems
+    }
   }
 
   function calculateCartTotal(cartItems: CartItem[]): string {
     return cartItems
       .reduce((total, item) => {
-        // Using a mock price since the product schema doesn't include price
         const price = item.stock > 100 ? 99.99 : item.stock > 50 ? 49.99 : 19.99
         return total + price * item.quantity
       }, 0)
       .toFixed(2)
   }
 
-  async function addPurchasedItems(items: CartItem[]): Promise<CartItem[]> {
-    const currentPurchases = await getPurchasedItems()
-  
-    const updatedPurchases = [...currentPurchases, ...items]
-  
-    // Save to localStorage
-    localStorage.setItem("purchasedItems", JSON.stringify(updatedPurchases))
-  
-    return updatedPurchases
-  }
-  
-  // Get booked events
-  export async function getBookedEvents(): Promise<Event[]> {
-    // In a real app, this would make an API call to get the booked events
-    // For demo purposes, we'll just get from localStorage
-  
-    const bookedData = localStorage.getItem("bookedEvents")
-    if (!bookedData) {
-      return []
-    }
-  
-    return JSON.parse(bookedData)
-  }
-
-export default function CartPageData() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-
   useEffect(() => {
     async function loadData() {
       try {
-        const [items, loggedIn] = await Promise.all([getCartItems(), isUserLoggedIn()])
-
+        const items = await fetchCartItems()
         setCartItems(items)
-        setIsLoggedIn(loggedIn)
       } catch (error) {
         console.error("Error loading cart data:", error)
       } finally {
@@ -106,7 +112,7 @@ export default function CartPageData() {
     }
 
     loadData()
-  }, [])
+  }, [session]) // Re-fetch when session changes
 
   const handleUpdateQuantity = async (productId: string, quantity: number) => {
     try {
@@ -127,19 +133,16 @@ export default function CartPageData() {
   }
 
   const handleCheckout = async () => {
-    if (!isLoggedIn) {
+    if (!session) {
       router.push("/login")
       return
     }
 
     try {
-      // In a real app, you would process the checkout here
+      // Add checkout logic here
       alert("Checkout process would start here!")
 
-      // Add these items to purchased items
-      await addPurchasedItems(cartItems)
-
-      // Clear cart
+      // Clear cart after successful checkout
       const emptyCart = await clearCart()
       setCartItems(emptyCart)
     } catch (error) {
@@ -154,7 +157,7 @@ export default function CartPageData() {
   return (
     <CartPageUI
       cartItems={cartItems}
-      isLoggedIn={isLoggedIn}
+      isLoggedIn={!!session}
       calculateTotal={() => calculateCartTotal(cartItems)}
       onUpdateQuantity={handleUpdateQuantity}
       onRemoveItem={handleRemoveItem}
@@ -163,3 +166,11 @@ export default function CartPageData() {
   )
 }
 
+// Wrap the page with SessionProvider
+export default function CartPageData() {
+  return (
+    <SessionProvider>
+      <CartPageContent />
+    </SessionProvider>
+  )
+}

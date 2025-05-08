@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Button,
@@ -22,9 +22,12 @@ import {
   Step,
   StepLabel,
   SelectChangeEvent,
+  Radio,
+  RadioGroup,
+  Checkbox,
 } from "@mui/material"
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material"
-import type { Event, RegistrationField, Option } from "./event"
+import type { Event, RegistrationField, Option, Formula } from "./event"
 
 interface EventFormProps {
   onEventCreated: (event: Event) => void
@@ -41,9 +44,10 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     metadata: {
       name: "",
       description: "",
+      imageUrl: ""
     },
     location: "",
-    geoAllow: {
+    GeoAllow: {
       location: "",
       coordinates: [0, 0],
     },
@@ -65,12 +69,17 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     registrationEndDate: "",
   })
 
+  // Store user input values for registration fields
+  const [fieldValues, setFieldValues] = useState<Record<string, any>>({})
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [newField, setNewField] = useState<Partial<RegistrationField>>({
     name: "",
     displayName: "",
     type: "text",
     valueType: "userInput",
+    options: [],
+    formula: []
   })
   const [newOption, setNewOption] = useState<Partial<Option>>({
     fieldName: "",
@@ -78,6 +87,112 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     labelName: "",
   })
   const [selectedFieldIndex, setSelectedFieldIndex] = useState<number | null>(null)
+  const [newFormula, setNewFormula] = useState<Partial<Formula>>({
+    type: "customField",
+    fieldName: "",
+    operationName: ""
+  })
+
+  // Calculate dynamic field values whenever fieldValues or registrationFields change
+  useEffect(() => {
+    if (formData.registrationFields && formData.registrationFields.length > 0) {
+      calculateDynamicFields();
+    }
+  }, [fieldValues, formData.registrationFields]);
+
+  // Function to calculate values for dynamic fields based on formulas
+  const calculateDynamicFields = () => {
+    if (!formData.registrationFields) return;
+    
+    // Create a copy of field values to update
+    const newFieldValues = { ...fieldValues };
+    
+    // First pass: calculate all fields with valueType "dynamic"
+    formData.registrationFields.forEach(field => {
+      if (field.valueType === "dynamic" && field.formula && field.formula.length > 0) {
+        newFieldValues[field.name] = evaluateFormula(field.formula, newFieldValues);
+      }
+    });
+    
+    // Update field values
+    setFieldValues(newFieldValues);
+  };
+
+  // Function to evaluate a formula
+  const evaluateFormula = (formula: Formula[], values: Record<string, any>): number => {
+    let result = 0;
+    let currentOperation = "add"; // Default operation
+    let tempValue = 0;
+    let isFirstValue = true;
+    
+    for (let i = 0; i < formula.length; i++) {
+      const item = formula[i];
+      
+      if (item.type === "operation") {
+        currentOperation = item.operationName || "add";
+      } else {
+        // Get value based on type
+        let value = 0;
+        
+        if (item.type === "customField") {
+          // Get value from the field
+          const fieldName = item.fieldName || "";
+          value = getFieldValue(fieldName, values);
+        } else if (item.type === "number") {
+          // Parse number from fieldName
+          value = parseFloat(item.fieldName || "0");
+        }
+        
+        // Apply operation
+        if (isFirstValue) {
+          result = value;
+          isFirstValue = false;
+        } else {
+          switch (currentOperation) {
+            case "add":
+              result += value;
+              break;
+            case "subtract":
+              result -= value;
+              break;
+            case "multiply":
+              result *= value;
+              break;
+            case "divide":
+              if (value !== 0) result /= value;
+              break;
+            case "modulus":
+              if (value !== 0) result %= value;
+              break;
+          }
+        }
+      }
+    }
+    
+    return result;
+  };
+
+  // Function to get the value of a field
+  const getFieldValue = (fieldName: string, values: Record<string, any>): number => {
+    if (fieldName in values) {
+      return parseFloat(values[fieldName] || 0);
+    }
+    
+    // If field not found in values, check if it's a field in registrationFields
+    const field = formData.registrationFields?.find(f => f.name === fieldName);
+    
+    if (field) {
+      if (field.type === "boolean") {
+        // For boolean fields, return truthValue or falseValue
+        return values[fieldName] ? (field.truthValue || 0) : (field.falseValue || 0);
+      } else if (field.valueType === "dynamic" && field.formula && field.formula.length > 0) {
+        // For dynamic fields, evaluate the formula
+        return evaluateFormula(field.formula, values);
+      }
+    }
+    
+    return 0;
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>
@@ -89,13 +204,10 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
       if (parts.length === 2) {
         const [parent, child] = parts;
         
-        // Make sure both parent and child are defined
         if (parent && child) {
-          // Check if parent exists in formData
           if (parent in formData) {
             const parentObj = formData[parent as keyof Event];
             
-            // Make sure parentObj is a valid object for spreading
             if (parentObj && typeof parentObj === 'object' && !Array.isArray(parentObj)) {
               setFormData({
                 ...formData,
@@ -116,16 +228,59 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     }
   };
 
+  // Handle change for registration field values
+  const handleFieldValueChange = (fieldName: string, value: any) => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  // Handle radio button change
+  const handleRadioChange = (fieldName: string, value: string) => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  // Handle checkbox change
+  const handleCheckboxChange = (fieldName: string, optionFieldName: string, checked: boolean) => {
+    const currentValues = fieldValues[fieldName] || [];
+    let newValues;
+    
+    if (checked) {
+      // Add the value if checked
+      newValues = [...currentValues, optionFieldName];
+    } else {
+      // Remove the value if unchecked
+      newValues = currentValues.filter((v: string) => v !== optionFieldName);
+    }
+    
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: newValues
+    }));
+  };
+
+  // Handle boolean field change
+  const handleBooleanChange = (fieldName: string, checked: boolean) => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldName]: checked
+    }));
+  };
+
   const handleCoordinateChange = (index: number, value: string) => {
-    // Ensure geoAllow exists
-    const geoAllow = formData.geoAllow || { location: "", coordinates: [0, 0] }
-    const newCoordinates = [...(geoAllow.coordinates || [0, 0])]
+    // Ensure GeoAllow exists (note the capital G in GeoAllow)
+    const GeoAllow = formData.GeoAllow || { location: "", coordinates: [0, 0] }
+    const newCoordinates = [...(GeoAllow.coordinates || [0, 0])]
     newCoordinates[index] = Number.parseFloat(value)
 
     setFormData({
       ...formData,
-      geoAllow: {
-        ...geoAllow,
+      GeoAllow: {
+        ...GeoAllow,
         coordinates: newCoordinates as [number, number],
       },
     })
@@ -161,6 +316,16 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     }
   }
 
+  const handleNewFormulaChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const { name, value } = e.target
+    if (name) {
+      setNewFormula({
+        ...newFormula,
+        [name]: value,
+      })
+    }
+  }
+
   const addRegistrationField = () => {
     if (!newField.name || !newField.displayName) {
       return
@@ -173,6 +338,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
       type: newField.type || "text",
       valueType: newField.valueType || "userInput",
       options: [],
+      formula: [],
     })
 
     setFormData({
@@ -185,6 +351,8 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
       displayName: "",
       type: "text",
       valueType: "userInput",
+      options: [],
+      formula: []
     })
   }
 
@@ -194,14 +362,12 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     }
 
     const updatedFields = [...(formData.registrationFields || [])]
-    // Make sure updatedFields[selectedFieldIndex] exists
     if (!updatedFields[selectedFieldIndex]) {
       return
     }
     
     const field = updatedFields[selectedFieldIndex]
 
-    // Ensure field.options exists
     if (!field.options) {
       field.options = []
     }
@@ -224,6 +390,41 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     })
   }
 
+  const addFormulaToField = (fieldIndex: number) => {
+    if (!newFormula.type || (newFormula.type !== "operation" && !newFormula.fieldName) || 
+        (newFormula.type === "operation" && !newFormula.operationName)) {
+      return
+    }
+
+    const updatedFields = [...(formData.registrationFields || [])]
+    if (!updatedFields[fieldIndex]) {
+      return
+    }
+    
+    const field = updatedFields[fieldIndex]
+
+    if (!field.formula) {
+      field.formula = []
+    }
+
+    field.formula.push({
+      type: newFormula.type,
+      fieldName: newFormula.fieldName,
+      operationName: newFormula.operationName,
+    })
+
+    setFormData({
+      ...formData,
+      registrationFields: updatedFields,
+    })
+
+    setNewFormula({
+      type: "customField",
+      fieldName: "",
+      operationName: ""
+    })
+  }
+
   const removeRegistrationField = (index: number) => {
     const updatedFields = [...(formData.registrationFields || [])]
     updatedFields.splice(index, 1)
@@ -240,7 +441,6 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
 
   const removeOption = (fieldIndex: number, optionIndex: number) => {
     const updatedFields = [...(formData.registrationFields || [])]
-    // Make sure updatedFields[fieldIndex] exists
     if (!updatedFields[fieldIndex]) {
       return;
     }
@@ -249,6 +449,24 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
 
     if (field.options) {
       field.options.splice(optionIndex, 1)
+
+      setFormData({
+        ...formData,
+        registrationFields: updatedFields,
+      })
+    }
+  }
+
+  const removeFormula = (fieldIndex: number, formulaIndex: number) => {
+    const updatedFields = [...(formData.registrationFields || [])]
+    if (!updatedFields[fieldIndex]) {
+      return;
+    }
+    
+    const field = updatedFields[fieldIndex]
+
+    if (field.formula) {
+      field.formula.splice(formulaIndex, 1)
 
       setFormData({
         ...formData,
@@ -285,8 +503,8 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
         newErrors.location = "Location is required"
         isValid = false
       }
-      if (!formData.geoAllow?.location) {
-        newErrors["geoAllow.location"] = "Geo location is required"
+      if (!formData.GeoAllow?.location) {
+        newErrors["GeoAllow.location"] = "Geo location is required"
         isValid = false
       }
     } else if (step === 2) {
@@ -437,6 +655,15 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
           onChange={handleInputChange}
         />
       </Grid>
+      <Grid item xs={12}>
+        <TextField
+          fullWidth
+          label="Image URL"
+          name="metadata.imageUrl"
+          value={formData.metadata?.imageUrl || ""}
+          onChange={handleInputChange}
+        />
+      </Grid>
     </Grid>
   )
 
@@ -464,11 +691,11 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
           required
           fullWidth
           label="Geo Location Name"
-          name="geoAllow.location"
-          value={formData.geoAllow?.location || ""}
+          name="GeoAllow.location"
+          value={formData.GeoAllow?.location || ""}
           onChange={handleInputChange}
-          error={!!errors["geoAllow.location"]}
-          helperText={errors["geoAllow.location"]}
+          error={!!errors["GeoAllow.location"]}
+          helperText={errors["GeoAllow.location"]}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
@@ -478,7 +705,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
           label="Longitude"
           type="number"
           inputProps={{ step: "0.000001", min: -180, max: 180 }}
-          value={formData.geoAllow?.coordinates?.[0] || 0}
+          value={formData.GeoAllow?.coordinates?.[0] || 0}
           onChange={(e) => handleCoordinateChange(0, e.target.value)}
         />
       </Grid>
@@ -489,7 +716,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
           label="Latitude"
           type="number"
           inputProps={{ step: "0.000001", min: -90, max: 90 }}
-          value={formData.geoAllow?.coordinates?.[1] || 0}
+          value={formData.GeoAllow?.coordinates?.[1] || 0}
           onChange={(e) => handleCoordinateChange(1, e.target.value)}
         />
       </Grid>
@@ -661,7 +888,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
                 label="Field Name"
                 name="name"
                 value={newField.name || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange(e)}
+                onChange={handleNewFieldChange}
                 placeholder="e.g., fullName"
               />
             </Grid>
@@ -671,7 +898,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
                 label="Display Name"
                 name="displayName"
                 value={newField.displayName || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange(e)}
+                onChange={handleNewFieldChange}
                 placeholder="e.g., Full Name"
               />
             </Grid>
@@ -746,6 +973,141 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
                   </IconButton>
                 </Grid>
 
+                {/* Field value display for dynamic fields */}
+                {field.valueType === "dynamic" && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Calculated Value"
+                      value={fieldValues[field.name] || 0}
+                      disabled
+                      size="small"
+                      sx={{ mb: 2 }}
+                    />
+                  </Grid>
+                )}
+
+                {/* Field input based on type */}
+                {field.valueType === "userInput" && (
+                  <Grid item xs={12}>
+                    {field.type === "text" && (
+                      <TextField
+                        fullWidth
+                        label={field.displayName}
+                        value={fieldValues[field.name] || ""}
+                        onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
+                        size="small"
+                        sx={{ mb: 2 }}
+                      />
+                    )}
+                    
+                    {field.type === "number" && (
+                      <TextField
+                        fullWidth
+                        label={field.displayName}
+                        type="number"
+                        value={fieldValues[field.name] || 0}
+                        onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
+                        size="small"
+                        sx={{ mb: 2 }}
+                      />
+                    )}
+                    
+                    {field.type === "boolean" && (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={!!fieldValues[field.name]}
+                            onChange={(e) => handleBooleanChange(field.name, e.target.checked)}
+                          />
+                        }
+                        label={field.displayName}
+                      />
+                    )}
+                    
+                    {field.type === "radioButtonGroup" && field.options && field.options.length > 0 && (
+                      <FormControl component="fieldset" sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          {field.displayName}
+                        </Typography>
+                        <RadioGroup
+                          value={fieldValues[field.name] || ""}
+                          onChange={(e) => handleRadioChange(field.name, e.target.value)}
+                        >
+                          {field.options.map((option, optIndex) => (
+                            <FormControlLabel
+                              key={optIndex}
+                              value={option.fieldName}
+                              control={<Radio />}
+                              label={option.labelName}
+                            />
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                    )}
+                    
+                    {field.type === "checkBoxGroup" && field.options && field.options.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          {field.displayName}
+                        </Typography>
+                        {field.options.map((option, optIndex) => (
+                          <FormControlLabel
+                            key={optIndex}
+                            control={
+                              <Checkbox
+                                checked={fieldValues[field.name]?.includes(option.fieldName) || false}
+                                onChange={(e) => handleCheckboxChange(field.name, option.fieldName, e.target.checked)}
+                              />
+                            }
+                            label={option.labelName}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  </Grid>
+                )}
+
+                {/* Boolean field specific settings */}
+                {field.type === "boolean" && (
+                  <Grid item xs={12}>
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <TextField
+                        label="True Value"
+                        type="number"
+                        size="small"
+                        value={field.truthValue || 0}
+                        onChange={(e) => {
+                          const updatedFields = [...(formData.registrationFields || [])];
+                          if (updatedFields[index]) {
+                            updatedFields[index].truthValue = Number(e.target.value);
+                            setFormData({
+                              ...formData,
+                              registrationFields: updatedFields,
+                            });
+                          }
+                        }}
+                      />
+                      <TextField
+                        label="False Value"
+                        type="number"
+                        size="small"
+                        value={field.falseValue || 0}
+                        onChange={(e) => {
+                          const updatedFields = [...(formData.registrationFields || [])];
+                          if (updatedFields[index]) {
+                            updatedFields[index].falseValue = Number(e.target.value);
+                            setFormData({
+                              ...formData,
+                              registrationFields: updatedFields,
+                            });
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Grid>
+                )}
+
                 {/* Options for checkbox or radio button groups */}
                 {(field.type === "checkBoxGroup" || field.type === "radioButtonGroup" || field.type === "option") && (
                   <Grid item xs={12}>
@@ -802,6 +1164,88 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
                     </Box>
                   </Grid>
                 )}
+
+                {/* Formula section */}
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" gutterBottom>
+                      Formula:
+                    </Typography>
+                    {field.formula && field.formula.length > 0 ? (
+                      <Box sx={{ mb: 2 }}>
+                        {field.formula.map((formulaItem, formulaIndex) => (
+                          <Box key={formulaIndex} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                            <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                              {formulaItem.type === "customField" && `Field: ${formulaItem.fieldName}`}
+                              {formulaItem.type === "operation" && `Operation: ${formulaItem.operationName}`}
+                              {formulaItem.type === "number" && `Number: ${formulaItem.fieldName}`}
+                              {formulaItem.type === "symbol" && `Symbol: ${formulaItem.fieldName}`}
+                            </Typography>
+                            <IconButton color="error" onClick={() => removeFormula(index, formulaIndex)} size="small">
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No formula items added yet.
+                      </Typography>
+                    )}
+
+                    {/* Add formula form */}
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "flex-end" }}>
+                      <FormControl size="small" sx={{ minWidth: 120 }}>
+                        <InputLabel>Formula Type</InputLabel>
+                        <Select
+                          name="type"
+                          value={newFormula.type || "customField"}
+                          onChange={handleNewFormulaChange}
+                          label="Formula Type"
+                        >
+                          <MenuItem value="customField">Custom Field</MenuItem>
+                          <MenuItem value="operation">Operation</MenuItem>
+                          <MenuItem value="number">Number</MenuItem>
+                          <MenuItem value="symbol">Symbol</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      {newFormula.type === "operation" ? (
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel>Operation</InputLabel>
+                          <Select
+                            name="operationName"
+                            value={newFormula.operationName || ""}
+                            onChange={handleNewFormulaChange}
+                            label="Operation"
+                          >
+                            <MenuItem value="add">Add</MenuItem>
+                            <MenuItem value="subtract">Subtract</MenuItem>
+                            <MenuItem value="multiply">Multiply</MenuItem>
+                            <MenuItem value="divide">Divide</MenuItem>
+                            <MenuItem value="modulus">Modulus</MenuItem>
+                          </Select>
+                        </FormControl>
+                      ) : (
+                        <TextField
+                          label={newFormula.type === "number" ? "Value" : "Field Name"}
+                          name="fieldName"
+                          value={newFormula.fieldName || ""}
+                          onChange={handleNewFormulaChange}
+                          size="small"
+                        />
+                      )}
+
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => addFormulaToField(index)}
+                      >
+                        Add to Formula
+                      </Button>
+                    </Box>
+                  </Box>
+                </Grid>
               </Grid>
             </Paper>
           ))}

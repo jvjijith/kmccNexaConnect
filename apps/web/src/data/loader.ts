@@ -93,3 +93,35 @@ export async function clearCart(headers?: HeadersInit) {
     throw new Error(error || 'Failed to clear cart');
   }
 }
+
+export async function payment(registrationId: any) {
+  try {
+    return await postApi(`/payments/create/${registrationId}`,{});
+  } catch (error: any) {
+    throw new Error(error || 'Payment failed');
+  }
+}
+
+export async function registerEvent(data: any, headers?: HeadersInit) {
+  try {
+    return await postApi('/events/register/guest', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to register');
+  }
+}
+
+export async function updateEvent(data: any, headers?: HeadersInit) {
+  try {
+    return await putApi('/events/update', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to update register');
+  }
+}
+
+export async function getRegisterEvent(registerId: any, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/events/${registerId}`, { headers });
+  } catch (error: any) {
+    throw new Error(error || 'Failed to fetch events');
+  }
+}

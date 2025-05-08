@@ -9,8 +9,8 @@ import {
   Typography, 
   Skeleton 
 } from "@repo/ui/mui";
-import EventDetailPage from "@repo/ui/eventdetails";
-import type { Event } from "@repo/ui/event";
+import EventDetailPage from "../event/eventDetailPage";
+import { Event } from "../../../types/event";
 import { getColor, getEvent } from "../../../src/data/loader";
 
 // Skeleton component for the header section
@@ -56,64 +56,63 @@ const EventDetailsSkeleton = () => (
 );
 
 // Main content component
-const EventContent = ({ event, themes }: { event: Event, themes: any }) => (
+const EventContent = ({ event, themes, id }: { event: Event, themes: any, id: any }) => (
   <>
     <Box
-  sx={{
-    width: '100vw',
-    position: 'relative',
-    left: '50%',
-    right: '50%',
-    marginLeft: '-50vw',
-    marginRight: '-50vw',
-    // bgcolor: themes?.theme.palette.primary?.light
-  }}
->
-  <Container
-    maxWidth={false}
-    sx={{
-      py: { xs: 6, sm: 8, md: 12 },
-      display: 'flex',
-      flexDirection: 'column',
-      gap: { xs: 8, sm: 12, md: 16 },
-    }}
-  >
-    <Box
       sx={{
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: { xs: 2, sm: 3, md: 4 },
-        marginTop: { xs: 3, sm: 4, md: 5 }
+        width: '100vw',
+        position: 'relative',
+        left: '50%',
+        right: '50%',
+        marginLeft: '-50vw',
+        marginRight: '-50vw',
       }}
     >
-      <Typography 
-        variant="h2" 
-        component="h1" 
-        fontWeight="bold" 
-        sx={{ 
-          letterSpacing: '-0.025em',
-          fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
-        }}
-      >
-        {event.name || 'Event Details'}
-      </Typography>
-
-      <Typography 
-        variant="body1" 
-        color="text.secondary"
+      <Container
+        maxWidth={false}
         sx={{
-          maxWidth: '42rem',
-          mx: 'auto',
-          fontSize: { xs: '0.875rem', sm: '1rem' }
+          py: { xs: 6, sm: 8, md: 12 },
+          display: 'flex',
+          flexDirection: 'column',
+          gap: { xs: 8, sm: 12, md: 16 },
         }}
       >
-        {event.metadata?.description || event.description}
-      </Typography>
+        <Box
+          sx={{
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: 2, sm: 3, md: 4 },
+            marginTop: { xs: 3, sm: 4, md: 5 }
+          }}
+        >
+          <Typography 
+            variant="h2" 
+            component="h1" 
+            fontWeight="bold" 
+            sx={{ 
+              letterSpacing: '-0.025em',
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+            }}
+          >
+            {event.name || 'Event Details'}
+          </Typography>
+
+          <Typography 
+            variant="body1" 
+            color="text.secondary"
+            sx={{
+              maxWidth: '42rem',
+              mx: 'auto',
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}
+          >
+            {event.metadata?.description || event.description}
+          </Typography>
+        </Box>
+      </Container>
     </Box>
-  </Container>
-</Box>
-    <EventDetailPage event={event} themes={themes} />
+    <EventDetailPage event={event} themes={themes} id={id} />
   </>
 );
 
@@ -138,7 +137,7 @@ export default function EventPage() {
   const params = useParams();
   const id = params.id as string;
   const [event, setEvent] = useState<Event | null>(null);
-  const [color, setColor] = useState<Event | null>(null);
+  const [color, setColor] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -175,7 +174,7 @@ export default function EventPage() {
       {loading ? (
         <LoadingState />
       ) : event && color ? (
-        <EventContent event={event} themes={color} />
+        <EventContent event={event} themes={color} id={id} />
       ) : (
         <ErrorState />
       )}

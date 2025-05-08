@@ -29,7 +29,8 @@ import {
   ExpandLess as ExpandLessIcon,
   ShoppingCart as ShoppingCartIcon,
   Person as PersonIcon,
-  AccountCircle as AccountCircleIcon
+  AccountCircle as AccountCircleIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
 
@@ -87,7 +88,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     // Check if user is logged in (example - replace with your auth logic)
     const checkLoginStatus = () => {
       // This is a placeholder - replace with your actual auth check
-      const userToken = localStorage.getItem('userToken');
+      const userToken = localStorage.getItem('accessToken');
       setIsLoggedIn(!!userToken);
       
       // Example cart count - replace with your actual cart logic
@@ -137,9 +138,13 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
 
   const handleLogout = () => {
     // Implement your logout logic here
-    localStorage.removeItem('userToken');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('nextauth.message');
+    localStorage.removeItem('refreshToken');
     setIsLoggedIn(false);
-    handleCloseUserMenu();
+    // handleCloseUserMenu();
+    // toggleMobileMenu(); // Close mobile menu if open
   };
 
   // Function to check if a menu item is active
@@ -316,10 +321,11 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 </Badge>
               </IconButton>
               
-              {/* Login Button or Profile Menu */}
+              {/* Login/Logout/Profile Buttons */}
               {isLoggedIn ? (
                 <>
-                  <Tooltip title="Open settings">
+                  {/* Profile Icon with Dropdown */}
+                  {/* <Tooltip title="Account settings">
                     <IconButton 
                       onClick={handleOpenUserMenu} 
                       sx={{ 
@@ -355,7 +361,30 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     <MenuItem onClick={handleLogout}>
                       <ListItemText primary="Logout" />
                     </MenuItem>
-                  </Menu>
+                  </Menu> */}
+                  
+                  {/* Logout Button (Desktop) */}
+                  {!isMobile && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<LogoutIcon />}
+                      onClick={handleLogout}
+                      sx={{
+                        color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
+                        borderColor: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
+                        '&:hover': {
+                          borderColor: 'error.main',
+                          color: 'error.main',
+                          backgroundColor: 'rgba(211, 47, 47, 0.04)'
+                        },
+                        textTransform: 'none',
+                        fontSize: '0.9rem',
+                        display: { xs: 'none', sm: 'flex' }
+                      }}
+                    >
+                      Logout
+                    </Button>
+                  )}
                 </>
               ) : (
                 <Button
@@ -546,8 +575,9 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
           {isLoggedIn && (
             <ListItem>
               <Button
-                variant="text"
+                variant="outlined"
                 color="error"
+                startIcon={<LogoutIcon />}
                 onClick={handleLogout}
                 fullWidth
                 sx={{

@@ -50,6 +50,7 @@ interface EventData {
   metadata?: {
     name?: string;
     description?: string;
+    imageUrl?:string;
   };
   [key: string]: any;
 }
@@ -299,7 +300,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     return {
       id: eventId,
       type: 'event',
-      image: event.imageUrl || '/api/placeholder/400/360',
+      image: event.metadata?.imageUrl || '/api/placeholder/400/360',
       title: event.name || event.metadata?.name || 'Event',
       description: event.description || event.metadata?.description || '',
       link: eventId ? `/event/${eventId}` : '#',
@@ -355,6 +356,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
   // Handle add to cart
   const handleAddToCart = async (productId: string, price: number) => {
+    console.error("productId:", productId);
+    console.error("price:", price);
     try {
       // Set loading state for this specific product
       setAddingToCart(prev => ({...prev, [productId]: true}));
@@ -362,6 +365,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       // Get access token from localStorage
       const accessToken = localStorage.getItem("accessToken");
       
+    console.error("accessToken:", accessToken);
       if (!accessToken) {
         alert("Please login to add items to cart");
         setAddingToCart(prev => ({...prev, [productId]: false}));
@@ -383,6 +387,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       
       // Call the addToCart function from loader
       const result = await addToCart(cartData, customHeaders);
+      
+      console.error("result adding to cart:", result);
       
       // Show success message
       alert("Item added to cart successfully!");
