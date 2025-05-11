@@ -1,6 +1,7 @@
 // app/api/auth/[...nextauth]/options.ts
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "../../../../src/lib/firebase"
 import { login } from "../../../../src/data/loader"
@@ -9,14 +10,12 @@ import { AuthResponse } from "../../../../types/api"
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      // Your existing provider configuration
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // Your existing authorize function
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password required")
         }
@@ -62,7 +61,6 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    // Your existing callbacks
     async jwt({ token, user }) {
       if (user) {
         return {
