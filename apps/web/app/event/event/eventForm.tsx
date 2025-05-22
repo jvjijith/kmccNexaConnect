@@ -890,7 +890,7 @@ const handleNewFieldChange = (
                 label="Field Name"
                 name="name"
                 value={newField.name || ""}
-                onChange={handleNewFieldChange}
+                onChange={(e)=>handleNewFieldChange}
                 placeholder="e.g., fullName"
               />
             </Grid>
@@ -900,7 +900,7 @@ const handleNewFieldChange = (
                 label="Display Name"
                 name="displayName"
                 value={newField.displayName || ""}
-                onChange={handleNewFieldChange}
+                onChange={(e)=>handleNewFieldChange}
                 placeholder="e.g., Full Name"
               />
             </Grid>
@@ -1202,7 +1202,7 @@ const handleNewFieldChange = (
                         <Select
                           name="type"
                           value={newFormula.type || "customField"}
-                          onChange={handleNewFormulaChange}
+                          onChange={(e)=>handleNewFormulaChange}
                           label="Formula Type"
                         >
                           <MenuItem value="customField">Custom Field</MenuItem>
@@ -1218,7 +1218,7 @@ const handleNewFieldChange = (
                           <Select
                             name="operationName"
                             value={newFormula.operationName || ""}
-                            onChange={handleNewFormulaChange}
+                            onChange={(e)=>handleNewFormulaChange}
                             label="Operation"
                           >
                             <MenuItem value="add">Add</MenuItem>
