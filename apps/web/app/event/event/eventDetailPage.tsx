@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import type { Event } from "./event"
+import type { Event } from "../../../types/event" 
 import {
   Box,
   Container,
@@ -147,6 +147,20 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
     if (!event.endingDate) return ""
     const endDate = new Date(event.endingDate)
     return formatDate(endDate.toISOString())
+  }
+
+  // Default coordinates if none provided (e.g., San Francisco)
+  const defaultCoordinates: [number, number] = [37.7749, -122.4194]
+  const mapCoordinates = event.GeoAllow?.coordinates || defaultCoordinates
+
+  // Ensure event has required metadata for RegistrationForm
+  const eventDataForRegistration = {
+    ...event,
+    metadata: {
+      name: event.metadata?.name || event.name,
+      description: event.metadata?.description || event.description,
+      imageUrl: event.metadata?.imageUrl || ''
+    }
   }
 
   console.log("event",event);
@@ -514,12 +528,12 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
               {event.location}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              {event.geoAllow?.location}
+              {event.GeoAllow?.location}
             </Typography>
             <Box sx={{ height: 400, width: "100%", mb: 3 }}>
               <EventMap 
-                location={event.geoAllow?.location || ""} 
-                coordinates={event.geoAllow?.coordinates} 
+                location={event.GeoAllow?.location || ""} 
+                coordinates={mapCoordinates}
               />
             </Box>
 
@@ -564,7 +578,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
             <Typography variant="h5" gutterBottom>
               Registration
             </Typography>
-            <RegistrationForm eventData={event} id={id} />
+            <RegistrationForm eventData={eventDataForRegistration} id={id} />
           </TabPanel>}
         </Box>
 
@@ -592,7 +606,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <RegistrationForm eventData={event} id={id} />
+            <RegistrationForm eventData={eventDataForRegistration} id={id} />
           </DialogContent>
           <DialogActions>
             {/* <Button onClick={handleCloseRegistration} color="primary">
