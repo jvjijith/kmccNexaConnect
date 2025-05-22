@@ -27,7 +27,7 @@ import {
   Checkbox,
 } from "@mui/material"
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material"
-import type { Event, RegistrationField, Option, Formula } from "./event"
+import { Event, RegistrationField, Option, Formula } from "../../../types/event"
 
 interface EventFormProps {
   onEventCreated: (event: Event) => void
