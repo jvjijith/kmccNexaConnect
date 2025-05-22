@@ -127,7 +127,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     
     for (let i = 0; i < formula.length; i++) {
       const item = formula[i];
-      
+      if (item) {
       if (item.type === "operation") {
         currentOperation = item.operationName || "add";
       } else {
@@ -168,6 +168,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
         }
       }
     }
+  }
     
     return result;
   };
@@ -294,17 +295,18 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     })
   }
 
-  const handleNewFieldChange = (
-    e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
-  ) => {
-    const { name, value } = e.target
-    if (name) {
-      setNewField({
-        ...newField,
-        [name]: value,
-      })
-    }
+const handleNewFieldChange = (
+  e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
+) => {
+  // Narrow event type by checking if 'target' exists and has 'name' property
+  if ("target" in e && e.target.name) {
+    const { name, value } = e.target;
+    setNewField({
+      ...newField,
+      [name]: value,
+    });
   }
+};
 
   const handleNewOptionChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target
@@ -1051,7 +1053,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
                         <Typography variant="subtitle2" gutterBottom>
                           {field.displayName}
                         </Typography>
-                        {field.options.map((option, optIndex) => (
+                        {field.options.map((option: any, optIndex) => (
                           <FormControlLabel
                             key={optIndex}
                             control={
