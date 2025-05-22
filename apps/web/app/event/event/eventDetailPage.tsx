@@ -153,16 +153,6 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
   const defaultCoordinates: [number, number] = [37.7749, -122.4194]
   const mapCoordinates = event.GeoAllow?.coordinates || defaultCoordinates
 
-  // Ensure event has required metadata for RegistrationForm
-  const eventDataForRegistration = {
-    ...event,
-    metadata: {
-      name: event.metadata?.name || event.name,
-      description: event.metadata?.description || event.description,
-      imageUrl: event.metadata?.imageUrl || ''
-    }
-  }
-
   console.log("event",event);
 
   return (
@@ -578,7 +568,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
             <Typography variant="h5" gutterBottom>
               Registration
             </Typography>
-            <RegistrationForm eventData={eventDataForRegistration} id={id} />
+            <RegistrationForm eventData={event} id={id} />
           </TabPanel>}
         </Box>
 
@@ -606,7 +596,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <RegistrationForm eventData={eventDataForRegistration} id={id} />
+            <RegistrationForm eventData={event} id={id} />
           </DialogContent>
           <DialogActions>
             {/* <Button onClick={handleCloseRegistration} color="primary">

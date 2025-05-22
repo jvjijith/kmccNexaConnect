@@ -28,7 +28,7 @@ export interface Event {
   
   export interface GeoAllow {
     location: string
-    coordinates: [number, number] // Longitude and latitude
+    coordinates?: [number, number] // Longitude and latitude
   }
   
   export interface RegistrationField {

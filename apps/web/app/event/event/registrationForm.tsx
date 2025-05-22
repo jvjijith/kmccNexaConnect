@@ -45,7 +45,10 @@ import {
 // Import the API functions
 import { payment, registerEvent } from "../../../src/data/loader";
 
-// Define TypeScript interfaces
+// Import the Event type from your types file
+import type { Event } from "../../../types/event";
+
+// Define TypeScript interfaces for the registration form
 interface Option {
   fieldName: string;
   parentName: string;
@@ -72,56 +75,8 @@ interface RegistrationField {
   _id?: string;
 }
 
-interface GeoAllow {
-  location: string;
-  coordinates: number[];
-  _id?: string;
-}
-
-interface Metadata {
-  name: string;
-  description: string;
-  imageUrl: string;
-  _id?: string;
-}
-
-interface PriceConfig {
-  type: string;
-  amount: number;
-  dependantField?: string;
-  _id?: string;
-}
-
-interface EventData {
-  name: string;
-  description: string;
-  type: string;
-  metadata: Metadata;
-  location: string;
-  GeoAllow: GeoAllow;
-  allowGuest: boolean;
-  allowLogin: boolean;
-  allowMemberLogin: boolean;
-  seatsAvailable: number;
-  totalregisteredSeats: number;
-  registrationFields: RegistrationField[];
-  createdBy?: string;
-  updatedBy?: string;
-  eventStatus: string;
-  startingDate: string;
-  endingDate: string;
-  paymentType: string;
-  priceConfig: PriceConfig;
-  registrationStartDate: string;
-  registrationEndDate: string;
-  createdAt?: string;
-  updatedAt?: string;
-  __v?: number;
-  _id?: string;
-}
-
 interface EventRegistrationFormProps {
-  eventData: EventData;
+  eventData: Event; // Use the imported Event type instead of custom EventData
   id?: string;
 }
 
@@ -729,7 +684,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             Date & Time
           </Typography>
           <Typography variant="body1" gutterBottom>
-            {formatDate(eventData.startingDate)} to {formatDate(eventData.endingDate)}
+            {formatDate(eventData.startingDate)} to {eventData.endingDate && formatDate(eventData.endingDate)}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
