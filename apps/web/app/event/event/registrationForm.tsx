@@ -68,8 +68,8 @@ interface RegistrationField {
   displayName: string;
   type: string;
   valueType: string;
-  options: Option[];
-  formula: FormulaItem[];
+  options?: Option[];
+  formula?: FormulaItem[];
   truthValue?: number;
   falseValue?: number;
   _id?: string;
@@ -83,6 +83,12 @@ interface EventRegistrationFormProps {
 interface StepItem {
   label: string;
   icon: React.ReactNode;
+}
+
+// Define payment result interface
+interface PaymentResult {
+  url?: string;
+  [key: string]: any;
 }
 
 // Styled components for enhanced visuals
@@ -218,7 +224,8 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const calculateDynamicFields = (): void => {
     const newCalculatedValues = { ...calculatedValues };
     
-    eventData.registrationFields.forEach(field => {
+    const registrationFields = eventData.registrationFields || [];
+    registrationFields.forEach(field => {
       if (field.valueType === "dynamic" && field.formula && field.formula.length > 0) {
         newCalculatedValues[field.name] = evaluateFormula(field.formula, fieldValues, newCalculatedValues);
       }
@@ -250,17 +257,18 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       }
       
       // Extract value from the current item
-      let itemValue = 0;
+      let itemValue: number = 0;
       
       if (item.type === "number" && item.fieldName) {
         itemValue = Number.parseFloat(item.fieldName);
       } else if (item.type === "customField" && item.fieldName) {
         if (calculatedVals[item.fieldName] !== undefined) {
-          itemValue = calculatedVals[item.fieldName];
+          itemValue = calculatedVals[item.fieldName] || 0;
         } else if (values[item.fieldName] !== undefined) {
           // Handle different data types
           if (typeof values[item.fieldName] === "boolean") {
-            const field = eventData.registrationFields.find(f => f.name === item.fieldName);
+            const registrationFields = eventData.registrationFields || [];
+            const field = registrationFields.find(f => f.name === item.fieldName);
             itemValue = values[item.fieldName] ? (field?.truthValue || 1) : (field?.falseValue || 0);
           } else if (typeof values[item.fieldName] === "string") {
             itemValue = parseFloat(values[item.fieldName]) || 0;
@@ -391,7 +399,8 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       });
       
       // Validate required registration fields
-      const requiredFields = eventData.registrationFields.filter(
+      const registrationFields = eventData.registrationFields || [];
+      const requiredFields = registrationFields.filter(
         field => field.valueType === "userInput" && 
         (field.type === "radioButtonGroup" || field.type === "option")
       );
@@ -414,7 +423,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     try {
       // Prepare the registration data
       const registrationData = {
-        eventId: id || eventData._id,
+        eventId: id || (eventData as any)._id,
         email: fieldValues.email,
         name: fieldValues.fullName,
         phone: fieldValues.phone,
@@ -433,9 +442,9 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       const registrationResult = await registerEvent(registrationData);
       console.log("Registration result:", registrationResult);
       
-      if (registrationResult && registrationResult._id) {
-        setRegistrationId(registrationResult._id);
-        setConfirmationNumber(registrationResult._id);
+      if (registrationResult && (registrationResult as { _id: string })._id) {
+        setRegistrationId((registrationResult as { _id: string })._id);
+        setConfirmationNumber((registrationResult as { _id: string })._id);
         
         if (isFreeEvent) {
           // For free events, skip to confirmation
@@ -461,7 +470,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     
     try {
       // Call the payment API with the registration ID
-      const paymentResult = await payment(registrationId);
+      const paymentResult = await payment(registrationId) as PaymentResult;
       console.log("Payment result:", paymentResult);
       
       // Redirect to payment URL if provided
@@ -581,11 +590,11 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         );
       case "checkBoxGroup":
         return (
-          <StyledFormControl component="fieldset" margin="normal" fullWidth>
+          <StyledFormControl margin="normal" fullWidth>
             <FormLabel component="legend">{field.displayName}</FormLabel>
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 1 }}>
               <FormGroup>
-                {field.options?.map((option) => (
+                {(field.options || []).map((option) => (
                   <FormControlLabel
                     key={option.fieldName}
                     control={
@@ -612,7 +621,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       case "radioButtonGroup":
       case "option":
         return (
-          <StyledFormControl component="fieldset" margin="normal" fullWidth>
+          <StyledFormControl margin="normal" fullWidth>
             <FormLabel component="legend">{field.displayName}</FormLabel>
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 1 }}>
               <RadioGroup
@@ -620,7 +629,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
                 value={fieldValues[field.name] || ""}
                 onChange={(e) => handleRadioChange(field.name, e.target.value)}
               >
-                {field.options?.map((option) => (
+                {(field.options || []).map((option) => (
                   <FormControlLabel
                     key={option.fieldName}
                     value={option.fieldName}
@@ -684,7 +693,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             Date & Time
           </Typography>
           <Typography variant="body1" gutterBottom>
-            {formatDate(eventData.startingDate)} to {eventData.endingDate && formatDate(eventData.endingDate)}
+            {formatDate(eventData.startingDate)} {eventData.endingDate && `to ${formatDate(eventData.endingDate)}`}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -725,7 +734,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
 
   const renderAttendeeInformation = (): JSX.Element => {
     // Use the personal info fields we defined
-    const registrationFields = eventData.registrationFields.filter(
+    const registrationFields = (eventData.registrationFields || []).filter(
       field => field.valueType === "userInput"
     );
     
@@ -756,7 +765,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
               Registration Options
             </Typography>
             
-            {registrationFields.map((field) => (
+            {registrationFields.map((field: any) => (
               <Box key={field.name}>
                 {renderField(field)}
               </Box>
@@ -765,7 +774,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         )}
         
         {/* Only show price summary for paid events */}
-        {!isFreeEvent && eventData.registrationFields.some(field => field.valueType === "dynamic") && (
+        {!isFreeEvent && (eventData.registrationFields || []).some(field => field.valueType === "dynamic") && (
           <>
             <Divider sx={{ my: 3 }} />
             
@@ -775,7 +784,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             
             <PriceSummary>
               <Grid container spacing={1}>
-                {eventData.registrationFields
+                {(eventData.registrationFields || [])
                   .filter(field => field.valueType === "dynamic")
                   .map((field) => (
                     <Grid item xs={12} key={field.name} sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -859,7 +868,8 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
               // Skip personal info fields and empty values
               if (["fullName", "email", "phone"].includes(key) || !value) return null;
               
-              const field = eventData.registrationFields.find(f => f.name === key);
+              const registrationFields = eventData.registrationFields || [];
+              const field = registrationFields.find(f => f.name === key);
               if (!field) return null;
               
               return (
@@ -873,7 +883,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
                     </Typography>
                   ) : Array.isArray(value) ? (
                     value.map((optionValue: string) => {
-                      const option = field.options.find(opt => opt.fieldName === optionValue);
+                      const option = (field.options || []).find(opt => opt.fieldName === optionValue);
                       return (
                         <Typography key={optionValue} variant="body1" gutterBottom>
                           {option?.labelName || optionValue}
@@ -882,7 +892,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
                     })
                   ) : (
                     <Typography variant="body1" gutterBottom>
-                      {field.options.find(opt => opt.fieldName === value)?.labelName || value}
+                      {(field.options || []).find(opt => opt.fieldName === value)?.labelName || value}
                     </Typography>
                   )}
                 </Grid>
@@ -891,10 +901,10 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           </Grid>
         </StyledPaper>
         
-        {eventData.registrationFields.some(field => field.valueType === "dynamic") && (
+        {(eventData.registrationFields || []).some(field => field.valueType === "dynamic") && (
           <PriceSummary>
             <Grid container spacing={1}>
-              {eventData.registrationFields
+              {(eventData.registrationFields || [])
                 .filter(field => field.valueType === "dynamic" && field.name !== "totalPrice")
                 .map((field) => (
                   <Grid item xs={12} key={field.name} sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -1006,7 +1016,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
               <Divider sx={{ my: 1 }} />
             </Grid>
             
-            {!isFreeEvent && calculatedValues.totalPrice > 0 && (
+            {!isFreeEvent && (calculatedValues.totalPrice ?? 0) > 0 && (
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
                   Total Paid
