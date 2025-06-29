@@ -125,3 +125,78 @@ export async function getRegisterEvent(registerId: any, headers?: HeadersInit) {
     throw new Error(error || 'Failed to fetch events');
   }
 }
+
+// Membership API functions
+export async function submitMembershipApplication(data: any, headers?: HeadersInit) {
+  try {
+    return await postApi('/members', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to submit membership application');
+  }
+}
+
+export async function createMemberPayment(memberId: string, headers?: HeadersInit) {
+  try {
+    return await postApi(`/payments/member/create/${memberId}`, {}, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to create payment');
+  }
+}
+
+// Media Upload API functions
+export async function generateSignedUrl(data: {
+  title: string;
+  mediaType: 'image' | 'document' | 'signature';
+  ext: string;
+  active: boolean;
+  uploadStatus: 'progressing' | 'completed' | 'failed';
+  uploadProgress: number;
+}, headers?: HeadersInit) {
+  try {
+    return await postApi('/media/generateSignedUrl', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to generate signed URL');
+  }
+}
+
+export async function updateMediaStatus(mediaId: string, data: {
+  title: string;
+  mediaType: 'image' | 'document' | 'signature';
+  ext: string;
+  active: boolean;
+  uploadStatus: 'progressing' | 'completed' | 'failed';
+  uploadProgress: number;
+}, headers?: HeadersInit) {
+  try {
+    return await putApi(`/media/update/${mediaId}`, data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to update media status');
+  }
+}
+
+// Cart Payment API
+export async function createCartPayment(headers?: HeadersInit) {
+  try {
+    return await postApi('/payments/cart/create', {}, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to create cart payment');
+  }
+}
+
+// User Signup API
+export async function signupUser(data: any, headers?: HeadersInit) {
+  try {
+    return await postApi('/auth/register', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to signup user');
+  }
+}
+
+// Event Donors API - for donation events
+export async function getEventDonors(eventId: string, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/events/${eventId}/donors`, { headers });
+  } catch (error: any) {
+    throw new Error(error || 'Failed to fetch event donors');
+  }
+}

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -160,20 +161,29 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   
+  // Check if this is a donation event
+  const isDonationEvent = eventData.metadata?.name === "donation"
+
   // Determine if this is a free event
   const isFreeEvent = eventData.paymentType === "Free";
   
-  // Define steps based on whether this is a free event
+  // Define steps based on event type - donation events skip Event Details
   const [activeStep, setActiveStep] = useState<number>(0);
-  const steps: StepItem[] = isFreeEvent 
+  const steps: StepItem[] = isDonationEvent 
+    ? [
+        { label: "Donor Information", icon: <PersonIcon /> },
+        { label: "Donation Summary", icon: <PaymentIcon /> },
+        { label: "Confirmation", icon: <CheckCircleIcon /> }
+      ]
+    : isFreeEvent 
     ? [
         { label: "Event Details", icon: <EventIcon /> },
-        { label: "Attendee Information", icon: <PersonIcon /> },
+        { label: "Participant Information", icon: <PersonIcon /> },
         { label: "Confirmation", icon: <CheckCircleIcon /> }
       ]
     : [
         { label: "Event Details", icon: <EventIcon /> },
-        { label: "Attendee Information", icon: <PersonIcon /> },
+        { label: "Participant Information", icon: <PersonIcon /> },
         { label: "Order Summary", icon: <PaymentIcon /> },
         { label: "Confirmation", icon: <CheckCircleIcon /> }
       ];
@@ -182,7 +192,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const personalInfoFields: RegistrationField[] = [
     {
       name: "fullName",
-      displayName: "Full Name",
+      displayName: isDonationEvent ? "Full Name" : "Full Name",
       type: "text",
       valueType: "userInput",
       options: [],
@@ -383,8 +393,11 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     const newErrors: Record<string, string> = {};
     let isValid = true;
 
-    if (step === 1) {
-      // Validate attendee information
+    // Adjust step validation based on event type
+    const participantInfoStep = isDonationEvent ? 0 : 1;
+    
+    if (step === participantInfoStep) {
+      // Validate Participant Information
       personalInfoFields.forEach(field => {
         if (!fieldValues[field.name]) {
           newErrors[field.name] = `${field.displayName} is required`;
@@ -449,10 +462,10 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         if (isFreeEvent) {
           // For free events, skip to confirmation
           setIsRegistrationComplete(true);
-          setActiveStep(2); // Move to confirmation step (which is 2 for free events)
+          setActiveStep(isDonationEvent ? 2 : 2); // Move to confirmation step
         } else {
-          // For paid events, go to order summary
-          setActiveStep(2); // Move to Order Summary step
+          // For paid events, go to order/donation summary
+          setActiveStep(isDonationEvent ? 1 : 2); // Move to Summary step
         }
       } else {
         throw new Error("Registration failed. No registration ID received.");
@@ -482,7 +495,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       // If no payment URL or this is a free event, show confirmation
       setConfirmationNumber(registrationId);
       setIsRegistrationComplete(true);
-      setActiveStep(isFreeEvent ? 2 : 3); // Move to confirmation step
+      setActiveStep(isDonationEvent ? 2 : (isFreeEvent ? 2 : 3)); // Move to confirmation step
     } catch (error) {
       console.error("Payment processing failed:", error);
       alert(error instanceof Error ? error.message : "Failed to process payment");
@@ -493,8 +506,10 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
 
   const handleNext = async (): Promise<void> => {
     if (validateStep(activeStep)) {
-      if (activeStep === 1) {
-        // After Attendee Information, register the event
+      const participantInfoStep = isDonationEvent ? 0 : 1;
+      
+      if (activeStep === participantInfoStep) {
+        // After Participant Information, register the event
         await handleRegisterEvent();
       } else {
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -512,7 +527,9 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     e.preventDefault();
     
     if (validateStep(activeStep)) {
-      if (activeStep === 2 && !isFreeEvent) {
+      const summaryStep = isDonationEvent ? 1 : (isFreeEvent ? -1 : 2);
+      
+      if (activeStep === summaryStep && !isFreeEvent) {
         // Process payment on final confirmation (only for paid events)
         await handleProcessPayment();
       }
@@ -562,7 +579,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             InputProps={{
               sx: { borderRadius: 2 },
               startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") || 
-                              field.name === "subtotal" || field.name === "discount_amount" ? 
+                field.name === "subtotal" || field.name === "discount_amount" ? 
                 <InputAdornment position="start">$</InputAdornment> : undefined,
               readOnly: field.valueType === "dynamic",
             }}
@@ -743,12 +760,12 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <PersonIcon color="primary" sx={{ mr: 1 }} />
           <Typography variant="h5">
-            Attendee Information
+            {isDonationEvent ? "Donor Information" : "Participant Information"}
           </Typography>
         </Box>
         
         <Typography variant="subtitle1" gutterBottom>
-          Personal Information
+          {isDonationEvent ? "Your Information" : "Personal Information"}
         </Typography>
         
         {personalInfoFields.map((field) => (
@@ -762,7 +779,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             <Divider sx={{ my: 3 }} />
             
             <Typography variant="subtitle1" gutterBottom>
-              Registration Options
+              {isDonationEvent ? "Donation Options" : "Registration Options"}
             </Typography>
             
             {registrationFields.map((field: any) => (
@@ -773,13 +790,13 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           </>
         )}
         
-        {/* Only show price summary for paid events */}
+        {/* Show price summary for paid events */}
         {!isFreeEvent && (eventData.registrationFields || []).some(field => field.valueType === "dynamic") && (
           <>
             <Divider sx={{ my: 3 }} />
             
             <Typography variant="subtitle1" gutterBottom>
-              Price Summary
+              {isDonationEvent ? "Donation Summary" : "Price Summary"}
             </Typography>
             
             <PriceSummary>
@@ -805,7 +822,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   };
 
   const renderOrderSummary = (): JSX.Element => {
-    // This is only shown for paid events
+    // This is shown for paid events (both regular and donation)
     const totalPrice = calculatedValues.totalPrice || 0;
     
     return (
@@ -813,19 +830,19 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <PaymentIcon color="primary" sx={{ mr: 1 }} />
           <Typography variant="h5">
-            Order Summary
+            {isDonationEvent ? "Donation Summary" : "Order Summary"}
           </Typography>
         </Box>
         
         <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-          Please review your order details before proceeding to payment.
+          Please review your {isDonationEvent ? "donation" : "order"} details before proceeding to payment.
         </Alert>
         
         <StyledPaper sx={{ mb: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Typography variant="subtitle2" color="text.secondary">
-                Event
+                {isDonationEvent ? "Cause" : "Event"}
               </Typography>
               <Typography variant="body1" gutterBottom>
                 {eventData.name}
@@ -834,7 +851,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             
             <Grid item xs={12}>
               <Typography variant="subtitle2" color="text.secondary">
-                Attendee
+                {isDonationEvent ? "Donor" : "Attendee"}
               </Typography>
               <Typography variant="body1" gutterBottom>
                 {fieldValues.fullName || "N/A"}
@@ -923,7 +940,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
               
               <Grid item xs={12} sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="h6">
-                  Total:
+                  {isDonationEvent ? "Total Donation:" : "Total:"}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold">
                   {formatCurrency(calculatedValues.totalPrice || 0)}
@@ -936,7 +953,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         <SecurePaymentBadge>
           <LockIcon sx={{ mr: 1 }} />
           <Typography variant="body2">
-            You'll be redirected to our secure payment gateway after confirming your order
+            You'll be redirected to our secure payment gateway after confirming your {isDonationEvent ? "donation" : "order"}
           </Typography>
         </SecurePaymentBadge>
       </StyledPaper>
@@ -949,11 +966,12 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         <CheckCircleIcon color="success" sx={{ fontSize: 64, mb: 2 }} />
         
         <Typography variant="h4" gutterBottom>
-          Registration Complete!
+          {isDonationEvent ? "Donation Complete!" : "Registration Complete!"}
         </Typography>
         
         <Typography variant="body1" paragraph>
-          Thank you for registering for {eventData.name}. Your registration has been confirmed.
+          Thank you for {isDonationEvent ? "your generous donation to" : "registering for"} {eventData.name}. 
+          Your {isDonationEvent ? "donation" : "registration"} has been confirmed.
         </Typography>
         
         <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
@@ -972,40 +990,44 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         
         <StyledPaper sx={{ textAlign: "left", mt: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Event Details
+            {isDonationEvent ? "Donation Details" : "Event Details"}
           </Typography>
           
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <Typography variant="subtitle2" color="text.secondary">
-                Event
+                {isDonationEvent ? "Cause" : "Event"}
               </Typography>
               <Typography variant="body1" gutterBottom>
                 {eventData.name}
               </Typography>
             </Grid>
             
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Start Date
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                {formatDate(eventData.startingDate)}
-              </Typography>
-            </Grid>
+            {!isDonationEvent && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Start Date
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  {formatDate(eventData.startingDate)}
+                </Typography>
+              </Grid>
+            )}
+            
+            {!isDonationEvent && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Location
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  {eventData.location}
+                </Typography>
+              </Grid>
+            )}
             
             <Grid item xs={12} sm={6}>
               <Typography variant="subtitle2" color="text.secondary">
-                Location
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                {eventData.location}
-              </Typography>
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Attendee
+                {isDonationEvent ? "Donor" : "Attendee"}
               </Typography>
               <Typography variant="body1" gutterBottom>
                 {fieldValues.fullName}
@@ -1019,7 +1041,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             {!isFreeEvent && (calculatedValues.totalPrice ?? 0) > 0 && (
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Total Paid
+                  {isDonationEvent ? "Total Donated" : "Total Paid"}
                 </Typography>
                 <Typography variant="body1" fontWeight="bold" gutterBottom>
                   {formatCurrency(calculatedValues.totalPrice || 0)}
@@ -1054,7 +1076,19 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   );
 
   const getStepContent = (step: number): JSX.Element | string => {
-    if (isFreeEvent) {
+    if (isDonationEvent) {
+      // For donation events, we have only 3 steps starting with Donor Information
+      switch (step) {
+        case 0:
+          return renderAttendeeInformation(); // Donor Information
+        case 1:
+          return renderOrderSummary(); // Donation Summary
+        case 2:
+          return renderConfirmation();
+        default:
+          return "Unknown step";
+      }
+    } else if (isFreeEvent) {
       // For free events, we have only 3 steps
       switch (step) {
         case 0:
@@ -1092,7 +1126,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       <StyledCard elevation={3}>
         <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
           <Typography variant="h4" gutterBottom>
-            Event Registration
+            {isDonationEvent ? "Make a Donation" : "Event Registration"}
           </Typography>
           
           <Stepper 
@@ -1131,7 +1165,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             borderColor: "divider"
           }}>
             <AnimatedButton 
-              disabled={activeStep === 0 || activeStep === (isFreeEvent ? 2 : 3)} 
+              disabled={activeStep === 0 || activeStep === (isDonationEvent ? 2 : (isFreeEvent ? 2 : 3))} 
               onClick={handleBack} 
               variant="outlined"
               startIcon={<ArrowBackIcon />}
@@ -1141,7 +1175,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             </AnimatedButton>
             
             <Box>
-              {activeStep === (isFreeEvent ? 2 : 3) ? (
+              {activeStep === (isDonationEvent ? 2 : (isFreeEvent ? 2 : 3)) ? (
                 <AnimatedButton 
                   variant="contained" 
                   color="primary" 
@@ -1150,7 +1184,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
                 >
                   Return Home
                 </AnimatedButton>
-              ) : activeStep === 2 && !isFreeEvent ? (
+              ) : activeStep === (isDonationEvent ? 1 : (isFreeEvent ? -1 : 2)) && !isFreeEvent ? (
                 <AnimatedButton 
                   variant="contained" 
                   color="primary" 
@@ -1164,7 +1198,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
                       Processing...
                     </>
                   ) : (
-                    "Proceed to Payment"
+                    isDonationEvent ? "Complete Donation" : "Proceed to Payment"
                   )}
                 </AnimatedButton>
               ) : (
@@ -1172,11 +1206,11 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
                   variant="contained" 
                   color="primary" 
                   onClick={handleNext}
-                  disabled={activeStep === 1 && isSubmitting}
-                  endIcon={activeStep === 1 && isSubmitting ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
+                  disabled={(isDonationEvent ? activeStep === 0 : activeStep === 1) && isSubmitting}
+                  endIcon={(isDonationEvent ? activeStep === 0 : activeStep === 1) && isSubmitting ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
                   sx={{ borderRadius: 2 }}
                 >
-                  {activeStep === 1 && isSubmitting ? "Processing..." : "Next"}
+                  {(isDonationEvent ? activeStep === 0 : activeStep === 1) && isSubmitting ? "Processing..." : "Next"}
                 </AnimatedButton>
               )}
             </Box>

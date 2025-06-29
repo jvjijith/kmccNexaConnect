@@ -307,6 +307,26 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
             
             {/* Cart and Login/Profile Buttons */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+              {/* Membership Button */}
+              <Button
+                variant="contained"
+                href="/membership"
+                sx={{
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                  },
+                  textTransform: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  px: 2,
+                  display: { xs: 'none', sm: 'flex' }
+                }}
+              >
+                Membership
+              </Button>
+
               {/* Cart Button */}
               <IconButton 
                 color="inherit" 
@@ -514,7 +534,25 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               </React.Fragment>
             );
           })}
-          
+
+          {/* Mobile Membership Button */}
+          <ListItem sx={{ mt: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              href="/membership"
+              fullWidth
+              sx={{
+                borderRadius: '4px',
+                py: 1.5,
+                textTransform: 'none',
+                fontWeight: 600
+              }}
+            >
+              Membership
+            </Button>
+          </ListItem>
+
           {/* Mobile Login/Profile Button */}
           <ListItem sx={{ mt: 2 }}>
             {isLoggedIn ? (

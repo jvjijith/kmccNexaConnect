@@ -1,8 +1,9 @@
+
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import type { Event } from "../../../types/event" 
+import { useState, useEffect } from "react"
+import type { Event, Donor } from "../../../types/event"
 import {
   Box,
   Container,
@@ -44,11 +45,14 @@ import {
   Cancel,
   HowToReg,
   Close as CloseIcon,
+  Favorite,
+  AttachMoney,
 } from "@mui/icons-material"
 import EventCountdown from "./eventCountdown"
 import EventMap from "./eventMap"
-import RegistrationForm from "./registrationForm"
+import EventRegistrationForm from "./registrationForm"
 import { createDynamicTheme } from "@repo/ui/theme"
+import { getEventDonors } from "../../../lib/api"
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -80,10 +84,29 @@ interface EventDetailPageProps {
 
 export default function EventDetailPage({ event, themes, id }: EventDetailPageProps) {
   const theme = createDynamicTheme({themes});
-  
+
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [tabValue, setTabValue] = useState(0)
   const [showRegistration, setShowRegistration] = useState(false)
+  const [donors, setDonors] = useState<Donor[]>([])
+
+  // Check if this is a donation event
+  const isDonationEvent = event.metadata?.name === "donation"
+
+  // Fetch donors for donation events
+  useEffect(() => {
+    if (isDonationEvent) {
+      const fetchDonors = async () => {
+        try {
+          const donorData = await getEventDonors(id)
+          setDonors(donorData)
+        } catch (error) {
+          console.error('Error fetching donors:', error)
+        }
+      }
+      fetchDonors()
+    }
+  }, [isDonationEvent, id])
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -151,9 +174,85 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
 
   // Default coordinates if none provided (e.g., San Francisco)
   const defaultCoordinates: [number, number] = [37.7749, -122.4194]
+
   const mapCoordinates = event.GeoAllow?.coordinates || defaultCoordinates
 
   console.log("event",event);
+
+  // DonorList component for donation events
+  const DonorList = () => (
+    <Box>
+      <Typography variant="h5" gutterBottom>
+        Our Generous Donors
+      </Typography>
+      {donors.length > 0 ? (
+        <>
+          <Typography variant="body1" paragraph color="text.secondary">
+            Thank you to all our supporters who have contributed to this cause.
+          </Typography>
+          <Grid container spacing={2}>
+            {donors.map((donor) => (
+              <Grid item xs={12} sm={6} md={4} key={donor.id}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                        <Favorite />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6">
+                          {donor.isAnonymous ? 'Anonymous Donor' : donor.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(donor.donatedAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <AttachMoney sx={{ color: 'success.main', mr: 1 }} />
+                      <Typography variant="h6" color="success.main">
+                        ${donor.amount.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    {donor.message && (
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
+                        "{donor.message}"
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Paper sx={{ p: 3, bgcolor: 'success.light', color: 'success.contrastText' }}>
+              <Typography variant="h5" gutterBottom>
+                Total Raised
+              </Typography>
+              <Typography variant="h3" fontWeight="bold">
+                ${donors.reduce((total, donor) => total + donor.amount, 0).toFixed(2)}
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 1 }}>
+                from {donors.length} generous donor{donors.length !== 1 ? 's' : ''}
+              </Typography>
+            </Paper>
+          </Box>
+        </>
+      ) : (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Avatar sx={{ bgcolor: 'grey.300', mx: 'auto', mb: 2, width: 64, height: 64 }}>
+            <Favorite />
+          </Avatar>
+          <Typography variant="h6" gutterBottom>
+            Be the First Donor
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Your contribution will make a difference. Be the first to support this cause!
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  )
 
   return (
     <ThemeProvider theme={theme}>
@@ -186,7 +285,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                   <Typography variant="h3" component="h1" gutterBottom>
                     {event.name}
                   </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  {(!isDonationEvent) && <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <CalendarMonth sx={{ mr: 1, color: "primary.main" }} />
                     <Typography variant="body1">
                       {formatDate(event.startingDate)}
@@ -194,39 +293,39 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                         event.startingDate.split("T")[0] !== event.endingDate.split("T")[0] &&
                         ` - ${getFormattedEndDate()}`}
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  </Box>}
+                  {(!isDonationEvent) && <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <AccessTime sx={{ mr: 1, color: "primary.main" }} />
                     <Typography variant="body1">
                       {formatTime(event.startingDate)} - {event.endingDate && formatTime(event.endingDate)}
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  </Box>}
+                  {(!isDonationEvent) && <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <LocationOn sx={{ mr: 1, color: "primary.main" }} />
                     <Typography variant="body1">{event.location}</Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                  </Box>}
+                  {(!isDonationEvent) && <Box sx={{ display: "flex", alignItems: "center" }}>
                     <People sx={{ mr: 1, color: "primary.main" }} />
                     <Typography variant="body1">
                       {event.totalregisteredSeats} / {event.seatsAvailable} registered
                     </Typography>
-                  </Box>
+                  </Box>}
                 </Box>
               </Grid>
               <Grid item xs={12} md={4} sx={{mb: 5}}>
-                <Paper elevation={3} sx={{ p: 3, height: "100%" }}>
+                <Paper elevation={3} sx={{ p: 3, height: (!isDonationEvent) ? "100%" : "auto" }}>
                   <Typography variant="h6" gutterBottom>
-                    Registration
+                    {(!isDonationEvent)?"Registration" : "Donation"}
                   </Typography>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Registration period:
+                      {(!isDonationEvent)?"Registration period : " : "Donation Period :"}
                     </Typography>
                     <Typography variant="body2" gutterBottom>
                       {formatDate(event.registrationStartDate)} - {formatDate(event.registrationEndDate)}
                     </Typography>
                   </Box>
-                  <Box sx={{ mb: 2 }}>
+                  {(!isDonationEvent) && <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Price:
                     </Typography>
@@ -234,11 +333,11 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                       {event.paymentType === "Free"
                         ? "Free"
                         : event.priceConfig?.type === "fixed"
-                          ? `$${event.priceConfig.amount}`
-                          : "Variable pricing"}
+                        ? `$${event.priceConfig.amount}`
+                        : "Variable pricing"}
                     </Typography>
-                  </Box>
-                  <Box sx={{ mb: 2 }}>
+                  </Box>}
+                  {(!isDonationEvent) && <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Available seats:
                     </Typography>
@@ -250,31 +349,23 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                     <Typography variant="body2">
                       {event.seatsAvailable - event.totalregisteredSeats} seats left
                     </Typography>
-                  </Box>
+                  </Box>}
                   <Button
                     variant="contained"
                     color="primary"
                     fullWidth
-                    // disabled={!isRegistrationOpen() || event.seatsAvailable <= event.totalregisteredSeats}
                     onClick={() => {
                       if (event.allowMemberLogin) {
                         const accessToken = localStorage.getItem('accessToken');
                         if (!accessToken) {
-                          // Show login message
                           alert("Please login to your account first to register for this event.");
                           return;
                         }
                       }
                       setShowRegistration(true);
                     }}
-                    sx={{
-                      backgroundColor: "#41bf40",
-                      "&:hover": {
-                        backgroundColor: "#2a9e29"
-                      }
-                    }}
                   >
-                    Register Now
+                    {isDonationEvent ? "Donate Now" : "Register Now"}
                   </Button>
                 </Paper>
               </Grid>
@@ -282,7 +373,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
           </CardContent>
         </Card>
 
-        {!isMobile && (
+        {!isMobile || (!isDonationEvent) && (
           <Box sx={{ mb: 4 }}>
             <EventCountdown targetDate={event.startingDate} />
           </Box>
@@ -308,13 +399,32 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                 }
               }}
             >
-              <Tab icon={<Description />} label="Description" id="event-tab-0" aria-controls="event-tabpanel-0" />
-              <Tab icon={<Info />} label="Details" id="event-tab-1" aria-controls="event-tabpanel-1" />
-              <Tab icon={<LocationOn />} label="Location" id="event-tab-2" aria-controls="event-tabpanel-2" />
-              {(isRegistrationOpen() && event.seatsAvailable > event.totalregisteredSeats) && 
-              <Tab icon={<HowToReg />} label="Registration" id="event-tab-3" aria-controls="event-tabpanel-3" />}
+              <Tab 
+                icon={<Description />} 
+                label="Description" 
+                id="event-tab-0" 
+                aria-controls="event-tabpanel-0" 
+              />
+              {!isDonationEvent && (
+                <Tab 
+                  icon={<LocationOn />} 
+                  label="Location" 
+                  id="event-tab-1" 
+                  aria-controls="event-tabpanel-1" 
+                />
+              )}
+              {isDonationEvent && (
+                <Tab 
+                  icon={<Favorite />} 
+                  label="Donors" 
+                  id="event-tab-1" 
+                  aria-controls="event-tabpanel-1" 
+                />
+              )}
             </Tabs>
           </Box>
+
+          {/* Description Tab - Always index 0 */}
           <TabPanel value={tabValue} index={0}>
             <Typography variant="h5" gutterBottom>
               About This Event
@@ -326,250 +436,34 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
               {event.metadata?.description}
             </Typography>
           </TabPanel>
-          <TabPanel value={tabValue} index={1}>
-            <Typography variant="h5" gutterBottom>
-              Event Details
-            </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Event Type
-                  </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                    {event.type === "public" ? (
-                      <>
-                        <Public sx={{ mr: 1, color: "primary.main" }} />
-                        <Typography variant="body1">Public Event</Typography>
-                      </>
-                    ) : (
-                      <>
-                        <Lock sx={{ mr: 1, color: "primary.main" }} />
-                        <Typography variant="body1">Members-Only Event</Typography>
-                      </>
-                    )}
-                  </Box>
-                  <Typography variant="h6" gutterBottom>
-                    Access Settings
-                  </Typography>
-                  <List dense>
-                    <ListItem>
-                      <ListItemIcon>
-                        {event.allowGuest ? <CheckCircle color="success" /> : <Cancel color="error" />}
-                      </ListItemIcon>
-                      <ListItemText primary="Guest Access" />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        {event.allowLogin ? <CheckCircle color="success" /> : <Cancel color="error" />}
-                      </ListItemIcon>
-                      <ListItemText primary="Login Access" />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        {event.allowMemberLogin ? <CheckCircle color="success" /> : <Cancel color="error" />}
-                      </ListItemIcon>
-                      <ListItemText primary="Member Login" />
-                    </ListItem>
-                  </List>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3, height: "100%" }}>
-                  <Typography variant="h6" gutterBottom>
-                    Registration Period
-                  </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                    <CalendarMonth sx={{ mr: 1, color: "primary.main" }} />
-                    <Typography variant="body1">
-                      {formatDate(event.registrationStartDate)} - {formatDate(event.registrationEndDate)}
-                    </Typography>
-                  </Box>
-                  <Typography variant="h6" gutterBottom>
-                    Payment Information
-                  </Typography>
-                  <Typography variant="body1">Payment Type: {event.paymentType}</Typography>
-                  {event.paymentType !== "Free" && event.priceConfig && (
-                    <Typography variant="body1">
-                      Price:{" "}
-                      {event.priceConfig.type === "fixed"
-                        ? `$${event.priceConfig.amount}`
-                        : "Variable pricing based on registration options"}
-                    </Typography>
-                  )}
-                </Paper>
-              </Grid>
-            </Grid>
 
-            <Box sx={{ mt: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                Event Schedule
+          {/* Location Tab - Only for non-donation events, index 1 */}
+          {!isDonationEvent && (
+            <TabPanel value={tabValue} index={1}>
+              <Typography variant="h5" gutterBottom>
+                Location
               </Typography>
-              <Paper sx={{ p: 3 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      Day 1: {formatDate(event.startingDate)}
-                    </Typography>
-                    <Divider sx={{ my: 1, backgroundColor: "#e0e0e0" }} />
-                    <Grid container spacing={2}>
-                      <Grid item xs={3} sm={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          9:00 AM
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={9} sm={10}>
-                        <Typography variant="body1">Registration & Welcome Coffee</Typography>
-                      </Grid>
-                      <Grid item xs={3} sm={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          10:00 AM
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={9} sm={10}>
-                        <Typography variant="body1">Opening Keynote</Typography>
-                      </Grid>
-                      <Grid item xs={3} sm={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          12:00 PM
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={9} sm={10}>
-                        <Typography variant="body1">Lunch Break</Typography>
-                      </Grid>
-                      <Grid item xs={3} sm={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          1:30 PM
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={9} sm={10}>
-                        <Typography variant="body1">Workshop Sessions</Typography>
-                      </Grid>
-                      <Grid item xs={3} sm={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          5:00 PM
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={9} sm={10}>
-                        <Typography variant="body1">Networking Reception</Typography>
-                      </Grid>
-                    </Grid>
-                  </Grid>
-
-                  {event.endingDate && event.startingDate.split("T")[0] !== event.endingDate.split("T")[0] && (
-                    <Grid item xs={12} sx={{ mt: 2 }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        Day 2: {getDayTwoDate()}
-                      </Typography>
-                      <Divider sx={{ my: 1, backgroundColor: "#e0e0e0" }} />
-                      <Grid container spacing={2}>
-                        <Grid item xs={3} sm={2}>
-                          <Typography variant="body2" color="text.secondary">
-                            9:30 AM
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={9} sm={10}>
-                          <Typography variant="body1">Panel Discussion</Typography>
-                        </Grid>
-                        <Grid item xs={3} sm={2}>
-                          <Typography variant="body2" color="text.secondary">
-                            11:00 AM
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={9} sm={10}>
-                          <Typography variant="body1">Technical Workshops</Typography>
-                        </Grid>
-                        <Grid item xs={3} sm={2}>
-                          <Typography variant="body2" color="text.secondary">
-                            12:30 PM
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={9} sm={10}>
-                          <Typography variant="body1">Lunch Break</Typography>
-                        </Grid>
-                        <Grid item xs={3} sm={2}>
-                          <Typography variant="body2" color="text.secondary">
-                            2:00 PM
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={9} sm={10}>
-                          <Typography variant="body1">Closing Keynote</Typography>
-                        </Grid>
-                        <Grid item xs={3} sm={2}>
-                          <Typography variant="body2" color="text.secondary">
-                            4:00 PM
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={9} sm={10}>
-                          <Typography variant="body1">Closing Remarks & Farewell</Typography>
-                        </Grid>
-                      </Grid>
-                    </Grid>
-                  )}
-                </Grid>
-              </Paper>
-            </Box>
-          </TabPanel>
-          <TabPanel value={tabValue} index={2}>
-            <Typography variant="h5" gutterBottom>
-              Location
-            </Typography>
-            <Typography variant="body1" paragraph>
-              {event.location}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              {event.GeoAllow?.location}
-            </Typography>
-            <Box sx={{ height: 400, width: "100%", mb: 3 }}>
-              <EventMap 
-                location={event.GeoAllow?.location || ""} 
-                coordinates={mapCoordinates}
-              />
-            </Box>
-
-            <Box sx={{ mt: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                Getting There
+              <Typography variant="body1" paragraph>
+                {event.location}
               </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={4}>
-                  <Paper sx={{ p: 3, height: "100%" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      By Car
-                    </Typography>
-                    <Typography variant="body2">
-                      Parking is available at the convention center garage for $25 per day.
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Paper sx={{ p: 3, height: "100%" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      By Public Transit
-                    </Typography>
-                    <Typography variant="body2">
-                      The venue is accessible via BART and MUNI. Exit at Powell Street Station.
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Paper sx={{ p: 3, height: "100%" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      From Airport
-                    </Typography>
-                    <Typography variant="body2">SFO is approximately 30 minutes by car or 45 minutes by BART.</Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </Box>
-          </TabPanel>
-          {(isRegistrationOpen() && event.seatsAvailable > event.totalregisteredSeats) &&
-          <TabPanel value={tabValue} index={3}>
-            <Typography variant="h5" gutterBottom>
-              Registration
-            </Typography>
-            <RegistrationForm eventData={event} id={id} />
-          </TabPanel>}
+              <Typography variant="body2" color="text.secondary" paragraph>
+                {event.GeoAllow?.location}
+              </Typography>
+              <Box sx={{ height: 400, width: "100%", mb: 3 }}>
+                <EventMap 
+                  location={event.GeoAllow?.location || ""} 
+                  coordinates={mapCoordinates}
+                />
+              </Box>
+            </TabPanel>
+          )}
+
+          {/* Donors Tab - Only for donation events, index 1 */}
+          {isDonationEvent && (
+            <TabPanel value={tabValue} index={1}>
+              <DonorList />
+            </TabPanel>
+          )}
         </Box>
 
         {/* Registration Dialog Popup */}
@@ -581,7 +475,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
           aria-labelledby="registration-dialog-title"
         >
           <DialogTitle id="registration-dialog-title" sx={{ m: 0, p: 2 }}>
-            <Typography variant="h6">Registration Form</Typography>
+            <Typography variant="h6">{isDonationEvent ? "Donation Form" : "Registration Form"}</Typography>
             <IconButton
               aria-label="close"
               onClick={handleCloseRegistration}
@@ -596,7 +490,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <RegistrationForm eventData={event} id={id} />
+            <EventRegistrationForm eventData={event} />
           </DialogContent>
           <DialogActions>
             {/* <Button onClick={handleCloseRegistration} color="primary">

@@ -18,12 +18,23 @@ export interface Event {
     priceConfig?: PriceConfig
     registrationStartDate: string
     registrationEndDate: string
+    donors?: Donor[]
+    totalDonationAmount?: number
   }
   
   export interface Metadata {
     name: string
     description: string
     imageUrl?: string
+  }
+
+  export interface Donor {
+    id: string
+    name: string
+    amount: number
+    isAnonymous: boolean
+    donatedAt: string
+    message?: string
   }
   
   export interface GeoAllow {
@@ -61,5 +72,4 @@ export interface Event {
     amount?: number
     dependantField?: string
   }
-  
   

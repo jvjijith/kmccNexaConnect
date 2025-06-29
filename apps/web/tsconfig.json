@@ -1,5 +1,5 @@
 {
-  "extends": "@repo/typescript-config/nextjs.json",
+  "extends": "../../packages/typescript-config/nextjs.json",
   "compilerOptions": {
     "plugins": [
       {
@@ -10,11 +10,8 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "next-env.d.ts",
-    "next.config.js",
-    "types/**/*.ts",
     ".next/types/**/*.ts"
-, "app/event/event/registrationForm.tsx"  ],
+  ],
   "exclude": [
     "node_modules"
   ]

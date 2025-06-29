@@ -1,14 +1,14 @@
 import React, { useEffect, useState, Suspense } from "react";
-import { Box, useTheme, useMediaQuery, Typography, ThemeProvider, Skeleton, Button, Chip } from "@repo/ui/mui";
+import { Box, useTheme, useMediaQuery, Typography, ThemeProvider, Skeleton, Button, Chip, Alert } from "@repo/ui/mui";
+import { Snackbar } from "@mui/material";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Navigation, Pagination } from "swiper/modules";
-import { CalendarToday, LocationOn, Star } from '@mui/icons-material';
+import { CalendarToday, LocationOn, Star, Add } from '@mui/icons-material';
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { createDynamicTheme } from "@repo/ui/theme";
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { getCatalog, getPageById, getProduct, getEvent, addToCart } from "../data/loader";
 import Link from "next/link";
 
@@ -32,6 +32,7 @@ interface ProductData {
   price?: number;
   rating?: number;
   isBestseller?: boolean;
+  stock?: number;
   [key: string]: any;
 }
 
@@ -67,6 +68,7 @@ interface SlideData {
   isBestseller?: boolean;
   location?: string;
   date?: string;
+  stock?: number;
   cardOptions?: {
     actionButtonText: string;
     actionButtonUrl: string;
@@ -81,7 +83,7 @@ const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { 
     year: 'numeric', 
-    month: 'long', 
+    month: 'short', 
     day: 'numeric' 
   });
 };
@@ -94,33 +96,35 @@ const ProductCardSkeleton = () => {
     <Box sx={{
       width: "100%",
       maxWidth: { xs: "280px", sm: "300px", md: "320px" },
-      borderRadius: { xs: "12px", sm: "16px" },
+      borderRadius: 3,
       overflow: "hidden",
-      boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
+      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
       backgroundColor: theme.palette.background.paper,
     }}>
       {/* Image skeleton */}
-      <Skeleton variant="rectangular" width="100%" sx={{height:{ xs: 180, sm: 200, md: 220 }}} />
+      <Skeleton variant="rectangular" width="100%" sx={{height:{ xs: 200, sm: 220, md: 240 }}} />
       
       {/* Content skeleton */}
-      <Box sx={{ padding: { xs: "12px", sm: "14px", md: "16px" } }}>
+      <Box sx={{ padding: 3 }}>
         {/* Title skeleton */}
-        <Box sx={{ display: "flex", alignItems: "center", marginBottom: "12px" }}>
-          <Skeleton variant="circular" width={20} height={20} />
-          <Skeleton variant="text" width="80%" height={24} sx={{ ml: 1 }} />
-        </Box>
+        <Skeleton variant="text" width="90%" height={28} sx={{ mb: 2 }} />
         
         {/* Rating skeleton */}
-        <Skeleton variant="text" width="60%" height={20} sx={{ mb: 1 }} />
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} variant="circular" width={16} height={16} sx={{ mr: 0.5 }} />
+          ))}
+          <Skeleton variant="text" width="30%" height={20} sx={{ ml: 1 }} />
+        </Box>
         
         {/* Description skeleton */}
         <Skeleton variant="text" width="100%" height={16} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width="90%" height={16} sx={{ mb: 2 }} />
+        <Skeleton variant="text" width="80%" height={16} sx={{ mb: 3 }} />
         
         {/* Price and button skeleton */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Skeleton variant="text" width="40%" height={24} />
-          <Skeleton variant="circular" width={40} height={40} />
+          <Skeleton variant="text" width="40%" height={32} />
+          <Skeleton variant="circular" width={48} height={48} />
         </Box>
       </Box>
     </Box>
@@ -134,38 +138,37 @@ const EventCardSkeleton = () => {
   return (
     <Box sx={{
       width: "100%",
-      maxWidth: { xs: "280px", sm: "550px", md: "650px" },
-      borderRadius: { xs: "20px", sm: "25px", md: "30px" },
+      maxWidth: { xs: "280px", sm: "300px", md: "350px" },
+      borderRadius: 3,
       overflow: "hidden",
-      boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.12)",
+      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
       backgroundColor: theme.palette.background.paper,
     }}>
       {/* Image skeleton */}
-      <Skeleton variant="rectangular" width="100%" sx={{height:{ xs: 240, sm: 300, md: 360 }}} />
+      <Skeleton variant="rectangular" width="100%" sx={{height:{ xs: 200, sm: 220, md: 240 }}} />
       
       {/* Content skeleton */}
-      <Box sx={{ padding: { xs: "12px", sm: "14px", md: "16px" } }}>
+      <Box sx={{ padding: 3 }}>
         {/* Title skeleton */}
-        <Skeleton variant="text" width="90%" height={32} sx={{ mb: 3 }} />
+        <Skeleton variant="text" width="90%" height={28} sx={{ mb: 2 }} />
         
         {/* Date and location skeleton */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-          <Skeleton variant="circular" width={24} height={24} />
-          <Skeleton variant="text" width="70%" height={24} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+          <Skeleton variant="circular" width={20} height={20} />
+          <Skeleton variant="text" width="70%" height={20} />
         </Box>
         
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
-          <Skeleton variant="circular" width={24} height={24} />
-          <Skeleton variant="text" width="60%" height={24} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+          <Skeleton variant="circular" width={20} height={20} />
+          <Skeleton variant="text" width="60%" height={20} />
         </Box>
         
         {/* Description skeleton */}
-        <Skeleton variant="text" width="100%" height={18} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width="100%" height={18} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width="80%" height={18} sx={{ mb: 3 }} />
+        <Skeleton variant="text" width="100%" height={16} sx={{ mb: 0.5 }} />
+        <Skeleton variant="text" width="80%" height={16} sx={{ mb: 3 }} />
         
         {/* Button skeleton */}
-        <Skeleton variant="rectangular" width="100%" height={50} sx={{ borderRadius: 2 }} />
+        <Skeleton variant="rectangular" width="100%" height={40} sx={{ borderRadius: 2 }} />
       </Box>
     </Box>
   );
@@ -176,33 +179,19 @@ const SliderSkeleton = ({ slidesPerView = 3, isEventType = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  
-  const getSkeletonWidth = () => {
-    if (isEventType) {
-      return {
-        xs: "280px",
-        sm: "550px",
-        md: "650px"
-      };
-    }
-    return {
-      xs: "280px",
-      sm: "300px",
-      md: "320px"
-    };
-  };
 
   return (
     <Box sx={{ 
       width: "100%",
       display: "flex",
-      flexWrap: "wrap",
-      gap: { xs: 2, sm: 3, md: 4 },
-      justifyContent: "center"
+      gap: 3,
+      justifyContent: "center",
+      overflowX: "auto",
+      pb: 2
     }}>
       {[...Array(isMobile ? 1 : isTablet ? 2 : slidesPerView)].map((_, index) => (
         <Box key={index} sx={{ 
-          width: getSkeletonWidth()
+          minWidth: isEventType ? { xs: "280px", sm: "300px", md: "350px" } : { xs: "280px", sm: "300px", md: "320px" }
         }}>
           {isEventType ? <EventCardSkeleton /> : <ProductCardSkeleton />}
         </Box>
@@ -216,23 +205,26 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   // Use state to store data
   const [slides, setSlides] = useState<SlideData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [openModal, setOpenModal] = useState<{[key: string]: boolean}>({});
   const [isEventType, setIsEventType] = useState(false);
   const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
+  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
   
   // Create dynamic theme
   const theme = createDynamicTheme({themes});
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   // Extract swiper options from elementData
   const {
     slidesPerView = 3,
     swiperType = "portrait",
-    spaceBetween = 16,
+    spaceBetween = 24,
     loop = true,
-    autoplay = { delay: 3, disableOnInteraction: true },
+    autoplay = { delay: 5, disableOnInteraction: false },
     effect = "none",
     speed = 1,
   } = elementData?.swiperOptions || {};
@@ -242,14 +234,14 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     return {
       320: {  // for phones
         slidesPerView: 1,
-        spaceBetween: 8
+        spaceBetween: 16
       },
       768: {  // for tablets
         slidesPerView: 2,
-        spaceBetween: 12
+        spaceBetween: 20
       },
       1024: { // for desktop
-        slidesPerView: slidesPerView,
+        slidesPerView: Math.min(slidesPerView, 4),
         spaceBetween: spaceBetween
       }
     };
@@ -285,13 +277,14 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     return {
       id: productId,
       type: 'product',
-      image: product.images && product.images.length > 0 ? product.images[0]?.url : '',
-      title: product.name || '',
-      description: product.description || '',
+      image: product.images && product.images.length > 0 ? product.images[0]?.url : '/api/placeholder/400/300',
+      title: product.name || 'Product',
+      description: product.description || 'No description available',
       link: productId ? `/product/${productId}` : '#',
-      price: product.price || 199.99,
+      price: product.price || 0,
       rating: product.rating || 4.5,
-      isBestseller: product.isBestseller || false
+      isBestseller: product.isBestseller || false,
+      stock: product.stock || 0
     };
   };
 
@@ -300,12 +293,12 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     return {
       id: eventId,
       type: 'event',
-      image: event.metadata?.imageUrl || '/api/placeholder/400/360',
+      image: event.metadata?.imageUrl || '/api/placeholder/400/300',
       title: event.name || event.metadata?.name || 'Event',
-      description: event.description || event.metadata?.description || '',
+      description: event.description || event.metadata?.description || 'No description available',
       link: eventId ? `/event/${eventId}` : '#',
       price: event.priceConfig?.amount || 0,
-      location: event.location || '',
+      location: event.location || 'Location TBA',
       date: event.startingDate,
       cardOptions: {
         actionButtonText: 'Register Now',
@@ -325,7 +318,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     } else if (page.bannerImage) {
       return page.bannerImage;
     }
-    return "";
+    return "/api/placeholder/400/300";
   };
 
   // Get title text from the page title array
@@ -333,7 +326,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     if (page.title && page.title.length > 0) {
       return page?.title[0]?.title;
     }
-    return page.referenceName || "";
+    return page.referenceName || "Page";
   };
 
   // Get description text from the page metaDescription array
@@ -341,23 +334,11 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     if (page.metaDescription && page.metaDescription.length > 0) {
       return page?.metaDescription[0]?.description;
     }
-    return "";
+    return "No description available";
   };
 
-  // Handle modal open for events
-  const handleModalOpen = (id: string) => {
-    setOpenModal(prev => ({...prev, [id]: true}));
-  };
-
-  // Handle modal close for events
-  const handleModalClose = (id: string) => {
-    setOpenModal(prev => ({...prev, [id]: false}));
-  };
-
-  // Handle add to cart
+  // Handle add to cart with better error handling and user feedback
   const handleAddToCart = async (productId: string, price: number) => {
-    console.error("productId:", productId);
-    console.error("price:", price);
     try {
       // Set loading state for this specific product
       setAddingToCart(prev => ({...prev, [productId]: true}));
@@ -365,10 +346,12 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       // Get access token from localStorage
       const accessToken = localStorage.getItem("accessToken");
       
-    console.error("accessToken:", accessToken);
       if (!accessToken) {
-        alert("Please login to add items to cart");
-        setAddingToCart(prev => ({...prev, [productId]: false}));
+        setSnackbar({
+          open: true,
+          message: "Please login to add items to cart",
+          severity: 'error'
+        });
         return;
       }
       
@@ -388,18 +371,29 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       // Call the addToCart function from loader
       const result = await addToCart(cartData, customHeaders);
       
-      console.error("result adding to cart:", result);
-      
       // Show success message
-      alert("Item added to cart successfully!");
+      setSnackbar({
+        open: true,
+        message: "Item added to cart successfully!",
+        severity: 'success'
+      });
       
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert(error instanceof Error ? error.message : "Failed to add item to cart");
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : "Failed to add item to cart",
+        severity: 'error'
+      });
     } finally {
       // Reset loading state
       setAddingToCart(prev => ({...prev, [productId]: false}));
     }
+  };
+
+  // Close snackbar
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({...prev, open: false}));
   };
 
   // Use useEffect to fetch data only once
@@ -421,7 +415,6 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           } else if (item.itemType === "Catalogue") {
             try {
               const catalogData = await getCatalog(item.itemId);
-              console.log("catalogData", catalogData);
               
               // Check if the catalog is an event type
               if (catalogData && catalogData.dataType === "event") {
@@ -469,32 +462,29 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   // Render star rating
   const renderRating = (rating: number = 4.5) => {
     const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
     
     return (
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         {[...Array(5)].map((_, i) => (
-          <Box
+          <Star
             key={i}
-            component="span"
             sx={{
-              color: i < fullStars ? theme.palette.warning.main : '#E0E0E0',
-              fontSize: { xs: '14px', sm: '15px', md: '16px' },
-              mr: 0.5
+              fontSize: 16,
+              color: i < fullStars ? 'warning.main' : 'grey.300',
+              mr: 0.25
             }}
-          >
-            ★
-          </Box>
+          />
         ))}
         <Typography 
           variant="body2" 
           sx={{ 
-            color: theme.palette.text.secondary, 
+            color: 'text.secondary', 
             ml: 1,
-            fontSize: { xs: '12px', sm: '13px', md: '14px' }
+            fontSize: '0.875rem',
+            fontWeight: 500
           }}
         >
-          ({rating})
+          {rating.toFixed(1)}
         </Typography>
       </Box>
     );
@@ -504,57 +494,79 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     return <SliderSkeleton slidesPerView={slidesPerView} isEventType={isEventType} />;
   }
 
-  // Handle button click for events
-  const handleEventButtonClick = (slide: SlideData) => {
-    if (slide.withDescription) {
-      handleModalOpen(slide.id);
-    } else {
-      window.location.href = slide.cardOptions?.actionButtonUrl || '#';
-    }
-  };
+  if (slides.length === 0) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Alert severity="info">
+          No items available to display at the moment.
+        </Alert>
+      </Box>
+    );
+  }
 
-  // Render product card
-  const renderProductCard = (slide: any, index: any) => (
+  // Render product card with improved styling
+  const renderProductCard = (slide: SlideData, index: number) => (
     <Box sx={{
       width: "100%",
-      maxWidth: { xs: "280px", sm: "300px", md: "320px" }, // Match ProductCardSkeleton dimensions
-      borderRadius: { xs: "12px", sm: "16px" },
+      maxWidth: { xs: "280px", sm: "300px", md: "320px" },
+      borderRadius: 3,
       overflow: 'hidden',
-      boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)", // Match skeleton shadow
-      backgroundColor: theme.palette.background.paper,
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
+      backgroundColor: 'background.paper',
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       display: 'flex',
       flexDirection: 'column',
+      position: 'relative',
       "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.12)"
+        transform: "translateY(-8px)",
+        boxShadow: "0px 12px 40px rgba(0, 0, 0, 0.15)"
       }
     }}>
       {/* Bestseller badge */}
       {slide.isBestseller && (
-        <Box sx={{
-          position: "absolute",
-          top: { xs: 8, sm: 10, md: 12 },
-          left: { xs: 8, sm: 10, md: 12 },
-          backgroundColor: 'action.active',
-          color: 'common.white',
-          fontWeight: "bold",
-          px: { xs: 1, sm: 1.2, md: 1.5 },
-          py: 0.5,
-          borderRadius: "16px",
-          fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
-          zIndex: 2
-        }}>
-          BESTSELLER
-        </Box>
+        <Chip
+          label="BESTSELLER"
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            backgroundColor: 'error.main',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            zIndex: 2,
+            '& .MuiChip-label': {
+              px: 1.5
+            }
+          }}
+        />
+      )}
+
+      {/* Stock indicator */}
+      {slide.stock !== undefined && slide.stock < 10 && slide.stock > 0 && (
+        <Chip
+          label={`Only ${slide.stock} left`}
+          size="small"
+          color="warning"
+          sx={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            zIndex: 2
+          }}
+        />
       )}
 
       {/* Image section */}
       <Box sx={{ 
         width: "100%",
         position: 'relative',
-        height: { xs: 180, sm: 200, md: 220 }, // Match skeleton height
-        overflow: 'hidden'
+        height: { xs: 200, sm: 220, md: 240 },
+        overflow: 'hidden',
+        background: 'linear-gradient(45deg, #f5f5f5 0%, #e0e0e0 100%)'
       }}>
         <img
           src={slide.image}
@@ -562,7 +574,11 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover'
+            objectFit: 'cover',
+            transition: 'transform 0.3s ease'
+          }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/api/placeholder/400/300';
           }}
         />
       </Box>
@@ -572,28 +588,28 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        padding: { xs: "12px", sm: "14px", md: "16px" } // Match skeleton padding
+        p: 3
       }}>
         {/* Title */}
         <Typography
           variant="h6"
-          gutterBottom
-          fontWeight="bold"
           sx={{
-            fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+            fontSize: '1.1rem',
+            fontWeight: 700,
             mb: 1.5,
-            lineHeight: 1.2
+            lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            color: 'text.primary'
           }}
         >
           {slide.title}
         </Typography>
 
         {/* Rating */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          mb: 1.5
-        }}>
+        <Box sx={{ mb: 1.5 }}>
           {renderRating(slide.rating)}
         </Box>
 
@@ -603,12 +619,12 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           color="text.secondary"
           sx={{
             display: '-webkit-box',
-            WebkitLineClamp: 3,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             mb: 2,
-            fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
-            lineHeight: 1.5
+            lineHeight: 1.5,
+            fontSize: '0.875rem'
           }}
         >
           {slide.description}
@@ -617,7 +633,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         {/* Price and Cart Button */}
         <Box sx={{
           mt: 'auto',
-          pt: 1.5,
+          pt: 2,
           borderTop: '1px solid',
           borderColor: 'divider',
           display: 'flex',
@@ -628,8 +644,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             variant="h6"
             sx={{
               color: 'primary.main',
-              fontWeight: "bold",
-              fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' }
+              fontWeight: 700,
+              fontSize: '1.25rem'
             }}
           >
             ${slide.price?.toFixed(2)}
@@ -637,21 +653,45 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
           <Button
             variant="contained"
-            color="primary"
             onClick={() => handleAddToCart(slide.id, slide.price || 0)}
-            disabled={addingToCart[slide.id]}
+            disabled={addingToCart[slide.id] || slide.stock === 0}
+            startIcon={addingToCart[slide.id] ? undefined : <Add />}
             sx={{
               minWidth: 'auto',
-              width: { xs: 36, sm: 38, md: 40 },
-              height: { xs: 36, sm: 38, md: 40 },
-              borderRadius: '50%',
-              p: 0
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              fontWeight: 600,
+              textTransform: 'none',
+              background: slide.stock === 0 ? 'grey.400' : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+              boxShadow: slide.stock === 0 ? 'none' : '0 3px 5px 2px rgba(33, 203, 243, .3)',
+              '&:hover': {
+                background: slide.stock === 0 ? 'grey.400' : 'linear-gradient(45deg, #1976D2 30%, #1CB5E0 90%)',
+                transform: slide.stock === 0 ? 'none' : 'translateY(-2px)',
+                boxShadow: slide.stock === 0 ? 'none' : '0 6px 10px 2px rgba(33, 203, 243, .3)',
+              },
+              '&:disabled': {
+                color: 'white'
+              }
             }}
           >
             {addingToCart[slide.id] ? (
-              <Box sx={{ width: 20, height: 20 }} className="spinner" />
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                border: '2px solid currentColor',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }} />
+            ) : slide.stock === 0 ? (
+              'Out of Stock'
             ) : (
-              <ShoppingCartIcon />
+              'Add to Cart'
             )}
           </Button>
         </Box>
@@ -659,37 +699,58 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     </Box>
   );
 
-  // Render event card
+  // Render event card with improved styling
   const renderEventCard = (slide: SlideData, index: number) => (
     <Box sx={{
       width: "100%",
       maxWidth: { xs: "280px", sm: "300px", md: "350px" },
-      borderRadius: { xs: "12px", sm: "16px" },
+      borderRadius: 3,
       overflow: 'hidden',
-      boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
-      backgroundColor: theme.palette.background.paper,
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
+      backgroundColor: 'background.paper',
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       display: 'flex',
       flexDirection: 'column',
       "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.12)"
+        transform: "translateY(-8px)",
+        boxShadow: "0px 12px 40px rgba(0, 0, 0, 0.15)"
       }
     }}>
       {/* Image section */}
       <Box sx={{ 
         width: "100%",
         position: 'relative',
-        height: { xs: 180, sm: 200, md: 220 },
-        overflow: 'hidden'
+        height: { xs: 200, sm: 220, md: 240 },
+        overflow: 'hidden',
+        background: 'linear-gradient(45deg, #f5f5f5 0%, #e0e0e0 100%)'
       }}>
         <img
-          src={slide.image || '/api/placeholder/400/360'}
+          src={slide.image || '/api/placeholder/400/300'}
           alt={slide.title || `Event ${index + 1}`}
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover'
+            objectFit: 'cover',
+            transition: 'transform 0.3s ease'
+          }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/api/placeholder/400/300';
+          }}
+        />
+        
+        {/* Event type badge */}
+        <Chip
+          label="EVENT"
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            backgroundColor: 'secondary.main',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            zIndex: 2
           }}
         />
       </Box>
@@ -699,40 +760,45 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        padding: { xs: "12px", sm: "14px", md: "16px" }
+        p: 3
       }}>
         {/* Title */}
         <Typography
           variant="h6"
           sx={{
-            fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
-            fontWeight: "bold",
-            mb: 1,
+            fontSize: '1.1rem',
+            fontWeight: 700,
+            mb: 2,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            lineHeight: 1.3,
+            color: 'text.primary'
           }}
         >
           {slide.title}
         </Typography>
 
-        {/* Date and Location - Compact version */}
-        <Box sx={{ mb: 1 }}>
+        {/* Date and Location */}
+        <Box sx={{ mb: 2 }}>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
-            mb: 0.5,
+            mb: 1,
             gap: 1
           }}>
             <CalendarToday sx={{
-              fontSize: '1rem',
+              fontSize: 18,
               color: 'primary.main'
             }} />
             <Typography
               variant="body2"
-              color="text.secondary"
-              sx={{ fontSize: '0.85rem' }}
+              sx={{ 
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'text.primary'
+              }}
             >
               {formatDate(slide.date || '')}
             </Typography>
@@ -744,14 +810,15 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             gap: 1
           }}>
             <LocationOn sx={{
-              fontSize: '1rem',
+              fontSize: 18,
               color: 'primary.main'
             }} />
             <Typography
               variant="body2"
-              color="text.secondary"
               sx={{ 
-                fontSize: '0.85rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'text.primary',
                 display: '-webkit-box',
                 WebkitLineClamp: 1,
                 WebkitBoxOrient: 'vertical',
@@ -768,78 +835,123 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           variant="body2"
           color="text.secondary"
           sx={{
-            fontSize: '0.85rem',
+            fontSize: '0.875rem',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            mb: 1.5,
-            lineHeight: 1.5
+            mb: 3,
+            lineHeight: 1.5,
+            flex: 1
           }}
         >
           {slide.description}
         </Typography>
 
-        {/* Button */}
-        <Button
-          variant="contained"
-          fullWidth
-          href={`/event/${slide.id}`}
-          sx={{
-            mt: 'auto',
-            py: 1,
-            fontSize: '0.9rem',
-            textTransform: 'none',
-            borderRadius: 1.5
-          }}
-        >
-          {slide.cardOptions?.actionButtonText || 'Learn More'}
-        </Button>
+        {/* Price and Button */}
+        <Box sx={{ mt: 'auto' }}>
+          {slide.price && slide.price > 0 && (
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'primary.main',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                mb: 2
+              }}
+            >
+              ${slide.price.toFixed(2)}
+            </Typography>
+          )}
+          
+          <Button
+            variant="contained"
+            fullWidth
+            component={Link}
+            href={`/event/${slide.id}`}
+            sx={{
+              py: 1.5,
+              fontSize: '0.95rem',
+              textTransform: 'none',
+              borderRadius: 2,
+              fontWeight: 600,
+              background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+              boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #FF5252 30%, #FF7043 90%)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 10px 2px rgba(255, 105, 135, .3)',
+              }
+            }}
+          >
+            {slide.cardOptions?.actionButtonText || 'Learn More'}
+          </Button>
+        </Box>
       </Box>
     </Box>
   );
 
   return (
-    <Swiper
-      breakpoints={getResponsiveConfig()}
-      loop={loop}
-      effect={effect !== "none" ? effect : undefined}
-      speed={speed * 1000}
-      autoplay={
-        autoplay && autoplay.delay !== undefined
-          ? {
-              delay: autoplay.delay * 1000,
-              disableOnInteraction: autoplay.disableOnInteraction,
-            }
-          : false
-      }
-      navigation={!isMobile}
-      pagination={isMobile}
-      modules={swiperModules}
-      className="mySwiper"
-      style={{ 
-        width: "100%",
-        justifyContent: "center",
-        padding: "0 4px"
-      }}
-    >
-      {slides.map((slide, index) => (
-        <SwiperSlide 
-          key={`${slide.type}-${slide.id}-${index}`}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "4px"
-          }}
+    <>
+      <Swiper
+        breakpoints={getResponsiveConfig()}
+        loop={loop && slides.length > 1}
+        effect={effect !== "none" ? effect : undefined}
+        speed={speed * 1000}
+        autoplay={
+          autoplay && autoplay.delay !== undefined && slides.length > 1
+            ? {
+                delay: autoplay.delay * 1000,
+                disableOnInteraction: autoplay.disableOnInteraction,
+                pauseOnMouseEnter: true,
+              }
+            : false
+        }
+        navigation={!isMobile && slides.length > 1}
+        pagination={{ 
+          clickable: true,
+          dynamicBullets: true
+        }}
+        modules={swiperModules}
+        className="mySwiper"
+        style={{ 
+          width: "100%",
+          padding: "0 8px 40px 8px"
+        }}
+      >
+        {slides.map((slide, index) => (
+          <SwiperSlide 
+            key={`${slide.type}-${slide.id}-${index}`}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "stretch",
+              padding: "8px"
+            }}
+          >
+            {slide.type === 'event' 
+              ? renderEventCard(slide, index) 
+              : renderProductCard(slide, index)}
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
         >
-          {slide.type === 'event' 
-            ? renderEventCard(slide, index) 
-            : renderProductCard(slide, index)}
-        </SwiperSlide>
-      ))}
-    </Swiper>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 
@@ -847,60 +959,20 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, themes }) => {
   // Create dynamic theme
   const theme = createDynamicTheme({themes});
-  const [isEventType, setIsEventType] = useState(false);
-  
-  useEffect(() => {
-    const checkIfEventType = async () => {
-      if (elementData?.items && elementData.items.length > 0) {
-        for (const item of elementData.items) {
-          if (item.itemType === "Catalogue") {
-            try {
-              const catalogData = await getCatalog(item.itemId);
-              if (catalogData && catalogData.dataType === "event") {
-                setIsEventType(true);
-                break;
-              }
-            } catch (error) {
-              console.error(`Error fetching catalog ${item.itemId}:`, error);}
-            }
-          }
-        }
-      };
-      
-      checkIfEventType();
-    }, [elementData]);
-    
-    return (
-      <ThemeProvider theme={theme}>
-        <Box sx={{ 
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: { xs: 4, sm: 6, md: 8 }, // reduced margins
-          marginBottom: { xs: 4, sm: 6, md: 8 },
-          px: { xs: 1, sm: 2, md: 3 }, // reduced horizontal padding
-          backgroundColor: theme.palette.background.default
-        }}>
-          <Box sx={{
-            width: { 
-              xs: "100%", 
-              sm: "95%", 
-              md: "100%", 
-              lg: "90%" 
-            }, // increased width percentages
-            overflow: "hidden",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}>
-            <Suspense fallback={<SliderSkeleton slidesPerView={elementData?.swiperOptions?.slidesPerView || 3} isEventType={isEventType} />}>
-              <SliderContent elementData={elementData} themes={themes} />
-            </Suspense>
-          </Box>
-        </Box>
-      </ThemeProvider>
-    );
-  };
-  
-  export default SliderPage;
+
+  return (
+    <ThemeProvider theme={theme}>
+      <Box sx={{ 
+        width: "100%", 
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2 }
+      }}>
+        <Suspense fallback={<SliderSkeleton />}>
+          <SliderContent elementData={elementData} themes={themes} />
+        </Suspense>
+      </Box>
+    </ThemeProvider>
+  );
+};
+
+export default SliderPage;
