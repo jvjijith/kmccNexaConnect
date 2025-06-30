@@ -157,7 +157,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   
   // Check if this is a donation event
-  const isDonationEvent = eventData.metadata?.name === "donation"
+  const isDonationEvent = eventData.metadata?.name === "donation";
 
   // Determine if this is a free event
   const isFreeEvent = eventData.paymentType === "Free";
