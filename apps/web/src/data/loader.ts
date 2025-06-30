@@ -104,9 +104,12 @@ export async function payment(registrationId: any) {
 
 export async function registerEvent(data: any, headers?: HeadersInit) {
   try {
+    console.log("Registering event with data:", data);
+    console.log("Using headers:", headers);
     return await postApi('/events/register/guest', data, headers);
   } catch (error: any) {
-    throw new Error(error || 'Failed to register');
+    console.error("Registration API error:", error);
+    throw new Error(error.message || error || 'Failed to register');
   }
 }
 

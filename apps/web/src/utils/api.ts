@@ -41,11 +41,38 @@ export const postApi = async <T>(
     const response = await config.fetchApi(`${config.basePath}${endpoint}`, options)
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status} ${response.statusText}`)
+      let errorMessage = `Error: ${response.status} ${response.statusText}`
+
+      // Try to get more detailed error information from the response body
+      try {
+        const errorBody = await response.text()
+        if (errorBody) {
+          try {
+            const errorJson = JSON.parse(errorBody)
+            if (errorJson.message) {
+              errorMessage = errorJson.message
+            } else if (errorJson.error) {
+              errorMessage = errorJson.error
+            } else {
+              errorMessage = `${errorMessage} - ${errorBody}`
+            }
+          } catch {
+            errorMessage = `${errorMessage} - ${errorBody}`
+          }
+        }
+      } catch {
+        // If we can't read the response body, use the original error
+      }
+
+      throw new Error(errorMessage)
     }
 
     return await response.json()
   } catch (err: any) {
+    // If it's already an Error object, preserve the message
+    if (err instanceof Error) {
+      throw err
+    }
     throw new Error(err)
   }
 }

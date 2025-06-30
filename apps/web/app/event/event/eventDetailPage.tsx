@@ -490,7 +490,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <EventRegistrationForm eventData={event} />
+            <EventRegistrationForm eventData={event} id={id} />
           </DialogContent>
           <DialogActions>
             {/* <Button onClick={handleCloseRegistration} color="primary">

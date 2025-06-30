@@ -1,5 +1,4 @@
-
-"use client"
+'use client'
 
 import { useState, useEffect } from "react"
 import {
@@ -9,9 +8,6 @@ import {
   Grid,
   Typography,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   FormControlLabel,
   Paper,
   Divider,
@@ -77,7 +73,7 @@ interface RegistrationField {
 }
 
 interface EventRegistrationFormProps {
-  eventData: Event; // Use the imported Event type instead of custom EventData
+  eventData: Event;
   id?: string;
 }
 
@@ -86,14 +82,13 @@ interface StepItem {
   icon: React.ReactNode;
 }
 
-// Define payment result interface
 interface PaymentResult {
   url?: string;
   [key: string]: any;
 }
 
 // Styled components for enhanced visuals
-const StyledCard = styled(Card)(({ theme }) => ({
+const StyledCard = styled(Card)(() => ({
   borderRadius: 12,
   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
   overflow: "visible",
@@ -122,7 +117,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   },
 }));
 
-const AnimatedButton = styled(Button)(({ theme }) => ({
+const AnimatedButton = styled(Button)(() => ({
   transition: "all 0.3s ease",
   "&:hover": {
     transform: "translateY(-2px)",
@@ -221,7 +216,6 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const [calculatedValues, setCalculatedValues] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isRegistrationComplete, setIsRegistrationComplete] = useState<boolean>(false);
   const [confirmationNumber, setConfirmationNumber] = useState<string>("");
   const [registrationId, setRegistrationId] = useState<string>("");
 
@@ -432,7 +426,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
 
   const handleRegisterEvent = async (): Promise<void> => {
     setIsSubmitting(true);
-    
+
     try {
       // Prepare the registration data
       const registrationData = {
@@ -445,33 +439,85 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           fieldValue: typeof fieldValue === 'object' ? JSON.stringify(fieldValue) : String(fieldValue)
         })),
         price: String(calculatedValues.totalPrice || 0),
-        currency: "USD", // Adjust as needed
-        status: isFreeEvent ? "completed" : "pending", // For free events, mark as completed
-        paymentStatus: isFreeEvent ? "free" : "unpaid" // For free events, mark as free
+        currency: "USD",
+        status: isFreeEvent ? "completed" : "pending",
+        paymentStatus: isFreeEvent ? "free" : "unpaid"
       };
-      console.log("registrationData", registrationData);
-      
+
+      // Debug logging
+      console.log("Registration Data being sent:", registrationData);
+      console.log("Field Values:", fieldValues);
+      console.log("Event ID:", id || (eventData as any)._id);
+      console.log("Event Data:", eventData);
+
+      // Validate required fields before sending
+      if (!registrationData.eventId) {
+        throw new Error("Event ID is missing");
+      }
+      if (!registrationData.email) {
+        throw new Error("Email is required");
+      }
+      if (!registrationData.name) {
+        throw new Error("Full name is required");
+      }
+      if (!registrationData.phone) {
+        throw new Error("Phone number is required");
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(registrationData.email)) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      // Validate phone format
+      const phoneRegex = /^\+?[0-9\s\-()]{10,15}$/;
+      if (!phoneRegex.test(registrationData.phone)) {
+        throw new Error("Please enter a valid phone number");
+      }
+
+      // Ensure eventData array is not empty and contains valid data
+      if (!registrationData.eventData || registrationData.eventData.length === 0) {
+        console.warn("No event data fields found, adding basic fields");
+        registrationData.eventData = [
+          { fieldName: "fullName", fieldValue: registrationData.name },
+          { fieldName: "email", fieldValue: registrationData.email },
+          { fieldName: "phone", fieldValue: registrationData.phone }
+        ];
+      }
+
+      // Ensure price is a valid number string
+      const priceValue = parseFloat(registrationData.price);
+      if (isNaN(priceValue) || priceValue < 0) {
+        registrationData.price = "0";
+      }
+
       // Register the event
       const registrationResult = await registerEvent(registrationData);
-      console.log("Registration result:", registrationResult);
-      
+
       if (registrationResult && (registrationResult as { _id: string })._id) {
         setRegistrationId((registrationResult as { _id: string })._id);
         setConfirmationNumber((registrationResult as { _id: string })._id);
-        
+
         if (isFreeEvent) {
           // For free events, skip to confirmation
-          setIsRegistrationComplete(true);
-          setActiveStep(isDonationEvent ? 2 : 2); // Move to confirmation step
+          setActiveStep(isDonationEvent ? 2 : 2);
         } else {
           // For paid events, go to order/donation summary
-          setActiveStep(isDonationEvent ? 1 : 2); // Move to Summary step
+          setActiveStep(isDonationEvent ? 1 : 2);
         }
       } else {
         throw new Error("Registration failed. No registration ID received.");
       }
     } catch (error) {
       console.error("Registration failed:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        fieldValues,
+        eventData: eventData,
+        eventId: id || (eventData as any)._id
+      });
       alert(error instanceof Error ? error.message : "Failed to register for event");
     } finally {
       setIsSubmitting(false);
@@ -484,7 +530,6 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     try {
       // Call the payment API with the registration ID
       const paymentResult = await payment(registrationId) as PaymentResult;
-      console.log("Payment result:", paymentResult);
       
       // Redirect to payment URL if provided
       if (paymentResult && paymentResult.url) {
@@ -494,8 +539,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       
       // If no payment URL or this is a free event, show confirmation
       setConfirmationNumber(registrationId);
-      setIsRegistrationComplete(true);
-      setActiveStep(isDonationEvent ? 2 : (isFreeEvent ? 2 : 3)); // Move to confirmation step
+      setActiveStep(isDonationEvent ? 2 : (isFreeEvent ? 2 : 3));
     } catch (error) {
       console.error("Payment processing failed:", error);
       alert(error instanceof Error ? error.message : "Failed to process payment");
@@ -556,9 +600,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             error={!!errors[field.name]}
             helperText={errors[field.name]}
             variant="outlined"
-            InputProps={{
-              sx: { borderRadius: 2 }
-            }}
+            InputProps={{ sx: { borderRadius: 2 } }}
           />
         );
       case "number":
@@ -692,7 +734,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         {eventData.name}
       </Typography>
       
-      <Typography variant="body1" paragraph>
+      <Typography variant="body1" sx={{ mb: 2 }}>
         {eventData.description}
       </Typography>
       
@@ -823,8 +865,6 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
 
   const renderOrderSummary = (): JSX.Element => {
     // This is shown for paid events (both regular and donation)
-    const totalPrice = calculatedValues.totalPrice || 0;
-    
     return (
       <StyledPaper>
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -969,7 +1009,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           {isDonationEvent ? "Donation Complete!" : "Registration Complete!"}
         </Typography>
         
-        <Typography variant="body1" paragraph>
+        <Typography variant="body1" sx={{ mb: 2 }}>
           Thank you for {isDonationEvent ? "your generous donation to" : "registering for"} {eventData.name}. 
           Your {isDonationEvent ? "donation" : "registration"} has been confirmed.
         </Typography>
@@ -984,7 +1024,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           sx={{ fontSize: "1.2rem", py: 3, px: 2, mb: 3 }} 
         />
         
-        <Typography variant="body1" paragraph>
+        <Typography variant="body1" sx={{ mb: 2 }}>
           A confirmation email has been sent to {fieldValues.email} with all the details.
         </Typography>
         
@@ -1117,10 +1157,6 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     }
   };
 
-  // Determine if payment step should be skipped for free events
-  const totalPrice = calculatedValues.totalPrice || 0;
-  const isPaid = !isFreeEvent && totalPrice > 0;
-
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
       <StyledCard elevation={3}>
@@ -1145,7 +1181,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           >
             {steps.map((step) => (
               <Step key={step.label}>
-                <StyledStepLabel StepIconProps={{ icon: step.icon }}>
+                <StyledStepLabel icon={step.icon}>
                   {step.label}
                 </StyledStepLabel>
               </Step>

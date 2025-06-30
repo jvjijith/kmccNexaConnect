@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense } from "react";
-import { Box, useTheme, useMediaQuery, Typography, ThemeProvider, Skeleton, Button, Chip, Alert } from "@repo/ui/mui";
-import { Snackbar } from "@mui/material";
+import { Box, useTheme, useMediaQuery, Typography, ThemeProvider, Skeleton, Button, Chip } from "@repo/ui/mui";
+import { Snackbar, Alert } from "@mui/material";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Navigation, Pagination } from "swiper/modules";
 import { CalendarToday, LocationOn, Star, Add } from '@mui/icons-material';
@@ -746,8 +746,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             position: "absolute",
             top: 12,
             left: 12,
-            backgroundColor: 'secondary.main',
-            color: 'white',
+            backgroundColor: 'primary.main',
+            color: 'text.secondary',
             fontWeight: 700,
             fontSize: '0.75rem',
             zIndex: 2
@@ -850,7 +850,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
         {/* Price and Button */}
         <Box sx={{ mt: 'auto' }}>
-          {slide.price && slide.price > 0 && (
+          {/* {slide.price && slide.price > 0 && (
             <Typography
               variant="h6"
               sx={{
@@ -862,7 +862,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             >
               ${slide.price.toFixed(2)}
             </Typography>
-          )}
+          )} */}
           
           <Button
             variant="contained"
@@ -875,12 +875,13 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               textTransform: 'none',
               borderRadius: 2,
               fontWeight: 600,
-              background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-              boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
+              textColor: 'text.secondary',
+              // background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+              // boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
               '&:hover': {
-                background: 'linear-gradient(45deg, #FF5252 30%, #FF7043 90%)',
+                // background: 'linear-gradient(45deg, #FF5252 30%, #FF7043 90%)',
                 transform: 'translateY(-2px)',
-                boxShadow: '0 6px 10px 2px rgba(255, 105, 135, .3)',
+                // boxShadow: '0 6px 10px 2px rgba(255, 105, 135, .3)',
               }
             }}
           >
