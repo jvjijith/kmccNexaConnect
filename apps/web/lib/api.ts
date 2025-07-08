@@ -13,7 +13,7 @@ export const getEvent = async (id: string) => {
 
 export const getEventDonors = async (eventId: string) => {
   try {
-    const response = await fetchApi(`/events/${eventId}/donors`);
+    const response = await fetchApi(`/events/${eventId}/registrations/payment-status/paid`);
     return response;
   } catch (error) {
     console.error('Error fetching event donors:', error);

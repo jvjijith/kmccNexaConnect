@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import {
   Box,
   Button,
@@ -59,8 +58,8 @@ import {
   LocationOn,
   Payment,
 } from "@mui/icons-material"
+import { theme } from "../../../../packages/ui/src/theme"
 import { submitMembershipApplication, createMemberPayment } from "../../src/data/loader" 
-import { createDynamicTheme } from "@repo/ui/theme"
 
 interface FormData {
   supportKMCC: boolean | null
@@ -120,19 +119,6 @@ interface FormErrors {
   [key: string]: string
 }
 
-interface ThemeData {
-  themes?: {
-    theme?: {
-      palette?: any
-    }
-    mode?: string
-  }
-  theme?: {
-    palette?: any
-  }
-  mode?: string
-}
-
 const steps = [
   "Initial Questions",
   "Personal Information",
@@ -186,33 +172,7 @@ const initialFormData: FormData = {
   stripeId: "",
 }
 
-// Default theme fallback
-const defaultThemeData: ThemeData = {
-  themes: {
-    theme: {
-      palette: {
-        primary: { main: "#056c32", light: "#378a5a", dark: "#00471e" },
-        secondary: { main: "#1d5b94", light: "#4c7eb8", dark: "#0c3966" },
-        error: { main: "#f44336" },
-        warning: { main: "#ff9800" },
-        info: { main: "#2196f3" },
-        success: { main: "#4caf50" },
-        text: { primary: "#333333", secondary: "#5a5a5a" },
-        background: { default: "#f7f3e9", paper: "#ffffff" }
-      }
-    },
-    mode: "light"
-  }
-}
-
 export default function MembershipApplication() {
-  // State for theme data from API
-  const [themeData, setThemeData] = useState<ThemeData>(defaultThemeData)
-  const [isThemeLoading, setIsThemeLoading] = useState(true)
-
-  // Create theme using API data
-  const theme = createDynamicTheme(themeData)
-
   const [activeStep, setActiveStep] = useState(0)
   const [showBylaw, setShowBylaw] = useState(false)
   const [showContactDialog, setShowContactDialog] = useState(false)
@@ -245,68 +205,6 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     severity: "success" as "success" | "error" | "warning" | "info"
   })
   const [submissionStep, setSubmissionStep] = useState<"idle" | "submitting" | "payment" | "success">("idle")
-
-  // Fetch theme data from API on component mount
-  useEffect(() => {
-    const fetchThemeData = async () => {
-      try {
-        setIsThemeLoading(true)
-        
-        // Replace this with your actual API endpoint for theme data
-        // Example: const response = await fetch('/api/theme')
-        // const apiThemeData = await response.json()
-        
-        // For now, simulating API call with timeout
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // You would replace this with actual API data
-        // Example API response structure:
-        const apiThemeData: ThemeData = {
-          themes: {
-            theme: {
-              palette: {
-                primary: { main: "#056c32", light: "#378a5a", dark: "#00471e", contrastText: "#ffffff" },
-                secondary: { main: "#1d5b94", light: "#4c7eb8", dark: "#0c3966", contrastText: "#ffffff" },
-                error: { main: "#f44336" },
-                warning: { main: "#ff9800" },
-                info: { main: "#2196f3" },
-                success: { main: "#4caf50" },
-                text: { 
-                  primary: "#333333", 
-                  secondary: "#5a5a5a", 
-                  disabled: "#999999" 
-                },
-                background: { 
-                  default: "#f7f3e9", 
-                  paper: "#ffffff" 
-                },
-                action: {
-                  active: "#056c32",
-                  hover: "rgba(5, 108, 50, 0.04)",
-                  selected: "rgba(5, 108, 50, 0.08)",
-                  disabled: "rgba(0, 0, 0, 0.26)",
-                  disabledBackground: "rgba(0, 0, 0, 0.12)",
-                  focus: "rgba(5, 108, 50, 0.12)"
-                },
-                divider: "rgba(0, 0, 0, 0.12)"
-              }
-            },
-            mode: "light"
-          }
-        }
-        
-        setThemeData(apiThemeData)
-      } catch (error) {
-        console.error('Failed to fetch theme data:', error)
-        // Keep default theme on error
-        setThemeData(defaultThemeData)
-      } finally {
-        setIsThemeLoading(false)
-      }
-    }
-
-    fetchThemeData()
-  }, [])
 
   const handleInputChange = useCallback(
     (field: string, value: any) => {
@@ -552,28 +450,6 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     setSnackbar(prev => ({ ...prev, open: false }))
   }
 
-  // Show loading spinner while theme is loading
-  if (isThemeLoading) {
-    return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '100vh',
-          flexDirection: 'column',
-          gap: 2
-        }}
-      >
-        <CircularProgress size={60} />
-        <Typography variant="h6" color="text.secondary">
-          Loading application...
-        </Typography>
-      </Box>
-    )
-  }
-
-  // ... rest of the render methods remain the same ...
   const renderStep1 = () => (
     <Card elevation={3}>
       <CardHeader
@@ -672,13 +548,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                   The amount to be paid is for a two-year period upon approval of your application
                 </Typography>
               </Box>
-              
-              {!(formData.applicationFor === "couple") &&
-                <Chip label="$25 AUD" color="success" size="medium" sx={{ fontSize: "1.1rem", fontWeight: "bold" }} />
-              }
-              {(formData.applicationFor === "couple") &&
-                <Chip label="$50 AUD" color="success" size="medium" sx={{ fontSize: "1.1rem", fontWeight: "bold" }} />
-              }
+              <Chip label="$25 AUD" color="success" size="medium" sx={{ fontSize: "1.1rem", fontWeight: "bold" }} />
             </Box>
           </Alert>
         </Box>
@@ -1648,7 +1518,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
   return (
     <ThemeProvider theme={theme}>
       <Container maxWidth="lg" sx={{ py: 4, bgcolor: "background.default", minHeight: "100vh" }}>
-      <Paper elevation={1} sx={{ p: 4, mb: 4, textAlign: "center", borderRadius: 3 }}>
+        <Paper elevation={1} sx={{ p: 4, mb: 4, textAlign: "center", borderRadius: 3 }}>
           <Typography variant="h3" component="h1" gutterBottom>
             Melbourne KMCC Membership Application
           </Typography>

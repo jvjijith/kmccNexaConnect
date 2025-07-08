@@ -1,16 +1,16 @@
 import React, { useEffect, useState, Suspense } from "react";
-import { Box, useTheme, useMediaQuery, Typography, ThemeProvider, Skeleton, Button, Chip } from "@repo/ui/mui";
-import { Snackbar, Alert } from "@mui/material";
+import { Box, useTheme, useMediaQuery, Typography, ThemeProvider, Skeleton, Button } from "@repo/ui/mui";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Navigation, Pagination } from "swiper/modules";
-import { CalendarToday, LocationOn, Star, Add } from '@mui/icons-material';
+import { CalendarToday, LocationOn, AccessTime, AttachMoney } from '@mui/icons-material';
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { createDynamicTheme } from "@repo/ui/theme";
-import { getCatalog, getPageById, getProduct, getEvent, addToCart } from "../data/loader";
-import Link from "next/link";
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { getCatalog, getPageById, getProduct, getEvent, addToCart, getProductPricing } from "../data/loader";
+import { useRouter } from "next/navigation";
 
 // Define types
 interface PageData {
@@ -18,6 +18,9 @@ interface PageData {
   portraitImage?: string;
   landscapeImage?: string;
   bannerImage?: string;
+  heroImage?: string;
+  circleImage?: string;
+  squareImage?: string;
   title?: any[];
   metaDescription?: any[];
   referenceName?: string;
@@ -26,19 +29,64 @@ interface PageData {
 
 interface ProductData {
   _id?: string;
-  name?: string;
-  description?: string;
-  images?: { url: string; _id: string }[];
-  price?: number;
-  rating?: number;
-  isBestseller?: boolean;
-  stock?: number;
-  [key: string]: any;
+  active: boolean;
+  HSN: string;
+  RFQ: boolean;
+  brand: {
+    name: string;
+    category: string;
+    active: boolean;
+    __v: number;
+  };
+  category: {
+    categoryName: string;
+    categoryType: string;
+    __v: number;
+  };
+  description: string;
+  images: {
+    url: string;
+    _id: string;
+  }[];
+  model: string;
+  name: string;
+  notes: any[];
+  productCode: string;
+  stock: number;
+  subBrand: {
+    subBrandName: string;
+    brandId: string;
+    active: boolean;
+    __v: number;
+  };
+  subCategory: {
+    subCategoryName: string;
+    subCategoryType: string;
+    category: string;
+    __v: number;
+  };
+  variants: any[];
+  pricing?: {
+    productId: string;
+    variantId: string;
+    pricing: {
+      amount: number;
+      currency: string;
+      discount: number;
+      rules: any[];
+      _id: string;
+    }[];
+    active: boolean;
+    created_at: string;
+    updated_at: string;
+    __v: number;
+  }[];
 }
 
 interface EventData {
   _id?: string;
   name?: string;
+  title?: string;
   description?: string;
   location?: string;
   startingDate?: string;
@@ -50,9 +98,12 @@ interface EventData {
   };
   metadata?: {
     name?: string;
+    title?: string;
     description?: string;
-    imageUrl?:string;
+    imageUrl?: string;
   };
+  images?: { url: string; _id: string }[];
+  image?: string;
   [key: string]: any;
 }
 
@@ -68,7 +119,7 @@ interface SlideData {
   isBestseller?: boolean;
   location?: string;
   date?: string;
-  stock?: number;
+  endDate?: string;
   cardOptions?: {
     actionButtonText: string;
     actionButtonUrl: string;
@@ -96,35 +147,25 @@ const ProductCardSkeleton = () => {
     <Box sx={{
       width: "100%",
       maxWidth: { xs: "280px", sm: "300px", md: "320px" },
-      borderRadius: 3,
+      borderRadius: { xs: "16px", sm: "20px" },
       overflow: "hidden",
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
+      boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
       backgroundColor: theme.palette.background.paper,
     }}>
-      {/* Image skeleton */}
-      <Skeleton variant="rectangular" width="100%" sx={{height:{ xs: 200, sm: 220, md: 240 }}} />
-      
-      {/* Content skeleton */}
-      <Box sx={{ padding: 3 }}>
-        {/* Title skeleton */}
-        <Skeleton variant="text" width="90%" height={28} sx={{ mb: 2 }} />
-        
-        {/* Rating skeleton */}
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} variant="circular" width={16} height={16} sx={{ mr: 0.5 }} />
-          ))}
-          <Skeleton variant="text" width="30%" height={20} sx={{ ml: 1 }} />
-        </Box>
-        
-        {/* Description skeleton */}
-        <Skeleton variant="text" width="100%" height={16} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width="80%" height={16} sx={{ mb: 3 }} />
-        
-        {/* Price and button skeleton */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Skeleton variant="text" width="40%" height={32} />
-          <Skeleton variant="circular" width={48} height={48} />
+      <Skeleton 
+        variant="rectangular" 
+        width="100%" 
+        height={220}
+        sx={{ borderRadius: 0 }}
+      />
+      <Box sx={{ padding: { xs: "16px", sm: "18px", md: "20px" } }}>
+        <Skeleton variant="text" width="80%" height={28} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="60%" height={20} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="100%" height={16} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="90%" height={16} sx={{ mb: 2 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton variant="text" width="40%" height={24} />
+          <Skeleton variant="circular" width={44} height={44} />
         </Box>
       </Box>
     </Box>
@@ -139,61 +180,104 @@ const EventCardSkeleton = () => {
     <Box sx={{
       width: "100%",
       maxWidth: { xs: "280px", sm: "300px", md: "350px" },
-      borderRadius: 3,
+      borderRadius: { xs: "16px", sm: "20px" },
       overflow: "hidden",
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
+      boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
       backgroundColor: theme.palette.background.paper,
     }}>
-      {/* Image skeleton */}
-      <Skeleton variant="rectangular" width="100%" sx={{height:{ xs: 200, sm: 220, md: 240 }}} />
-      
-      {/* Content skeleton */}
-      <Box sx={{ padding: 3 }}>
-        {/* Title skeleton */}
-        <Skeleton variant="text" width="90%" height={28} sx={{ mb: 2 }} />
-        
-        {/* Date and location skeleton */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-          <Skeleton variant="circular" width={20} height={20} />
-          <Skeleton variant="text" width="70%" height={20} />
+      <Skeleton 
+        variant="rectangular" 
+        width="100%" 
+        height={220}
+        sx={{ borderRadius: 0 }}
+      />
+      <Box sx={{ padding: { xs: "16px", sm: "18px", md: "20px" } }}>
+        <Skeleton variant="text" width="80%" height={28} sx={{ mb: 1 }} />
+        <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+          <Skeleton variant="text" width="30%" height={20} />
+          <Skeleton variant="text" width="40%" height={20} />
         </Box>
-        
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <Skeleton variant="circular" width={20} height={20} />
-          <Skeleton variant="text" width="60%" height={20} />
-        </Box>
-        
-        {/* Description skeleton */}
-        <Skeleton variant="text" width="100%" height={16} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width="80%" height={16} sx={{ mb: 3 }} />
-        
-        {/* Button skeleton */}
+        <Skeleton variant="text" width="100%" height={16} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="90%" height={16} sx={{ mb: 2 }} />
         <Skeleton variant="rectangular" width="100%" height={40} sx={{ borderRadius: 2 }} />
       </Box>
     </Box>
   );
 };
 
-// Create a skeleton loader component for the slider
-const SliderSkeleton = ({ slidesPerView = 3, isEventType = false }) => {
+// Create a skeleton loader component for page cards (image only)
+const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
+  const theme = useTheme();
+  
+  const getSkeletonDimensions = () => {
+    switch (swiperType) {
+      case 'portrait':
+        return { width: "100%", height: 300, maxWidth: "240px" };
+      case 'landscape':
+        return { width: "100%", height: 200, maxWidth: "350px" };
+      case 'hero':
+        return { width: "100%", height: 400, maxWidth: "600px" };
+      case 'circle':
+        return { width: 200, height: 200, maxWidth: "200px", borderRadius: "50%" };
+      case 'square':
+        return { width: 250, height: 250, maxWidth: "250px" };
+      default:
+        return { width: "100%", height: 250, maxWidth: "300px" };
+    }
+  };
+
+  const dimensions = getSkeletonDimensions();
+  
+  return (
+    <Box sx={{
+      width: dimensions.width,
+      maxWidth: dimensions.maxWidth,
+      height: dimensions.height,
+      borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
+      overflow: "hidden",
+      boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+      backgroundColor: theme.palette.background.paper,
+    }}>
+      <Skeleton 
+        variant="rectangular" 
+        width="100%" 
+        height="100%"
+        sx={{ borderRadius: dimensions.borderRadius || 0 }}
+      />
+    </Box>
+  );
+};
+
+// Skeleton loader for the entire slider
+const SliderSkeleton = ({ slidesPerView, isEventType, swiperType }: { slidesPerView: number, isEventType: boolean, swiperType: string }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  
+  const getSkeletonWidth = () => {
+    if (swiperType === 'hero') return "100%";
+    if (swiperType === 'circle') return "200px";
+    if (swiperType === 'square') return "250px";
+    return isMobile ? "280px" : isTablet ? "300px" : "320px";
+  };
 
   return (
-    <Box sx={{ 
-      width: "100%",
-      display: "flex",
-      gap: 3,
-      justifyContent: "center",
-      overflowX: "auto",
-      pb: 2
+    <Box sx={{
+      display: 'flex',
+      gap: { xs: 2, sm: 3, md: 4 },
+      justifyContent: "center"
     }}>
       {[...Array(isMobile ? 1 : isTablet ? 2 : slidesPerView)].map((_, index) => (
         <Box key={index} sx={{ 
-          minWidth: isEventType ? { xs: "280px", sm: "300px", md: "350px" } : { xs: "280px", sm: "300px", md: "320px" }
+          width: getSkeletonWidth()
         }}>
-          {isEventType ? <EventCardSkeleton /> : <ProductCardSkeleton />}
+          {isEventType ? (
+            <EventCardSkeleton />
+          ) : swiperType === 'page' ? (
+            <PageCardSkeleton swiperType={swiperType} />
+          ) : (
+            <ProductCardSkeleton />
+          )}
         </Box>
       ))}
     </Box>
@@ -207,41 +291,54 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   const [isLoading, setIsLoading] = useState(true);
   const [isEventType, setIsEventType] = useState(false);
   const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
-  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
+  const router = useRouter();
   
   // Create dynamic theme
   const theme = createDynamicTheme({themes});
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   // Extract swiper options from elementData
   const {
     slidesPerView = 3,
     swiperType = "portrait",
-    spaceBetween = 24,
+    spaceBetween = 16,
     loop = true,
-    autoplay = { delay: 5, disableOnInteraction: false },
+    autoplay = { delay: 3, disableOnInteraction: true },
     effect = "none",
     speed = 1,
   } = elementData?.swiperOptions || {};
 
   // Get responsive breakpoints configuration
   const getResponsiveConfig = () => {
+    // For hero type, always show 1 slide
+    if (swiperType === 'hero') {
+      return {
+        320: { slidesPerView: 1, spaceBetween: 0 },
+        768: { slidesPerView: 1, spaceBetween: 0 },
+        1024: { slidesPerView: 1, spaceBetween: 0 }
+      };
+    }
+    
+    // For circle type, adjust based on screen size
+    if (swiperType === 'circle') {
+      return {
+        320: { slidesPerView: 2, spaceBetween: 8 },
+        768: { slidesPerView: 3, spaceBetween: 12 },
+        1024: { slidesPerView: Math.min(slidesPerView, 5), spaceBetween: spaceBetween }
+      };
+    }
+    
     return {
       320: {  // for phones
         slidesPerView: 1,
-        spaceBetween: 16
+        spaceBetween: 8
       },
       768: {  // for tablets
         slidesPerView: 2,
-        spaceBetween: 20
+        spaceBetween: 12
       },
       1024: { // for desktop
-        slidesPerView: Math.min(slidesPerView, 4),
+        slidesPerView: slidesPerView,
         spaceBetween: spaceBetween
       }
     };
@@ -260,6 +357,24 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     swiperModules.push(EffectFade);
   }
 
+  // Get page image based on swiper type
+  const getPageImage = (page: PageData) => {
+    switch (swiperType) {
+      case "portrait":
+        return page.portraitImage || page.bannerImage || "";
+      case "landscape":
+        return page.landscapeImage || page.bannerImage || "";
+      case "hero":
+        return page.heroImage || page.bannerImage || page.landscapeImage || "";
+      case "circle":
+        return page.circleImage || page.portraitImage || page.bannerImage || "";
+      case "square":
+        return page.squareImage || page.portraitImage || page.bannerImage || "";
+      default:
+        return page.bannerImage || page.portraitImage || page.landscapeImage || "";
+    }
+  };
+
   // Get page info
   const getPageInfo = (page: PageData): SlideData => {
     return {
@@ -272,53 +387,83 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     };
   };
 
-  // Get product info
+  // Get product info with pricing
   const getProductInfo = (product: ProductData, productId: string): SlideData => {
+    // Get price from pricing data
+    const getProductPrice = () => {
+      if (product.pricing && product.pricing.length > 0) {
+        const firstPricing = product.pricing[0]
+        if (firstPricing?.pricing && firstPricing.pricing.length > 0 && firstPricing.pricing[0]) {
+          return firstPricing.pricing[0].amount
+        }
+      }
+      return 0
+    }
+
+    // Get discount from pricing data
+    const getProductDiscount = () => {
+      if (product.pricing && product.pricing.length > 0) {
+        const firstPricing = product.pricing[0]
+        if (firstPricing?.pricing && firstPricing.pricing.length > 0 && firstPricing.pricing[0]) {
+          return firstPricing.pricing[0].discount
+        }
+      }
+      return 0
+    }
+
+    const price = getProductPrice()
+    const discount = getProductDiscount()
+    const discountedPrice = price > 0 ? price - (price * discount / 100) : 0
+
     return {
       id: productId,
       type: 'product',
-      image: product.images && product.images.length > 0 ? product.images[0]?.url : '/api/placeholder/400/300',
-      title: product.name || 'Product',
-      description: product.description || 'No description available',
+      image: product.images && product.images.length > 0 ? product.images[0]?.url : '',
+      title: product.name || '',
+      description: product.description || '',
       link: productId ? `/product/${productId}` : '#',
-      price: product.price || 0,
-      rating: product.rating || 4.5,
-      isBestseller: product.isBestseller || false,
-      stock: product.stock || 0
+      price: discountedPrice > 0 ? discountedPrice : (product.RFQ ? 0 : price),
+      rating: 4.5, // Default rating since it's not in the API
+      isBestseller: false // Default since it's not in the API
     };
   };
 
-  // Get event info
+  // Enhanced event info extraction with better fallbacks
   const getEventInfo = (event: EventData, eventId: string): SlideData => {
+    // Better title extraction with multiple fallbacks
+    const getEventTitle = () => {
+      return event.metadata?.title || 
+             event.name || 
+             event.title || 
+             'Event';
+    };
+
+    // Better description extraction
+    const getEventDescription = () => {
+      return event.description || 
+             'Join us for this exciting event!';
+    };
+
+    // Better image extraction
+    const getEventImage = () => {
+      return event.metadata?.imageUrl || 
+             event.image ||
+             (event.images && event.images.length > 0 ? event.images[0]?.url : '') ||
+             '';
+    };
+
     return {
       id: eventId,
       type: 'event',
-      image: event.metadata?.imageUrl || '/api/placeholder/400/300',
-      title: event.name || event.metadata?.name || 'Event',
-      description: event.description || event.metadata?.description || 'No description available',
+      image: getEventImage(),
+      title: getEventTitle(),
+      description: getEventDescription(),
       link: eventId ? `/event/${eventId}` : '#',
-      price: event.priceConfig?.amount || 0,
-      location: event.location || 'Location TBA',
-      date: event.startingDate,
-      cardOptions: {
-        actionButtonText: 'Register Now',
-        actionButtonUrl: `/event/${eventId}`,
-        actionButtonPosition: 'bottom'
-      },
-      withDescription: true
+      location: event.location || '',
+      date: event.startingDate ? formatDate(event.startingDate) : '',
+      endDate: event.endingDate ? formatDate(event.endingDate) : '',
+      price: event.priceConfig?.amount
     };
-  };
-
-  // Get appropriate image based on swiperType
-  const getPageImage = (page: PageData) => {
-    if (swiperType === "portrait" && page.portraitImage) {
-      return page.portraitImage;
-    } else if (swiperType === "landscape" && page.landscapeImage) {
-      return page.landscapeImage;
-    } else if (page.bannerImage) {
-      return page.bannerImage;
-    }
-    return "/api/placeholder/400/300";
   };
 
   // Get title text from the page title array
@@ -326,7 +471,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     if (page.title && page.title.length > 0) {
       return page?.title[0]?.title;
     }
-    return page.referenceName || "Page";
+    return page.referenceName || "";
   };
 
   // Get description text from the page metaDescription array
@@ -334,11 +479,28 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     if (page.metaDescription && page.metaDescription.length > 0) {
       return page?.metaDescription[0]?.description;
     }
-    return "No description available";
+    return "";
   };
 
-  // Handle add to cart with better error handling and user feedback
-  const handleAddToCart = async (productId: string, price: number) => {
+  // Handle card click navigation
+  const handleCardClick = (slide: SlideData) => {
+    if (slide.type === 'product') {
+      // Navigate to product page using product ID
+      router.push(`/product/${slide.id}`);
+    } else if (slide.type === 'event') {
+      // Navigate to event page using event ID
+      router.push(`/event/${slide.id}`);
+    } else if (slide.type === 'page') {
+      // For pages, navigate to the page using the link
+      router.push(slide.link);
+    }
+  };
+
+  // Handle add to cart
+  const handleAddToCart = async (productId: string, price: number, event: React.MouseEvent) => {
+    // Prevent card click when clicking add to cart
+    event.stopPropagation();
+    
     try {
       // Set loading state for this specific product
       setAddingToCart(prev => ({...prev, [productId]: true}));
@@ -347,11 +509,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       const accessToken = localStorage.getItem("accessToken");
       
       if (!accessToken) {
-        setSnackbar({
-          open: true,
-          message: "Please login to add items to cart",
-          severity: 'error'
-        });
+        alert("Please login to add items to cart");
+        setAddingToCart(prev => ({...prev, [productId]: false}));
         return;
       }
       
@@ -363,37 +522,26 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         notes: ""
       };
       
-      // Custom headers with authorization token
-      const customHeaders = {
+      // Prepare headers
+      const headers = {
         "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
       };
       
-      // Call the addToCart function from loader
-      const result = await addToCart(cartData, customHeaders);
+      // Call add to cart API
+      const response = await addToCart(cartData, headers);
+      console.log("Add to cart response:", response);
       
       // Show success message
-      setSnackbar({
-        open: true,
-        message: "Item added to cart successfully!",
-        severity: 'success'
-      });
+      alert("Product added to cart successfully!");
       
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      setSnackbar({
-        open: true,
-        message: error instanceof Error ? error.message : "Failed to add item to cart",
-        severity: 'error'
-      });
+    } catch (error: any) {
+      console.error("Add to cart error:", error);
+      alert(error.message || "Failed to add product to cart");
     } finally {
       // Reset loading state
       setAddingToCart(prev => ({...prev, [productId]: false}));
     }
-  };
-
-  // Close snackbar
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({...prev, open: false}));
   };
 
   // Use useEffect to fetch data only once
@@ -415,6 +563,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           } else if (item.itemType === "Catalogue") {
             try {
               const catalogData = await getCatalog(item.itemId);
+              console.log("catalogData", catalogData);
               
               // Check if the catalog is an event type
               if (catalogData && catalogData.dataType === "event") {
@@ -438,7 +587,21 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   try {
                     const productData = await getProduct(productId);
                     if (productData) {
-                      fetchedSlides.push(getProductInfo(productData, productId));
+                      // Fetch pricing data
+                      try {
+                        const pricingData = await getProductPricing(productId);
+                        console.log("Pricing data for product", productId, pricingData);
+                        // Combine product and pricing data
+                        const productWithPricing = {
+                          ...productData,
+                          pricing: pricingData
+                        };
+                        fetchedSlides.push(getProductInfo(productWithPricing, productId));
+                      } catch (pricingError) {
+                        console.warn(`Could not fetch pricing for product ${productId}:`, pricingError);
+                        // Use product data without pricing
+                        fetchedSlides.push(getProductInfo(productData, productId));
+                      }
                     }
                   } catch (error) {
                     console.error(`Error fetching product ${productId}:`, error);
@@ -459,126 +622,201 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     fetchData();
   }, [elementData, swiperType]);
 
-  // Render star rating
+  // Render star rating with enhanced styling
   const renderRating = (rating: number = 4.5) => {
     const fullStars = Math.floor(rating);
     
     return (
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         {[...Array(5)].map((_, i) => (
-          <Star
+          <Box
             key={i}
+            component="span"
             sx={{
-              fontSize: 16,
-              color: i < fullStars ? 'warning.main' : 'grey.300',
-              mr: 0.25
+              color: i < fullStars ? '#FFD700' : '#E0E0E0',
+              fontSize: { xs: '16px', sm: '17px', md: '18px' },
+              mr: 0.3,
+              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
             }}
-          />
+          >
+            ★
+          </Box>
         ))}
         <Typography 
           variant="body2" 
           sx={{ 
-            color: 'text.secondary', 
+            color: theme.palette.text.secondary, 
             ml: 1,
-            fontSize: '0.875rem',
+            fontSize: { xs: '13px', sm: '14px', md: '15px' },
             fontWeight: 500
           }}
         >
-          {rating.toFixed(1)}
+          ({rating})
         </Typography>
       </Box>
     );
   };
 
-  if (isLoading) {
-    return <SliderSkeleton slidesPerView={slidesPerView} isEventType={isEventType} />;
-  }
+  // Render page card (image only) with enhanced styling
+  const renderPageCard = (slide: SlideData) => {
+    const getCardDimensions = () => {
+      switch (swiperType) {
+        case 'portrait':
+          return { 
+            width: "100%", 
+            maxWidth: { xs: "200px", sm: "220px", md: "240px" },
+            height: { xs: 250, sm: 280, md: 300 }
+          };
+        case 'landscape':
+          return { 
+            width: "100%", 
+            maxWidth: { xs: "280px", sm: "320px", md: "350px" },
+            height: { xs: 160, sm: 180, md: 200 }
+          };
+        case 'hero':
+          return { 
+            width: "100%", 
+            maxWidth: { xs: "100%", sm: "100%", md: "600px" },
+            height: { xs: 300, sm: 350, md: 400 }
+          };
+        case 'circle':
+          return { 
+            width: { xs: 150, sm: 180, md: 200 }, 
+            height: { xs: 150, sm: 180, md: 200 },
+            borderRadius: "50%"
+          };
+        case 'square':
+          return { 
+            width: { xs: 200, sm: 220, md: 250 }, 
+            height: { xs: 200, sm: 220, md: 250 }
+          };
+        default:
+          return { 
+            width: "100%", 
+            maxWidth: { xs: "280px", sm: "300px", md: "320px" },
+            height: { xs: 200, sm: 220, md: 250 }
+          };
+      }
+    };
 
-  if (slides.length === 0) {
+    const dimensions = getCardDimensions();
+
     return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Alert severity="info">
-          No items available to display at the moment.
-        </Alert>
+      <Box 
+        onClick={() => handleCardClick(slide)}
+        sx={{
+          ...dimensions,
+          borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
+          overflow: 'hidden',
+          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+          backgroundColor: theme.palette.background.paper,
+          transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          cursor: 'pointer',
+          position: 'relative',
+          "&:hover": {
+            transform: "translateY(-8px) scale(1.02)",
+            boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+          },
+          "&::before": {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
+            opacity: 0,
+            transition: 'opacity 0.3s ease',
+            zIndex: 1
+          },
+          "&:hover::before": {
+            opacity: 1
+          }
+        }}
+      >
+        <img
+          src={slide.image || '/api/placeholder/400/300'}
+          alt={slide.title || 'Page Image'}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
       </Box>
     );
-  }
+  };
 
-  // Render product card with improved styling
-  const renderProductCard = (slide: SlideData, index: number) => (
-    <Box sx={{
-      width: "100%",
-      maxWidth: { xs: "280px", sm: "300px", md: "320px" },
-      borderRadius: 3,
-      overflow: 'hidden',
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
-      backgroundColor: 'background.paper',
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      "&:hover": {
-        transform: "translateY(-8px)",
-        boxShadow: "0px 12px 40px rgba(0, 0, 0, 0.15)"
-      }
-    }}>
+  // Render product card with enhanced styling
+  const renderProductCard = (slide: SlideData) => (
+    <Box
+      onClick={() => handleCardClick(slide)}
+      sx={{
+        width: "100%",
+        maxWidth: { xs: "280px", sm: "300px", md: "320px" },
+        height: { xs: "420px", sm: "440px", md: "460px" },
+        borderRadius: { xs: "16px", sm: "20px" },
+        overflow: 'hidden',
+        boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+        backgroundColor: theme.palette.background.paper,
+        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: 'pointer',
+        position: 'relative',
+        "&:hover": {
+          transform: "translateY(-8px)",
+          boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+        }
+      }}
+    >
       {/* Bestseller badge */}
       {slide.isBestseller && (
-        <Chip
-          label="BESTSELLER"
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            backgroundColor: 'error.main',
-            color: 'white',
-            fontWeight: 700,
-            fontSize: '0.75rem',
-            zIndex: 2,
-            '& .MuiChip-label': {
-              px: 1.5
-            }
-          }}
-        />
-      )}
-
-      {/* Stock indicator */}
-      {slide.stock !== undefined && slide.stock < 10 && slide.stock > 0 && (
-        <Chip
-          label={`Only ${slide.stock} left`}
-          size="small"
-          color="warning"
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            zIndex: 2
-          }}
-        />
+        <Box sx={{
+          position: "absolute",
+          top: { xs: 12, sm: 14, md: 16 },
+          left: { xs: 12, sm: 14, md: 16 },
+          background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+          color: 'white',
+          fontWeight: "bold",
+          px: { xs: 1.5, sm: 2, md: 2.5 },
+          py: { xs: 0.5, sm: 0.7, md: 0.8 },
+          borderRadius: "20px",
+          fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+          zIndex: 2,
+          boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          ✨ Bestseller
+        </Box>
       )}
 
       {/* Image section */}
       <Box sx={{ 
         width: "100%",
         position: 'relative',
-        height: { xs: 200, sm: 220, md: 240 },
+        height: { xs: 180, sm: 200, md: 220 },
         overflow: 'hidden',
-        background: 'linear-gradient(45deg, #f5f5f5 0%, #e0e0e0 100%)'
+        "&::after": {
+          content: '""',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '30%',
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.1))',
+          pointerEvents: 'none'
+        }
       }}>
         <img
-          src={slide.image}
+          src={slide.image || '/api/placeholder/400/300'}
           alt={slide.title}
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            transition: 'transform 0.3s ease'
-          }}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = '/api/placeholder/400/300';
+            transition: 'transform 0.4s ease'
           }}
         />
       </Box>
@@ -588,28 +826,33 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        p: 3
+        padding: { xs: "16px", sm: "18px", md: "20px" }
       }}>
         {/* Title */}
         <Typography
           variant="h6"
+          gutterBottom
+          fontWeight="bold"
           sx={{
-            fontSize: '1.1rem',
-            fontWeight: 700,
+            fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' },
             mb: 1.5,
             lineHeight: 1.3,
+            color: theme.palette.text.primary,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            color: 'text.primary'
+            overflow: 'hidden'
           }}
         >
           {slide.title}
         </Typography>
 
         {/* Rating */}
-        <Box sx={{ mb: 1.5 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: 1.5
+        }}>
           {renderRating(slide.rating)}
         </Box>
 
@@ -619,12 +862,14 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           color="text.secondary"
           sx={{
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            WebkitLineClamp: 1,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             mb: 2,
-            lineHeight: 1.5,
-            fontSize: '0.875rem'
+            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+            lineHeight: 1.6,
+            flex: 1,
+            minHeight: { xs: '1.4rem', sm: '1.5rem', md: '1.6rem' }
           }}
         >
           {slide.description}
@@ -640,46 +885,43 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'primary.main',
-              fontWeight: 700,
-              fontSize: '1.25rem'
-            }}
-          >
-            ${slide.price?.toFixed(2)}
-          </Typography>
+          
+<Typography
+  variant="h5"
+  sx={{
+    color: 'text.primary',
+    fontWeight: "bold",
+    fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
+  }}
+>
+  {slide.price && slide.price > 0 ? `$${slide.price.toFixed(2)}` : 'RFQ'}
+</Typography>
 
           <Button
             variant="contained"
-            onClick={() => handleAddToCart(slide.id, slide.price || 0)}
-            disabled={addingToCart[slide.id] || slide.stock === 0}
-            startIcon={addingToCart[slide.id] ? undefined : <Add />}
+            onClick={(e) => handleAddToCart(slide.id, slide.price || 0, e)}
+            disabled={addingToCart[slide.id] || !slide.price || slide.price <= 0}
             sx={{
               minWidth: 'auto',
-              px: 2,
-              py: 1,
-              borderRadius: 2,
-              fontWeight: 600,
-              textTransform: 'none',
-              background: slide.stock === 0 ? 'grey.400' : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-              boxShadow: slide.stock === 0 ? 'none' : '0 3px 5px 2px rgba(33, 203, 243, .3)',
-              '&:hover': {
-                background: slide.stock === 0 ? 'grey.400' : 'linear-gradient(45deg, #1976D2 30%, #1CB5E0 90%)',
-                transform: slide.stock === 0 ? 'none' : 'translateY(-2px)',
-                boxShadow: slide.stock === 0 ? 'none' : '0 6px 10px 2px rgba(33, 203, 243, .3)',
-              },
-              '&:disabled': {
-                color: 'white'
-              }
+              width: { xs: 44, sm: 46, md: 48 },
+              height: { xs: 44, sm: 46, md: 48 },
+              borderRadius: '50%',
+              p: 0,
+              // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              // boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              // transition: 'all 0.3s ease',
+              // "&:hover": {
+              //   transform: 'scale(1.1)',
+              //   boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
+              //   background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
+              // }
             }}
           >
             {addingToCart[slide.id] ? (
               <Box sx={{ 
                 width: 20, 
-                height: 20, 
-                border: '2px solid currentColor',
+                height: 20,
+                border: '2px solid white',
                 borderTop: '2px solid transparent',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
@@ -688,10 +930,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   '100%': { transform: 'rotate(360deg)' }
                 }
               }} />
-            ) : slide.stock === 0 ? (
-              'Out of Stock'
             ) : (
-              'Add to Cart'
+              <ShoppingCartIcon sx={{ fontSize: 20 }} />
             )}
           </Button>
         </Box>
@@ -699,60 +939,78 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     </Box>
   );
 
-  // Render event card with improved styling
-  const renderEventCard = (slide: SlideData, index: number) => (
-    <Box sx={{
-      width: "100%",
-      maxWidth: { xs: "280px", sm: "300px", md: "350px" },
-      borderRadius: 3,
-      overflow: 'hidden',
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.08)",
-      backgroundColor: 'background.paper',
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      display: 'flex',
-      flexDirection: 'column',
-      "&:hover": {
-        transform: "translateY(-8px)",
-        boxShadow: "0px 12px 40px rgba(0, 0, 0, 0.15)"
-      }
-    }}>
-      {/* Image section */}
+  // Render event card with enhanced styling and better information display
+  const renderEventCard = (slide: SlideData) => (
+    <Box 
+      onClick={() => handleCardClick(slide)}
+      sx={{
+        width: "100%",
+        maxWidth: { xs: "280px", sm: "300px", md: "350px" },
+        height: { xs: "480px", sm: "500px", md: "520px" },
+        borderRadius: { xs: "16px", sm: "20px" },
+        overflow: 'hidden',
+        boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+        backgroundColor: theme.palette.background.paper,
+        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: 'pointer',
+        position: 'relative',
+        "&:hover": {
+          transform: "translateY(-8px)",
+          boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+        }
+      }}
+    >
+      {/* Image section with gradient overlay */}
       <Box sx={{ 
         width: "100%",
         position: 'relative',
-        height: { xs: 200, sm: 220, md: 240 },
+        height: { xs: 180, sm: 200, md: 220 },
         overflow: 'hidden',
-        background: 'linear-gradient(45deg, #f5f5f5 0%, #e0e0e0 100%)'
+        "&::after": {
+          content: '""',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '40%',
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
+          pointerEvents: 'none'
+        }
       }}>
         <img
-          src={slide.image || '/api/placeholder/400/300'}
-          alt={slide.title || `Event ${index + 1}`}
+          src={slide.image || '/api/placeholder/400/360'}
+          alt={slide.title || 'Event Image'}
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            transition: 'transform 0.3s ease'
-          }}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = '/api/placeholder/400/300';
+            transition: 'transform 0.4s ease'
           }}
         />
         
-        {/* Event type badge */}
-        <Chip
-          label="EVENT"
-          size="small"
-          sx={{
-            position: "absolute",
+        {/* Date badge on image */}
+        {slide.date && (
+          <Box sx={{
+            position: 'absolute',
             top: 12,
-            left: 12,
-            backgroundColor: 'primary.main',
-            color: 'text.secondary',
-            fontWeight: 700,
-            fontSize: '0.75rem',
-            zIndex: 2
-          }}
-        />
+            right: 12,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            px: 2,
+            py: 1,
+            display: 'flex',
+            alignItems: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}>
+            <CalendarToday sx={{ fontSize: 16, mr: 0.5, color: 'primary.main' }} />
+            <Typography variant="caption" fontWeight="bold" color="text.primary">
+              {slide.date}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* Content section */}
@@ -760,74 +1018,90 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        p: 3
+        padding: { xs: "16px", sm: "18px", md: "20px" }
       }}>
         {/* Title */}
         <Typography
           variant="h6"
+          gutterBottom
+          fontWeight="bold"
           sx={{
-            fontSize: '1.1rem',
-            fontWeight: 700,
-            mb: 2,
+            fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' },
+            mb: 1.5,
+            lineHeight: 1.3,
+            color: theme.palette.text.primary,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            lineHeight: 1.3,
-            color: 'text.primary'
+            overflow: 'hidden'
           }}
         >
           {slide.title}
         </Typography>
 
-        {/* Date and Location */}
-        <Box sx={{ mb: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            mb: 1,
-            gap: 1
-          }}>
-            <CalendarToday sx={{
-              fontSize: 18,
-              color: 'primary.main'
-            }} />
-            <Typography
-              variant="body2"
-              sx={{ 
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: 'text.primary'
-              }}
-            >
-              {formatDate(slide.date || '')}
-            </Typography>
-          </Box>
+        {/* Event details */}
+        <Box sx={{ mb: 1.5 }}>
+          {slide.location && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <LocationOn sx={{ 
+                fontSize: 18, 
+                mr: 1, 
+                color: 'primary.main',
+                background: 'rgba(102, 126, 234, 0.1)',
+                borderRadius: '50%',
+                p: 0.3
+              }} />
+              <Typography variant="body2" color="text.secondary" fontWeight="500">
+                {slide.location}
+              </Typography>
+            </Box>
+          )}
+          
+          {slide.endDate && slide.endDate !== slide.date && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <AccessTime sx={{ 
+                fontSize: 18, 
+                mr: 1, 
+                color: 'secondary.main',
+                background: 'rgba(118, 75, 162, 0.1)',
+                borderRadius: '50%',
+                p: 0.3
+              }} />
+              <Typography variant="body2" color="text.secondary" fontWeight="500">
+                Until {slide.endDate}
+              </Typography>
+            </Box>
+          )}
 
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 1
-          }}>
-            <LocationOn sx={{
-              fontSize: 18,
-              color: 'primary.main'
-            }} />
-            <Typography
-              variant="body2"
-              sx={{ 
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: 'text.primary',
-                display: '-webkit-box',
-                WebkitLineClamp: 1,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}
-            >
-              {slide.location || 'Location TBA'}
-            </Typography>
-          </Box>
+          {slide.price && slide.price > 0 ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <AttachMoney sx={{
+                fontSize: 18,
+                mr: 1,
+                color: 'success.main',
+                background: 'rgba(76, 175, 80, 0.1)',
+                borderRadius: '50%',
+                p: 0.3
+              }} />
+              <Typography variant="body2" color="text.secondary" fontWeight="500">
+                From ${slide.price}
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <AttachMoney sx={{
+                fontSize: 18,
+                mr: 1,
+                color: 'warning.main',
+                background: 'rgba(255, 152, 0, 0.1)',
+                borderRadius: '50%',
+                p: 0.3
+              }} />
+              <Typography variant="body2" color="text.secondary" fontWeight="500">
+                Request for Quote
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         {/* Description */}
@@ -835,124 +1109,109 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           variant="body2"
           color="text.secondary"
           sx={{
-            fontSize: '0.875rem',
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            WebkitLineClamp: 1,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            mb: 3,
-            lineHeight: 1.5,
-            flex: 1
+            mb: 2,
+            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+            lineHeight: 1.6,
+            flex: 1,
+            minHeight: { xs: '1.4rem', sm: '1.5rem', md: '1.6rem' }
           }}
         >
           {slide.description}
         </Typography>
 
-        {/* Price and Button */}
-        <Box sx={{ mt: 'auto' }}>
-          {/* {slide.price && slide.price > 0 && (
-            <Typography
-              variant="h6"
-              sx={{
-                color: 'primary.main',
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                mb: 2
-              }}
-            >
-              ${slide.price.toFixed(2)}
-            </Typography>
-          )} */}
-          
-          <Button
-            variant="contained"
-            fullWidth
-            component={Link}
-            href={`/event/${slide.id}`}
-            sx={{
-              py: 1.5,
-              fontSize: '0.95rem',
-              textTransform: 'none',
-              borderRadius: 2,
-              fontWeight: 600,
-              textColor: 'text.secondary',
-              // background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-              // boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
-              '&:hover': {
-                // background: 'linear-gradient(45deg, #FF5252 30%, #FF7043 90%)',
-                transform: 'translateY(-2px)',
-                // boxShadow: '0 6px 10px 2px rgba(255, 105, 135, .3)',
-              }
-            }}
-          >
-            {slide.cardOptions?.actionButtonText || 'Learn More'}
-          </Button>
-        </Box>
+        {/* Action button */}
+        <Button
+          variant="contained"
+          fullWidth
+          // sx={{
+          //   mt: 'auto',
+          //   py: 1.5,
+          //   fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+          //   fontWeight: 'bold',
+          //   borderRadius: '12px',
+          //   background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+          //   boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
+          //   transition: 'all 0.3s ease',
+          //   textTransform: 'none',
+          //   "&:hover": {
+          //     transform: 'translateY(-2px)',
+          //     boxShadow: '0 6px 20px rgba(255, 107, 107, 0.6)',
+          //     background: 'linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%)'
+          //   }
+          // }}
+        >
+          🎟️ View Event Details
+        </Button>
       </Box>
     </Box>
   );
 
-  return (
-    <>
-      <Swiper
-        breakpoints={getResponsiveConfig()}
-        loop={loop && slides.length > 1}
-        effect={effect !== "none" ? effect : undefined}
-        speed={speed * 1000}
-        autoplay={
-          autoplay && autoplay.delay !== undefined && slides.length > 1
-            ? {
-                delay: autoplay.delay * 1000,
-                disableOnInteraction: autoplay.disableOnInteraction,
-                pauseOnMouseEnter: true,
-              }
-            : false
-        }
-        navigation={!isMobile && slides.length > 1}
-        pagination={{ 
-          clickable: true,
-          dynamicBullets: true
-        }}
-        modules={swiperModules}
-        className="mySwiper"
-        style={{ 
-          width: "100%",
-          padding: "0 8px 40px 8px"
-        }}
-      >
-        {slides.map((slide, index) => (
-          <SwiperSlide 
-            key={`${slide.type}-${slide.id}-${index}`}
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "stretch",
-              padding: "8px"
-            }}
-          >
-            {slide.type === 'event' 
-              ? renderEventCard(slide, index) 
-              : renderProductCard(slide, index)}
-          </SwiperSlide>
-        ))}
-      </Swiper>
+  // Show loading skeleton
+  if (isLoading) {
+    return <SliderSkeleton slidesPerView={slidesPerView} isEventType={isEventType} swiperType={swiperType} />;
+  }
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+  // Show message if no slides
+  if (slides.length === 0) {
+    return (
+      <Box sx={{ 
+        textAlign: 'center', 
+        py: 6,
+        color: theme.palette.text.secondary 
+      }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>No items to display</Typography>
+        <Typography variant="body2">Check back later for updates!</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Swiper
+      breakpoints={getResponsiveConfig()}
+      loop={loop && slides.length > 1}
+      effect={effect !== "none" ? effect : undefined}
+      speed={speed * 1000}
+      autoplay={
+        autoplay && autoplay.delay !== undefined
+          ? {
+              delay: autoplay.delay * 1000,
+              disableOnInteraction: autoplay.disableOnInteraction,
+            }
+          : false
+      }
+      navigation={!isMobile}
+      pagination={isMobile}
+      modules={swiperModules}
+      className="mySwiper"
+      style={{ 
+        width: "100%",
+        justifyContent: "center",
+        padding: "0 8px"
+      }}
+    >
+      {slides.map((slide, index) => (
+        <SwiperSlide 
+          key={`${slide.type}-${slide.id}-${index}`}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "8px"
+          }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </>
+          {slide.type === 'event' 
+            ? renderEventCard(slide)
+            : slide.type === 'page'
+            ? renderPageCard(slide)
+            : renderProductCard(slide)}
+        </SwiperSlide>
+      ))}
+    </Swiper>
   );
 };
 
@@ -960,17 +1219,58 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, themes }) => {
   // Create dynamic theme
   const theme = createDynamicTheme({themes});
-
+  const [isEventType, setIsEventType] = useState(false);
+  
+  useEffect(() => {
+    const checkIfEventType = async () => {
+      if (elementData?.items && elementData.items.length > 0) {
+        for (const item of elementData.items) {
+          if (item.itemType === "Catalogue") {
+            try {
+              const catalogData = await getCatalog(item.itemId);
+              if (catalogData && catalogData.dataType === "event") {
+                setIsEventType(true);
+                break;
+              }
+            } catch (error) {
+              console.error(`Error fetching catalog ${item.itemId}:`, error);
+            }
+          }
+        }
+      }
+    };
+    
+    checkIfEventType();
+  }, [elementData]);
+  
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ 
-        width: "100%", 
-        py: { xs: 2, sm: 3, md: 4 },
-        px: { xs: 1, sm: 2 }
+        width: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: { xs: 4, sm: 6, md: 8 },
+        marginBottom: { xs: 4, sm: 6, md: 8 },
+        px: { xs: 1, sm: 2, md: 3 },
+        backgroundColor: theme.palette.background.default
       }}>
-        <Suspense fallback={<SliderSkeleton />}>
-          <SliderContent elementData={elementData} themes={themes} />
-        </Suspense>
+        <Box sx={{
+          width: { 
+            xs: "100%", 
+            sm: "95%", 
+            md: "100%", 
+            lg: "90%" 
+          },
+          overflow: "hidden",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <Suspense fallback={<SliderSkeleton slidesPerView={elementData?.swiperOptions?.slidesPerView || 3} isEventType={isEventType} swiperType={elementData?.swiperOptions?.swiperType || "portrait"} />}>
+            <SliderContent elementData={elementData} themes={themes} />
+          </Suspense>
+        </Box>
       </Box>
     </ThemeProvider>
   );

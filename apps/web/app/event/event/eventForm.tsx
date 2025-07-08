@@ -25,6 +25,9 @@ import {
   Radio,
   RadioGroup,
   Checkbox,
+  FormGroup,
+  FormLabel,
+  InputAdornment,
 } from "@mui/material"
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material"
 import { Event, RegistrationField, Option, Formula } from "../../../types/event"
@@ -93,111 +96,131 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     operationName: ""
   })
 
-  // Calculate dynamic field values whenever fieldValues or registrationFields change
+  // Check if this is a donation event
+  const isDonationEvent = formData.metadata?.name === "donation"
+
+  // Calculate dynamic fields when field values change
   useEffect(() => {
     if (formData.registrationFields && formData.registrationFields.length > 0) {
-      calculateDynamicFields();
+      calculateDynamicFields()
     }
-  }, [fieldValues, formData.registrationFields]);
+  }, [fieldValues, formData.registrationFields])
 
-  // Function to calculate values for dynamic fields based on formulas
   const calculateDynamicFields = () => {
-    if (!formData.registrationFields) return;
+    const calculatedValues: Record<string, number> = {}
     
-    // Create a copy of field values to update
-    const newFieldValues = { ...fieldValues };
-    
-    // First pass: calculate all fields with valueType "dynamic"
-    formData.registrationFields.forEach(field => {
+    formData.registrationFields?.forEach(field => {
       if (field.valueType === "dynamic" && field.formula && field.formula.length > 0) {
-        newFieldValues[field.name] = evaluateFormula(field.formula, newFieldValues);
+        calculatedValues[field.name] = evaluateFormula(field.formula, fieldValues)
       }
-    });
+    })
     
-    // Update field values
-    setFieldValues(newFieldValues);
-  };
+    // Update field values with calculated values
+    setFieldValues(prev => ({
+      ...prev,
+      ...calculatedValues
+    }))
+  }
 
-  // Function to evaluate a formula
   const evaluateFormula = (formula: Formula[], values: Record<string, any>): number => {
-    let result = 0;
-    let currentOperation = "add"; // Default operation
-    let tempValue = 0;
-    let isFirstValue = true;
+    let result = 0
+    let currentOperation = "add"
     
-    for (let i = 0; i < formula.length; i++) {
-      const item = formula[i];
-      if (item) {
-      if (item.type === "operation") {
-        currentOperation = item.operationName || "add";
-      } else {
-        // Get value based on type
-        let value = 0;
+    formula.forEach(item => {
+      let value = 0
+      
+      if (item.type === "number") {
+        // Handle direct number values
+        value = Number(item.fieldName) || 0
+      } else if (item.type === "customField" && item.fieldName) {
+        value = getFieldValue(item.fieldName, values)
+      } else if (item.type === "operation" && item.operationName) {
+        currentOperation = item.operationName
+        return
+      }
+      
+      switch (currentOperation) {
+        case "add":
+          result += value
+          break
+        case "subtract":
+          result -= value
+          break
+        case "multiply":
+          result *= value
+          break
+        case "divide":
+          if (value !== 0) result /= value
+          break
+        default:
+          result += value
+      }
+    })
+    
+    return result
+  }
+
+  const getFieldValue = (fieldName: string, values: Record<string, any>): number => {
+    const value = values[fieldName]
+    
+    if (typeof value === "number") {
+      return value
+    }
+    
+    if (typeof value === "string") {
+      const parsed = Number.parseFloat(value)
+      return Number.isNaN(parsed) ? 0 : parsed
+    }
+    
+    if (typeof value === "boolean") {
+      // For boolean fields, check if they have truth/false values defined
+      const field = formData.registrationFields?.find(f => f.name === fieldName)
+      if (field && field.type === "boolean") {
+        return value ? (field.truthValue || 1) : (field.falseValue || 0)
+      }
+      return value ? 1 : 0
+    }
+    
+    return 0
+  }
+
+  // Fixed input change handler
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    
+    if (name && name.includes(".")) {
+      const parts = name.split(".");
+      if (parts.length === 2) {
+        const [parent, child] = parts;
         
-        if (item.type === "customField") {
-          // Get value from the field
-          const fieldName = item.fieldName || "";
-          value = getFieldValue(fieldName, values);
-        } else if (item.type === "number") {
-          // Parse number from fieldName
-          value = parseFloat(item.fieldName || "0");
-        }
-        
-        // Apply operation
-        if (isFirstValue) {
-          result = value;
-          isFirstValue = false;
-        } else {
-          switch (currentOperation) {
-            case "add":
-              result += value;
-              break;
-            case "subtract":
-              result -= value;
-              break;
-            case "multiply":
-              result *= value;
-              break;
-            case "divide":
-              if (value !== 0) result /= value;
-              break;
-            case "modulus":
-              if (value !== 0) result %= value;
-              break;
+        if (parent && child) {
+          if (parent in formData) {
+            const parentObj = formData[parent as keyof Event];
+            
+            if (parentObj && typeof parentObj === 'object' && !Array.isArray(parentObj)) {
+              setFormData({
+                ...formData,
+                [parent]: {
+                  ...parentObj,
+                  [child]: value,
+                },
+              });
+            }
           }
         }
       }
+    } else if (name) {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
     }
-  }
-    
-    return result;
   };
 
-  // Function to get the value of a field
-  const getFieldValue = (fieldName: string, values: Record<string, any>): number => {
-    if (fieldName in values) {
-      return parseFloat(values[fieldName] || 0);
-    }
-    
-    // If field not found in values, check if it's a field in registrationFields
-    const field = formData.registrationFields?.find(f => f.name === fieldName);
-    
-    if (field) {
-      if (field.type === "boolean") {
-        // For boolean fields, return truthValue or falseValue
-        return values[fieldName] ? (field.truthValue || 0) : (field.falseValue || 0);
-      } else if (field.valueType === "dynamic" && field.formula && field.formula.length > 0) {
-        // For dynamic fields, evaluate the formula
-        return evaluateFormula(field.formula, values);
-      }
-    }
-    
-    return 0;
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>
-  ) => {
+  // Fixed select change handler
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     
     if (name && name.includes(".")) {
@@ -295,20 +318,27 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     })
   }
 
-const handleNewFieldChange = (
-  e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
-) => {
-  // Narrow event type by checking if 'target' exists and has 'name' property
-  if ("target" in e && e.target.name) {
+  // Fixed new field change handler
+  const handleNewFieldChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { name, value } = e.target;
     setNewField({
       ...newField,
       [name]: value,
     });
-  }
-};
+  };
 
-  const handleNewOptionChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  // Fixed new field select change handler
+  const handleNewFieldSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target;
+    setNewField({
+      ...newField,
+      [name]: value,
+    });
+  };
+
+  const handleNewOptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     if (name) {
       setNewOption({
@@ -318,219 +348,167 @@ const handleNewFieldChange = (
     }
   }
 
-  const handleNewFormulaChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const { name, value } = e.target
-    if (name) {
-      setNewFormula({
-        ...newFormula,
-        [name]: value,
+  // Fixed new formula change handler
+  const handleNewFormulaChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewFormula({
+      ...newFormula,
+      [name]: value,
+    });
+  };
+
+  // Fixed new formula select change handler
+  const handleNewFormulaSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target;
+    setNewFormula({
+      ...newFormula,
+      [name]: value,
+    });
+  };
+
+  const addRegistrationField = () => {
+    if (newField.name && newField.displayName && newField.type) {
+      const field: RegistrationField = {
+        name: newField.name,
+        displayName: newField.displayName,
+        type: newField.type || "text",
+        valueType: newField.valueType || "userInput",
+        options: newField.options || [],
+        formula: newField.formula || []
+      }
+
+      setFormData({
+        ...formData,
+        registrationFields: [...(formData.registrationFields || []), field]
+      })
+
+      // Reset new field form
+      setNewField({
+        name: "",
+        displayName: "",
+        type: "text",
+        valueType: "userInput",
+        options: [],
+        formula: []
       })
     }
   }
 
-  const addRegistrationField = () => {
-    if (!newField.name || !newField.displayName) {
-      return
-    }
-
-    const updatedFields = [...(formData.registrationFields || [])]
-    updatedFields.push({
-      name: newField.name,
-      displayName: newField.displayName,
-      type: newField.type || "text",
-      valueType: newField.valueType || "userInput",
-      options: [],
-      formula: [],
-    })
-
-    setFormData({
-      ...formData,
-      registrationFields: updatedFields,
-    })
-
-    setNewField({
-      name: "",
-      displayName: "",
-      type: "text",
-      valueType: "userInput",
-      options: [],
-      formula: []
-    })
-  }
-
   const addOptionToField = () => {
-    if (!newOption.fieldName || !newOption.labelName || selectedFieldIndex === null) {
-      return
+    if (selectedFieldIndex !== null && newOption.fieldName && newOption.labelName) {
+      const updatedFields = [...(formData.registrationFields || [])]
+      if (updatedFields[selectedFieldIndex]) {
+        const currentOptions = updatedFields[selectedFieldIndex].options || []
+        updatedFields[selectedFieldIndex].options = [
+          ...currentOptions,
+          {
+            fieldName: newOption.fieldName,
+            parentName: newOption.parentName || updatedFields[selectedFieldIndex].name,
+            labelName: newOption.labelName
+          }
+        ]
+        
+        setFormData({
+          ...formData,
+          registrationFields: updatedFields
+        })
+        
+        // Reset new option form
+        setNewOption({
+          fieldName: "",
+          parentName: "",
+          labelName: "",
+        })
+      }
     }
-
-    const updatedFields = [...(formData.registrationFields || [])]
-    if (!updatedFields[selectedFieldIndex]) {
-      return
-    }
-    
-    const field = updatedFields[selectedFieldIndex]
-
-    if (!field.options) {
-      field.options = []
-    }
-
-    field.options.push({
-      fieldName: newOption.fieldName,
-      parentName: field.name || "",
-      labelName: newOption.labelName,
-    })
-
-    setFormData({
-      ...formData,
-      registrationFields: updatedFields,
-    })
-
-    setNewOption({
-      fieldName: "",
-      parentName: "",
-      labelName: "",
-    })
   }
 
   const addFormulaToField = (fieldIndex: number) => {
-    if (!newFormula.type || (newFormula.type !== "operation" && !newFormula.fieldName) || 
-        (newFormula.type === "operation" && !newFormula.operationName)) {
-      return
+    if (newFormula.type) {
+      const updatedFields = [...(formData.registrationFields || [])]
+      if (updatedFields[fieldIndex]) {
+        const currentFormulas = updatedFields[fieldIndex].formula || []
+        updatedFields[fieldIndex].formula = [
+          ...currentFormulas,
+          {
+            type: newFormula.type,
+            fieldName: newFormula.fieldName,
+            operationName: newFormula.operationName
+          } as Formula
+        ]
+        
+        setFormData({
+          ...formData,
+          registrationFields: updatedFields
+        })
+        
+        // Reset new formula form
+        setNewFormula({
+          type: "customField",
+          fieldName: "",
+          operationName: ""
+        })
+      }
     }
-
-    const updatedFields = [...(formData.registrationFields || [])]
-    if (!updatedFields[fieldIndex]) {
-      return
-    }
-    
-    const field = updatedFields[fieldIndex]
-
-    if (!field.formula) {
-      field.formula = []
-    }
-
-    field.formula.push({
-      type: newFormula.type,
-      fieldName: newFormula.fieldName,
-      operationName: newFormula.operationName,
-    })
-
-    setFormData({
-      ...formData,
-      registrationFields: updatedFields,
-    })
-
-    setNewFormula({
-      type: "customField",
-      fieldName: "",
-      operationName: ""
-    })
   }
 
   const removeRegistrationField = (index: number) => {
     const updatedFields = [...(formData.registrationFields || [])]
     updatedFields.splice(index, 1)
-
     setFormData({
       ...formData,
-      registrationFields: updatedFields,
+      registrationFields: updatedFields
     })
-
-    if (selectedFieldIndex === index) {
-      setSelectedFieldIndex(null)
-    }
   }
 
   const removeOption = (fieldIndex: number, optionIndex: number) => {
     const updatedFields = [...(formData.registrationFields || [])]
-    if (!updatedFields[fieldIndex]) {
-      return;
-    }
-    
-    const field = updatedFields[fieldIndex]
-
-    if (field.options) {
-      field.options.splice(optionIndex, 1)
-
+    if (updatedFields[fieldIndex] && updatedFields[fieldIndex].options) {
+      updatedFields[fieldIndex].options!.splice(optionIndex, 1)
       setFormData({
         ...formData,
-        registrationFields: updatedFields,
+        registrationFields: updatedFields
       })
     }
   }
 
   const removeFormula = (fieldIndex: number, formulaIndex: number) => {
     const updatedFields = [...(formData.registrationFields || [])]
-    if (!updatedFields[fieldIndex]) {
-      return;
-    }
-    
-    const field = updatedFields[fieldIndex]
-
-    if (field.formula) {
-      field.formula.splice(formulaIndex, 1)
-
+    if (updatedFields[fieldIndex] && updatedFields[fieldIndex].formula) {
+      updatedFields[fieldIndex].formula!.splice(formulaIndex, 1)
       setFormData({
         ...formData,
-        registrationFields: updatedFields,
+        registrationFields: updatedFields
       })
     }
   }
 
   const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {}
-    let isValid = true
 
-    if (step === 0) {
-      // Validate basic information
-      if (!formData.name) {
-        newErrors.name = "Event name is required"
-        isValid = false
-      }
-      if (!formData.description) {
-        newErrors.description = "Event description is required"
-        isValid = false
-      }
-      if (!formData.startingDate) {
-        newErrors.startingDate = "Starting date is required"
-        isValid = false
-      }
-      if (!formData.endingDate) {
-        newErrors.endingDate = "Ending date is required"
-        isValid = false
-      }
-    } else if (step === 1) {
-      // Validate location
-      if (!formData.location) {
-        newErrors.location = "Location is required"
-        isValid = false
-      }
-      if (!formData.GeoAllow?.location) {
-        newErrors["GeoAllow.location"] = "Geo location is required"
-        isValid = false
-      }
-    } else if (step === 2) {
-      // Validate registration
-      if (formData.seatsAvailable === undefined || formData.seatsAvailable < 0) {
-        newErrors.seatsAvailable = "Seats available must be a positive number"
-        isValid = false
-      }
-      if (!formData.registrationStartDate) {
-        newErrors.registrationStartDate = "Registration start date is required"
-        isValid = false
-      }
-      if (!formData.registrationEndDate) {
-        newErrors.registrationEndDate = "Registration end date is required"
-        isValid = false
-      }
-      if (formData.paymentType !== "Free" && (!formData.priceConfig?.amount || formData.priceConfig.amount <= 0)) {
-        newErrors["priceConfig.amount"] = "Price amount is required for paid events"
-        isValid = false
-      }
+    switch (step) {
+      case 0: // Basic Information
+        if (!formData.name) newErrors.name = "Event name is required"
+        if (!formData.description) newErrors.description = "Event description is required"
+        if (!formData.startingDate) newErrors.startingDate = "Starting date is required"
+        if (!formData.endingDate) newErrors.endingDate = "Ending date is required"
+        break
+      case 1: // Location & Access
+        if (!formData.location) newErrors.location = "Location is required"
+        break
+      case 2: // Registration & Payment
+        if (!formData.registrationStartDate) newErrors.registrationStartDate = "Registration start date is required"
+        if (!formData.registrationEndDate) newErrors.registrationEndDate = "Registration end date is required"
+        if (formData.paymentType === "Fixed Price" && (!formData.priceConfig?.amount || formData.priceConfig.amount <= 0)) {
+          newErrors.amount = "Price amount is required for fixed price events"
+        }
+        break
     }
 
     setErrors(newErrors)
-    return isValid
+    return Object.keys(newErrors).length === 0
   }
 
   const handleNext = () => {
@@ -547,16 +525,137 @@ const handleNewFieldChange = (
     e.preventDefault()
 
     if (validateStep(activeStep)) {
-      // Submit the form
-      onEventCreated(formData as Event)
+      const eventData = { ...formData } as Event
+      onEventCreated(eventData)
     }
   }
 
+  // Render field for preview/testing
+  const renderFieldPreview = (field: RegistrationField): JSX.Element | null => {
+    const dynamicValue = field.valueType === "dynamic" ? fieldValues[field.name] : undefined;
+
+    switch (field.type) {
+      case "text":
+        return (
+          <TextField
+            fullWidth
+            label={field.displayName}
+            name={field.name}
+            value={fieldValues[field.name] || ""}
+            onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
+            margin="normal"
+            required={field.valueType === "userInput"}
+            disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+            variant="outlined"
+            size="small"
+          />
+        );
+      case "number":
+        return (
+          <TextField
+            fullWidth
+            label={field.displayName}
+            name={field.name}
+            type="number"
+            value={dynamicValue !== undefined ? dynamicValue : fieldValues[field.name] || ""}
+            onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
+            margin="normal"
+            required={field.valueType === "userInput"}
+            disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+            variant="outlined"
+            size="small"
+            slotProps={{
+              htmlInput: {
+                startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") || 
+                  field.name === "subtotal" || field.name === "discount_amount" ? 
+                  <InputAdornment position="start">$</InputAdornment> : undefined,
+                readOnly: field.valueType === "dynamic",
+              }
+            }}
+          />
+        );
+      case "boolean":
+        return (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!fieldValues[field.name]}
+                onChange={(e) => handleBooleanChange(field.name, e.target.checked)}
+                name={field.name}
+                disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+                color="primary"
+              />
+            }
+            label={
+              <Typography variant="body1">
+                {field.displayName}
+              </Typography>
+            }
+            sx={{ mb: 1 }}
+          />
+        );
+      case "checkBoxGroup":
+        return (
+          <FormControl margin="normal" fullWidth>
+            <FormLabel component="legend">{field.displayName}</FormLabel>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 1 }}>
+              <FormGroup>
+                {(field.options || []).map((option) => (
+                  <FormControlLabel
+                    key={option.fieldName}
+                    control={
+                      <Checkbox
+                        checked={fieldValues[field.name]?.includes(option.fieldName) || false}
+                        onChange={(e) => handleCheckboxChange(field.name, option.fieldName || "", e.target.checked)}
+                        name={option.fieldName}
+                        disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+                        color="primary"
+                      />
+                    }
+                    label={option.labelName}
+                  />
+                ))}
+              </FormGroup>
+            </Paper>
+          </FormControl>
+        );
+      case "radioButtonGroup":
+      case "option":
+        return (
+          <FormControl margin="normal" fullWidth>
+            <FormLabel component="legend">{field.displayName}</FormLabel>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 1 }}>
+              <RadioGroup
+                name={field.name}
+                value={fieldValues[field.name] || ""}
+                onChange={(e) => handleRadioChange(field.name, e.target.value)}
+              >
+                {(field.options || []).map((option) => (
+                  <FormControlLabel
+                    key={option.fieldName}
+                    value={option.fieldName}
+                    control={<Radio color="primary" />}
+                    label={
+                      <Typography variant="body1">
+                        {option.labelName}
+                      </Typography>
+                    }
+                    disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
+                  />
+                ))}
+              </RadioGroup>
+            </Paper>
+          </FormControl>
+        );
+      default:
+        return null;
+    }
+  };
+
   const renderBasicInformation = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid item xs={12} sm={6}>
         <TextField
-          required
           fullWidth
           label="Event Name"
           name="name"
@@ -564,80 +663,36 @@ const handleNewFieldChange = (
           onChange={handleInputChange}
           error={!!errors.name}
           helperText={errors.name}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
           required
-          fullWidth
-          multiline
-          rows={4}
-          label="Event Description"
-          name="description"
-          value={formData.description || ""}
-          onChange={handleInputChange}
-          error={!!errors.description}
-          helperText={errors.description}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth>
           <InputLabel>Event Type</InputLabel>
-          <Select name="type" value={formData.type || "public"} onChange={handleInputChange as any} label="Event Type">
+          <Select
+            name="type"
+            value={formData.type || "public"}
+            onChange={handleSelectChange}
+            label="Event Type"
+          >
             <MenuItem value="public">Public</MenuItem>
             <MenuItem value="members">Members Only</MenuItem>
           </Select>
         </FormControl>
       </Grid>
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Event Status</InputLabel>
-          <Select
-            name="eventStatus"
-            value={formData.eventStatus || "Draft"}
-            onChange={handleInputChange as any}
-            label="Event Status"
-          >
-            <MenuItem value="Draft">Draft</MenuItem>
-            <MenuItem value="Live">Live</MenuItem>
-            <MenuItem value="Staging">Staging</MenuItem>
-            <MenuItem value="Prestaging">Prestaging</MenuItem>
-            <MenuItem value="Closed">Closed</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          required
-          fullWidth
-          label="Starting Date"
-          name="startingDate"
-          type="datetime-local"
-          value={formData.startingDate || ""}
-          onChange={handleInputChange}
-          InputLabelProps={{ shrink: true }}
-          error={!!errors.startingDate}
-          helperText={errors.startingDate}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          required
-          fullWidth
-          label="Ending Date"
-          name="endingDate"
-          type="datetime-local"
-          value={formData.endingDate || ""}
-          onChange={handleInputChange}
-          InputLabelProps={{ shrink: true }}
-          error={!!errors.endingDate}
-          helperText={errors.endingDate}
-        />
-      </Grid>
       <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Metadata
-        </Typography>
+        <TextField
+          fullWidth
+          label="Event Description"
+          name="description"
+          value={formData.description || ""}
+          onChange={handleInputChange}
+          multiline
+          rows={4}
+          error={!!errors.description}
+          helperText={errors.description}
+          required
+        />
       </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
@@ -666,6 +721,70 @@ const handleNewFieldChange = (
           onChange={handleInputChange}
         />
       </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Starting Date"
+          name="startingDate"
+          type="datetime-local"
+          value={formData.startingDate || ""}
+          onChange={handleInputChange}
+          error={!!errors.startingDate}
+          helperText={errors.startingDate}
+          required
+          slotProps={{
+            htmlInput: {
+              shrink: true,
+            }
+          }}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Ending Date"
+          name="endingDate"
+          type="datetime-local"
+          value={formData.endingDate || ""}
+          onChange={handleInputChange}
+          error={!!errors.endingDate}
+          helperText={errors.endingDate}
+          required
+          slotProps={{
+            htmlInput: {
+              shrink: true,
+            }
+          }}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FormControl fullWidth>
+          <InputLabel>Event Status</InputLabel>
+          <Select
+            name="eventStatus"
+            value={formData.eventStatus || "Draft"}
+            onChange={handleSelectChange}
+            label="Event Status"
+          >
+            <MenuItem value="Draft">Draft</MenuItem>
+            <MenuItem value="Live">Live</MenuItem>
+            <MenuItem value="Staging">Staging</MenuItem>
+            <MenuItem value="Prestaging">Prestaging</MenuItem>
+            <MenuItem value="Closed">Closed</MenuItem>
+          </Select>
+        </FormControl>
+      </Grid>
+      
+      {isDonationEvent && (
+        <>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Donation Settings
+            </Typography>
+          </Grid>
+        </>
+      )}
     </Grid>
   )
 
@@ -673,51 +792,39 @@ const handleNewFieldChange = (
     <Grid container spacing={3}>
       <Grid item xs={12}>
         <TextField
-          required
           fullWidth
-          label="Event Location"
+          label="Location"
           name="location"
           value={formData.location || ""}
           onChange={handleInputChange}
           error={!!errors.location}
           helperText={errors.location}
+          required
         />
       </Grid>
       <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Geo Location
-        </Typography>
-      </Grid>
-      <Grid item xs={12}>
         <TextField
-          required
           fullWidth
           label="Geo Location Name"
           name="GeoAllow.location"
           value={formData.GeoAllow?.location || ""}
           onChange={handleInputChange}
-          error={!!errors["GeoAllow.location"]}
-          helperText={errors["GeoAllow.location"]}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
-          required
           fullWidth
           label="Longitude"
           type="number"
-          inputProps={{ step: "0.000001", min: -180, max: 180 }}
           value={formData.GeoAllow?.coordinates?.[0] || 0}
           onChange={(e) => handleCoordinateChange(0, e.target.value)}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
-          required
           fullWidth
           label="Latitude"
           type="number"
-          inputProps={{ step: "0.000001", min: -90, max: 90 }}
           value={formData.GeoAllow?.coordinates?.[1] || 0}
           onChange={(e) => handleCoordinateChange(1, e.target.value)}
         />
@@ -729,14 +836,26 @@ const handleNewFieldChange = (
       </Grid>
       <Grid item xs={12} sm={4}>
         <FormControlLabel
-          control={<Switch checked={formData.allowGuest || false} onChange={handleSwitchChange} name="allowGuest" />}
-          label="Allow Guest Access"
+          control={
+            <Switch
+              checked={formData.allowGuest || false}
+              onChange={handleSwitchChange}
+              name="allowGuest"
+            />
+          }
+          label="Allow Guests"
         />
       </Grid>
       <Grid item xs={12} sm={4}>
         <FormControlLabel
-          control={<Switch checked={formData.allowLogin || true} onChange={handleSwitchChange} name="allowLogin" />}
-          label="Allow Login Access"
+          control={
+            <Switch
+              checked={formData.allowLogin || false}
+              onChange={handleSwitchChange}
+              name="allowLogin"
+            />
+          }
+          label="Allow Login"
         />
       </Grid>
       <Grid item xs={12} sm={4}>
@@ -758,16 +877,12 @@ const handleNewFieldChange = (
     <Grid container spacing={3}>
       <Grid item xs={12} sm={6}>
         <TextField
-          required
           fullWidth
           label="Seats Available"
           name="seatsAvailable"
           type="number"
-          inputProps={{ min: 0 }}
           value={formData.seatsAvailable || 0}
           onChange={handleInputChange}
-          error={!!errors.seatsAvailable}
-          helperText={errors.seatsAvailable}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
@@ -776,51 +891,53 @@ const handleNewFieldChange = (
           label="Total Registered Seats"
           name="totalregisteredSeats"
           type="number"
-          inputProps={{ min: 0 }}
           value={formData.totalregisteredSeats || 0}
           onChange={handleInputChange}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
-          required
           fullWidth
           label="Registration Start Date"
           name="registrationStartDate"
           type="datetime-local"
           value={formData.registrationStartDate || ""}
           onChange={handleInputChange}
-          InputLabelProps={{ shrink: true }}
           error={!!errors.registrationStartDate}
           helperText={errors.registrationStartDate}
+          required
+          slotProps={{
+            htmlInput: {
+              shrink: true,
+            }
+          }}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
-          required
           fullWidth
           label="Registration End Date"
           name="registrationEndDate"
           type="datetime-local"
           value={formData.registrationEndDate || ""}
           onChange={handleInputChange}
-          InputLabelProps={{ shrink: true }}
           error={!!errors.registrationEndDate}
           helperText={errors.registrationEndDate}
+          required
+          slotProps={{
+            htmlInput: {
+              shrink: true,
+            }
+          }}
         />
       </Grid>
       <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Payment Settings
-        </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
         <FormControl fullWidth>
           <InputLabel>Payment Type</InputLabel>
           <Select
             name="paymentType"
             value={formData.paymentType || "Free"}
-            onChange={handleInputChange as any}
+            onChange={handleSelectChange}
             label="Payment Type"
           >
             <MenuItem value="Free">Free</MenuItem>
@@ -829,121 +946,116 @@ const handleNewFieldChange = (
           </Select>
         </FormControl>
       </Grid>
-      {formData.paymentType !== "Free" && (
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth>
-            <InputLabel>Price Configuration</InputLabel>
-            <Select
-              name="priceConfig.type"
-              value={formData.priceConfig?.type || "fixed"}
-              onChange={handleInputChange as any}
-              label="Price Configuration"
-            >
-              <MenuItem value="fixed">Fixed</MenuItem>
-              <MenuItem value="dynamic">Dynamic</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+      {formData.paymentType === "Fixed Price" && (
+        <>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Price Type</InputLabel>
+              <Select
+                name="priceConfig.type"
+                value={formData.priceConfig?.type || "fixed"}
+                onChange={handleSelectChange}
+                label="Price Type"
+              >
+                <MenuItem value="fixed">Fixed</MenuItem>
+                <MenuItem value="dynamic">Dynamic</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Amount"
+              name="priceConfig.amount"
+              type="number"
+              value={formData.priceConfig?.amount || 0}
+              onChange={handleInputChange}
+              error={!!errors.amount}
+              helperText={errors.amount}
+              slotProps={{
+                htmlInput: {
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                }
+              }}
+            />
+          </Grid>
+        </>
       )}
-      {formData.paymentType !== "Free" && formData.priceConfig?.type === "fixed" && (
-        <Grid item xs={12} sm={6}>
-          <TextField
-            required
-            fullWidth
-            label="Price Amount"
-            name="priceConfig.amount"
-            type="number"
-            inputProps={{ min: 0, step: "0.01" }}
-            value={formData.priceConfig?.amount || 0}
-            onChange={handleInputChange}
-            error={!!errors["priceConfig.amount"]}
-            helperText={errors["priceConfig.amount"]}
-          />
-        </Grid>
-      )}
-      {formData.paymentType !== "Free" && formData.priceConfig?.type === "dynamic" && (
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Dependent Field"
-            name="priceConfig.dependantField"
-            value={formData.priceConfig?.dependantField || ""}
-            onChange={handleInputChange}
-          />
-        </Grid>
-      )}
+
+      {/* Registration Fields Section */}
       <Grid item xs={12}>
         <Divider sx={{ my: 2 }} />
         <Typography variant="h6" gutterBottom>
           Registration Fields
         </Typography>
       </Grid>
+
+      {/* Add New Field Form */}
       <Grid item xs={12}>
-        <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+        <Paper sx={{ p: 3, mb: 2 }}>
           <Typography variant="subtitle1" gutterBottom>
             Add New Registration Field
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Field Name"
                 name="name"
                 value={newField.name || ""}
-                onChange={(e)=>handleNewFieldChange}
-                placeholder="e.g., fullName"
+                onChange={handleNewFieldChange}
+                size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Display Name"
                 name="displayName"
                 value={newField.displayName || ""}
-                onChange={(e)=>handleNewFieldChange}
-                placeholder="e.g., Full Name"
+                onChange={handleNewFieldChange}
+                size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
                 <InputLabel>Field Type</InputLabel>
-                <Select 
-                  name="type" 
+                <Select
+                  name="type"
                   value={newField.type || "text"} 
-                  onChange={handleNewFieldChange}
+                  onChange={handleNewFieldSelectChange}
                   label="Field Type"
                 >
                   <MenuItem value="text">Text</MenuItem>
-                  <MenuItem value="boolean">Boolean</MenuItem>
                   <MenuItem value="number">Number</MenuItem>
-                  <MenuItem value="option">Option</MenuItem>
+                  <MenuItem value="boolean">Boolean</MenuItem>
+                  <MenuItem value="option">Option (Radio)</MenuItem>
                   <MenuItem value="checkBoxGroup">Checkbox Group</MenuItem>
                   <MenuItem value="radioButtonGroup">Radio Button Group</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
                 <InputLabel>Value Type</InputLabel>
                 <Select
                   name="valueType"
                   value={newField.valueType || "userInput"}
-                  onChange={handleNewFieldChange}
+                  onChange={handleNewFieldSelectChange}
                   label="Value Type"
                 >
-                  <MenuItem value="dynamic">Dynamic</MenuItem>
-                  <MenuItem value="fixed">Fixed</MenuItem>
                   <MenuItem value="userInput">User Input</MenuItem>
+                  <MenuItem value="fixed">Fixed</MenuItem>
+                  <MenuItem value="dynamic">Dynamic</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12}>
               <Button
                 variant="contained"
-                color="primary"
                 onClick={addRegistrationField}
                 startIcon={<AddIcon />}
-                fullWidth
+                disabled={!newField.name || !newField.displayName}
               >
                 Add Field
               </Button>
@@ -952,121 +1064,59 @@ const handleNewFieldChange = (
         </Paper>
       </Grid>
 
-      {/* List of Registration Fields */}
+      {/* Display Existing Fields */}
       {formData.registrationFields && formData.registrationFields.length > 0 && (
         <Grid item xs={12}>
           <Typography variant="subtitle1" gutterBottom>
-            Registration Fields
+            Current Registration Fields
           </Typography>
           {formData.registrationFields.map((field, index) => (
-            <Paper key={index} variant="outlined" sx={{ p: 2, mb: 2 }}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={10}>
-                  <Typography variant="subtitle2">
-                    {field.displayName} ({field.name})
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Type: {field.type}, Value Type: {field.valueType}
-                  </Typography>
-                </Grid>
-                <Grid item xs={2} sx={{ textAlign: "right" }}>
-                  <IconButton color="error" onClick={() => removeRegistrationField(index)} size="small">
-                    <DeleteIcon />
-                  </IconButton>
-                </Grid>
+            <Paper key={index} sx={{ p: 2, mb: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography variant="subtitle2">
+                  {field.displayName} ({field.name}) - 
+                  Type: {field.type}, Value Type: {field.valueType}
+                </Typography>
+                <IconButton
+                  onClick={() => removeRegistrationField(index)}
+                  color="error"
+                  size="small"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
 
-                {/* Field value display for dynamic fields */}
-                {field.valueType === "dynamic" && (
+              {/* Field Preview */}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Field Preview:
+                </Typography>
+                {renderFieldPreview(field)}
+              </Box>
+
+              {/* Field Configuration */}
+              <Grid container spacing={2}>
+                {/* Fixed Value Input */}
+                {field.valueType === "fixed" && (
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
-                      label="Calculated Value"
-                      value={fieldValues[field.name] || 0}
-                      disabled
+                      label="Fixed Value"
+                      type={field.type === "number" ? "number" : "text"}
+                      value={field.fixedValue || (field.type === "number" ? 0 : "")}
+                      onChange={(e) => {
+                        const updatedFields = [...(formData.registrationFields || [])];
+                        if (updatedFields[index]) {
+                          updatedFields[index].fixedValue = field.type === "number" ? Number(e.target.value) : e.target.value;
+                          setFormData({
+                            ...formData,
+                            registrationFields: updatedFields
+                          });
+                        }
+                      }}
                       size="small"
                       sx={{ mb: 2 }}
                     />
-                  </Grid>
-                )}
-
-                {/* Field input based on type */}
-                {field.valueType === "userInput" && (
-                  <Grid item xs={12}>
-                    {field.type === "text" && (
-                      <TextField
-                        fullWidth
-                        label={field.displayName}
-                        value={fieldValues[field.name] || ""}
-                        onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
-                        size="small"
-                        sx={{ mb: 2 }}
-                      />
-                    )}
-                    
-                    {field.type === "number" && (
-                      <TextField
-                        fullWidth
-                        label={field.displayName}
-                        type="number"
-                        value={fieldValues[field.name] || 0}
-                        onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
-                        size="small"
-                        sx={{ mb: 2 }}
-                      />
-                    )}
-                    
-                    {field.type === "boolean" && (
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={!!fieldValues[field.name]}
-                            onChange={(e) => handleBooleanChange(field.name, e.target.checked)}
-                          />
-                        }
-                        label={field.displayName}
-                      />
-                    )}
-                    
-                    {field.type === "radioButtonGroup" && field.options && field.options.length > 0 && (
-                      <FormControl component="fieldset" sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          {field.displayName}
-                        </Typography>
-                        <RadioGroup
-                          value={fieldValues[field.name] || ""}
-                          onChange={(e) => handleRadioChange(field.name, e.target.value)}
-                        >
-                          {field.options.map((option, optIndex) => (
-                            <FormControlLabel
-                              key={optIndex}
-                              value={option.fieldName}
-                              control={<Radio />}
-                              label={option.labelName}
-                            />
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                    )}
-                    
-                    {field.type === "checkBoxGroup" && field.options && field.options.length > 0 && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          {field.displayName}
-                        </Typography>
-                        {field.options.map((option: any, optIndex) => (
-                          <FormControlLabel
-                            key={optIndex}
-                            control={
-                              <Checkbox
-                                checked={fieldValues[field.name]?.includes(option.fieldName) || false}
-                                onChange={(e) => handleCheckboxChange(field.name, option.fieldName, e.target.checked)}
-                              />
-                            }
-                            label={option.labelName}
-                          />
-                        ))}
-                      </Box>
-                    )}
                   </Grid>
                 )}
 
@@ -1085,7 +1135,7 @@ const handleNewFieldChange = (
                             updatedFields[index].truthValue = Number(e.target.value);
                             setFormData({
                               ...formData,
-                              registrationFields: updatedFields,
+                              registrationFields: updatedFields
                             });
                           }
                         }}
@@ -1101,7 +1151,7 @@ const handleNewFieldChange = (
                             updatedFields[index].falseValue = Number(e.target.value);
                             setFormData({
                               ...formData,
-                              registrationFields: updatedFields,
+                              registrationFields: updatedFields
                             });
                           }
                         }}
@@ -1110,144 +1160,148 @@ const handleNewFieldChange = (
                   </Grid>
                 )}
 
-                {/* Options for checkbox or radio button groups */}
+                {/* Options for select/radio/checkbox fields */}
                 {(field.type === "checkBoxGroup" || field.type === "radioButtonGroup" || field.type === "option") && (
                   <Grid item xs={12}>
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" gutterBottom>
-                        Options:
-                      </Typography>
-                      {field.options && field.options.length > 0 ? (
-                        field.options.map((option, optionIndex) => (
-                          <Box key={optionIndex} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                            <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                              {option.labelName} ({option.fieldName})
-                            </Typography>
-                            <IconButton color="error" onClick={() => removeOption(index, optionIndex)} size="small">
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        ))
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No options added yet.
-                        </Typography>
-                      )}
-
-                      {/* Add option form */}
-                      <Box sx={{ mt: 2, display: "flex", alignItems: "flex-end", gap: 1 }}>
+                    <Typography variant="body2" gutterBottom>
+                      Options:
+                    </Typography>
+                    {field.options && field.options.map((option, optIndex) => (
+                      <Box key={optIndex} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                         <TextField
-                          label="Option Field Name"
-                          name="fieldName"
-                          value={newOption.fieldName || ""}
-                          onChange={handleNewOptionChange}
                           size="small"
-                          sx={{ flexGrow: 1 }}
-                        />
-                        <TextField
-                          label="Option Label"
-                          name="labelName"
-                          value={newOption.labelName || ""}
-                          onChange={handleNewOptionChange}
-                          size="small"
-                          sx={{ flexGrow: 1 }}
-                        />
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            setSelectedFieldIndex(index)
-                            addOptionToField()
+                          label="Field Name"
+                          value={option.fieldName || ""}
+                          onChange={(e) => {
+                            const updatedFields = [...(formData.registrationFields || [])];
+                            if (updatedFields[index] && updatedFields[index].options && updatedFields[index].options![optIndex]) {
+                              updatedFields[index].options![optIndex].fieldName = e.target.value;
+                              setFormData({
+                                ...formData,
+                                registrationFields: updatedFields
+                              });
+                            }
                           }}
+                        />
+                        <TextField
+                          size="small"
+                          label="Label"
+                          value={option.labelName || ""}
+                          onChange={(e) => {
+                            const updatedFields = [...(formData.registrationFields || [])];
+                            if (updatedFields[index] && updatedFields[index].options && updatedFields[index].options![optIndex]) {
+                              updatedFields[index].options![optIndex].labelName = e.target.value;
+                              setFormData({
+                                ...formData,
+                                registrationFields: updatedFields
+                              });
+                            }
+                          }}
+                        />
+                        <IconButton
+                          onClick={() => removeOption(index, optIndex)}
+                          color="error"
+                          size="small"
                         >
-                          Add
-                        </Button>
+                          <DeleteIcon />
+                        </IconButton>
                       </Box>
+                    ))}
+                    
+                    {/* Add new option */}
+                    <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                      <TextField
+                        size="small"
+                        label="New Option Field Name"
+                        name="fieldName"
+                        value={newOption.fieldName || ""}
+                        onChange={handleNewOptionChange}
+                      />
+                      <TextField
+                        size="small"
+                        label="New Option Label"
+                        name="labelName"
+                        value={newOption.labelName || ""}
+                        onChange={handleNewOptionChange}
+                      />
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                          setSelectedFieldIndex(index);
+                          addOptionToField();
+                        }}
+                        disabled={!newOption.fieldName || !newOption.labelName}
+                      >
+                        Add Option
+                      </Button>
                     </Box>
                   </Grid>
                 )}
 
-                {/* Formula section */}
-                <Grid item xs={12}>
-                  <Box sx={{ mt: 2 }}>
+                {/* Formula for dynamic fields */}
+                {field.valueType === "dynamic" && (
+                  <Grid item xs={12}>
                     <Typography variant="body2" gutterBottom>
                       Formula:
                     </Typography>
-                    {field.formula && field.formula.length > 0 ? (
-                      <Box sx={{ mb: 2 }}>
-                        {field.formula.map((formulaItem, formulaIndex) => (
-                          <Box key={formulaIndex} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                            <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                              {formulaItem.type === "customField" && `Field: ${formulaItem.fieldName}`}
-                              {formulaItem.type === "operation" && `Operation: ${formulaItem.operationName}`}
-                              {formulaItem.type === "number" && `Number: ${formulaItem.fieldName}`}
-                              {formulaItem.type === "symbol" && `Symbol: ${formulaItem.fieldName}`}
-                            </Typography>
-                            <IconButton color="error" onClick={() => removeFormula(index, formulaIndex)} size="small">
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        ))}
+                    {field.formula && field.formula.map((formula, formulaIndex) => (
+                      <Box key={formulaIndex} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                        <TextField
+                          size="small"
+                          label="Type"
+                          value={formula.type || ""}
+                          disabled
+                        />
+                        <TextField
+                          size="small"
+                          label="Field/Operation"
+                          value={formula.fieldName || formula.operationName || ""}
+                          disabled
+                        />
+                        <IconButton
+                          onClick={() => removeFormula(index, formulaIndex)}
+                          color="error"
+                          size="small"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
                       </Box>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        No formula items added yet.
-                      </Typography>
-                    )}
-
-                    {/* Add formula form */}
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "flex-end" }}>
+                    ))}
+                    
+                    {/* Add new formula */}
+                    <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
                       <FormControl size="small" sx={{ minWidth: 120 }}>
-                        <InputLabel>Formula Type</InputLabel>
+                        <InputLabel>Type</InputLabel>
                         <Select
                           name="type"
                           value={newFormula.type || "customField"}
-                          onChange={(e)=>handleNewFormulaChange}
-                          label="Formula Type"
+                          onChange={handleNewFormulaSelectChange}
+                          label="Type"
                         >
                           <MenuItem value="customField">Custom Field</MenuItem>
                           <MenuItem value="operation">Operation</MenuItem>
                           <MenuItem value="number">Number</MenuItem>
-                          <MenuItem value="symbol">Symbol</MenuItem>
                         </Select>
                       </FormControl>
-
-                      {newFormula.type === "operation" ? (
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                          <InputLabel>Operation</InputLabel>
-                          <Select
-                            name="operationName"
-                            value={newFormula.operationName || ""}
-                            onChange={(e)=>handleNewFormulaChange}
-                            label="Operation"
-                          >
-                            <MenuItem value="add">Add</MenuItem>
-                            <MenuItem value="subtract">Subtract</MenuItem>
-                            <MenuItem value="multiply">Multiply</MenuItem>
-                            <MenuItem value="divide">Divide</MenuItem>
-                            <MenuItem value="modulus">Modulus</MenuItem>
-                          </Select>
-                        </FormControl>
-                      ) : (
-                        <TextField
-                          label={newFormula.type === "number" ? "Value" : "Field Name"}
-                          name="fieldName"
-                          value={newFormula.fieldName || ""}
-                          onChange={handleNewFormulaChange}
-                          size="small"
-                        />
-                      )}
-
+                      <TextField
+                        size="small"
+                        label={newFormula.type === "operation" ? "Operation" : "Field Name"}
+                        name={newFormula.type === "operation" ? "operationName" : "fieldName"}
+                        value={newFormula.type === "operation" ? newFormula.operationName || "" : newFormula.fieldName || ""}
+                        onChange={handleNewFormulaChange}
+                      />
                       <Button
                         variant="outlined"
                         size="small"
                         onClick={() => addFormulaToField(index)}
+                        disabled={!newFormula.type || (!newFormula.fieldName && !newFormula.operationName)}
                       >
-                        Add to Formula
+                        Add Formula
                       </Button>
                     </Box>
-                  </Box>
-                </Grid>
+                  </Grid>
+                )}
               </Grid>
             </Paper>
           ))}
@@ -1271,37 +1325,38 @@ const handleNewFieldChange = (
 
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Create Event
-        </Typography>
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        {steps.map((label) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
 
+      <Paper sx={{ p: 3, mb: 3 }}>
         {getStepContent(activeStep)}
-
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-          <Button disabled={activeStep === 0} onClick={handleBack}>
-            Back
-          </Button>
-          <Box>
-            {activeStep === steps.length - 1 ? (
-              <Button variant="contained" color="primary" type="submit">
-                Create Event
-              </Button>
-            ) : (
-              <Button variant="contained" color="primary" onClick={handleNext}>
-                Next
-              </Button>
-            )}
-          </Box>
-        </Box>
       </Paper>
+
+      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+        <Button
+          disabled={activeStep === 0}
+          onClick={handleBack}
+          variant="outlined"
+        >
+          Back
+        </Button>
+        <Box>
+          {activeStep === steps.length - 1 ? (
+            <Button type="submit" variant="contained" color="primary">
+              Create Event
+            </Button>
+          ) : (
+            <Button onClick={handleNext} variant="contained">
+              Next
+            </Button>
+          )}
+        </Box>
+      </Box>
     </Box>
   )
 }

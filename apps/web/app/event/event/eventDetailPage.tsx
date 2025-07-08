@@ -180,79 +180,106 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
   console.log("event",event);
 
   // DonorList component for donation events
-  const DonorList = () => (
-    <Box>
-      <Typography variant="h5" gutterBottom>
-        Our Generous Donors
-      </Typography>
-      {donors.length > 0 ? (
-        <>
-          <Typography variant="body1" paragraph color="text.secondary">
-            Thank you to all our supporters who have contributed to this cause.
-          </Typography>
-          <Grid container spacing={2}>
-            {donors.map((donor) => (
-              <Grid item xs={12} sm={6} md={4} key={donor.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-                        <Favorite />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6">
-                          {donor.isAnonymous ? 'Anonymous Donor' : donor.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {new Date(donor.donatedAt).toLocaleDateString()}
+  const DonorList = () => {
+    // Helper function to get donor name with masking logic
+    const getDonorName = (donor: Donor) => {
+      const showNameField = donor.eventData.find(field => field.fieldName === 'showName');
+      const nameField = donor.eventData.find(field => field.fieldName === 'name' || field.fieldName === 'fullName' || field.fieldName === 'firstName');
+
+      // If showName field exists and is false, mask the name
+      if (showNameField && showNameField.fieldValue === 'false') {
+        return 'Anonymous Donor';
+      }
+
+      // Otherwise, show the name if available
+      if (nameField) {
+        return nameField.fieldValue;
+      }
+
+      // Fallback to email if no name field
+      return donor.email || 'Anonymous Donor';
+    };
+
+    // Helper function to get donation amount
+    const getDonationAmount = (donor: Donor) => {
+      return parseFloat(donor.price) || 0;
+    };
+
+    return (
+      <Box>
+        <Typography variant="h5" gutterBottom>
+          Our Generous Donors
+        </Typography>
+        {donors.length > 0 ? (
+          <>
+            <Typography variant="body1" paragraph color="text.secondary">
+              Thank you to all our supporters who have contributed to this cause.
+            </Typography>
+            <Grid container spacing={2}>
+              {donors.map((donor) => (
+                <Grid item xs={12} sm={6} md={4} key={donor._id}>
+                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                          <Favorite />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6">
+                            {getDonorName(donor)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {new Date(donor.registrationDate).toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <AttachMoney sx={{ color: 'success.main', mr: 1 }} />
+                        <Typography variant="h6" color="success.main">
+                          ${getDonationAmount(donor).toFixed(2)} {donor.currency?.toUpperCase() || 'USD'}
                         </Typography>
                       </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <AttachMoney sx={{ color: 'success.main', mr: 1 }} />
-                      <Typography variant="h6" color="success.main">
-                        ${donor.amount.toFixed(2)}
-                      </Typography>
-                    </Box>
-                    {donor.message && (
-                      <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
-                        "{donor.message}"
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Paper sx={{ p: 3, bgcolor: 'success.light', color: 'success.contrastText' }}>
-              <Typography variant="h5" gutterBottom>
-                Total Raised
-              </Typography>
-              <Typography variant="h3" fontWeight="bold">
-                ${donors.reduce((total, donor) => total + donor.amount, 0).toFixed(2)}
-              </Typography>
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                from {donors.length} generous donor{donors.length !== 1 ? 's' : ''}
-              </Typography>
-            </Paper>
+                      {/* Show message if available in eventData */}
+                      {donor.eventData.find(field => field.fieldName === 'message')?.fieldValue && (
+                        <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
+                          "{donor.eventData.find(field => field.fieldName === 'message')?.fieldValue}"
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Paper sx={{ p: 3, bgcolor: 'success.light', color: 'success.contrastText' }}>
+                <Typography variant="h5" gutterBottom>
+                  Total Raised
+                </Typography>
+                <Typography variant="h3" fontWeight="bold">
+                  ${donors.reduce((total, donor) => total + getDonationAmount(donor), 0).toFixed(2)}
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 1 }}>
+                  from {donors.length} generous donor{donors.length !== 1 ? 's' : ''}
+                </Typography>
+              </Paper>
+            </Box>
+          </>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Avatar sx={{ bgcolor: 'grey.300', mx: 'auto', mb: 2, width: 64, height: 64 }}>
+              <Favorite />
+            </Avatar>
+            <Typography variant="h6" gutterBottom>
+              Be the First Donor
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Your contribution will make a difference. Be the first to support this cause!
+            </Typography>
           </Box>
-        </>
-      ) : (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Avatar sx={{ bgcolor: 'grey.300', mx: 'auto', mb: 2, width: 64, height: 64 }}>
-            <Favorite />
-          </Avatar>
-          <Typography variant="h6" gutterBottom>
-            Be the First Donor
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Your contribution will make a difference. Be the first to support this cause!
-          </Typography>
-        </Box>
-      )}
-    </Box>
-  )
+        )}
+      </Box>
+    );
+  };
 
   return (
     <ThemeProvider theme={theme}>

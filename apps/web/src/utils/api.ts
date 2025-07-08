@@ -22,8 +22,8 @@ export const fetchApi = async (endpoint: string, options: RequestInit = { method
 }
 
 export const postApi = async <T>(
-  endpoint: string, 
-  data: any, 
+  endpoint: string,
+  data: any,
   customHeaders?: HeadersInit
 ): Promise<T> => {
   const config = await getConfig()
@@ -40,40 +40,38 @@ export const postApi = async <T>(
   try {
     const response = await config.fetchApi(`${config.basePath}${endpoint}`, options)
 
+    // Try to parse the response body for better error messages
+    let responseData
+    try {
+      responseData = await response.json()
+    } catch (parseError) {
+      responseData = null
+    }
+
     if (!response.ok) {
-      let errorMessage = `Error: ${response.status} ${response.statusText}`
-
-      // Try to get more detailed error information from the response body
-      try {
-        const errorBody = await response.text()
-        if (errorBody) {
-          try {
-            const errorJson = JSON.parse(errorBody)
-            if (errorJson.message) {
-              errorMessage = errorJson.message
-            } else if (errorJson.error) {
-              errorMessage = errorJson.error
-            } else {
-              errorMessage = `${errorMessage} - ${errorBody}`
-            }
-          } catch {
-            errorMessage = `${errorMessage} - ${errorBody}`
-          }
-        }
-      } catch {
-        // If we can't read the response body, use the original error
+      // If we have response data with error details, use that
+      if (responseData && responseData.error) {
+        const errorMessage = typeof responseData.error === 'string'
+          ? responseData.error
+          : JSON.stringify(responseData.error)
+        throw new Error(errorMessage)
+      } else if (responseData && responseData.message) {
+        const errorMessage = typeof responseData.message === 'string'
+          ? responseData.message
+          : JSON.stringify(responseData.message)
+        throw new Error(errorMessage)
+      } else if (responseData) {
+        // If we have response data but no specific error field, stringify the whole response
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(responseData)}`)
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-
-      throw new Error(errorMessage)
     }
 
-    return await response.json()
+    return responseData
   } catch (err: any) {
-    // If it's already an Error object, preserve the message
-    if (err instanceof Error) {
-      throw err
-    }
-    throw new Error(err)
+    console.error(`API Error for ${endpoint}:`, err)
+    throw new Error(err.message || 'API request failed')
   }
 }
 

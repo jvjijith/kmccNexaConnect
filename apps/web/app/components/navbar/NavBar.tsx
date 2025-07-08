@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -18,8 +18,8 @@ import {
   ListItemText,
   Collapse,
   Badge,
-  Avatar,
-  Tooltip
+  Tooltip,
+  ListItemIcon
 } from '@mui/material';
 import { 
   KeyboardArrowDown as KeyboardArrowDownIcon,
@@ -33,6 +33,7 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
+import { logoutUser } from '../../../src/lib/auth';
 
 interface MenuItemType {
   menuName: string;
@@ -63,8 +64,22 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [cartItemCount, setCartItemCount] = useState<number>(0);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   
-  const isMobile = useMediaQuery('(max-width:1000px)');
+  const isMobile = useMediaQuery('(max-width:900px)');
+  const isTablet = useMediaQuery('(max-width:1200px)');
   const isHomePage = activePath === '/home';
+
+  // Check login status function
+  const checkLoginStatus = useCallback(() => {
+    const userToken = localStorage.getItem('accessToken');
+    const isUserLoggedIn = !!userToken;
+    setIsLoggedIn(isUserLoggedIn);
+    
+    // Example cart count - replace with your actual cart logic
+    const cartItems = localStorage.getItem('cartItems');
+    setCartItemCount(cartItems ? JSON.parse(cartItems).length : 0);
+    
+    console.log("Login status checked:", isUserLoggedIn);
+  }, []);
 
   // Update active path when component mounts or path changes
   useEffect(() => {
@@ -85,26 +100,25 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
       }
     };
 
-    // Check if user is logged in (example - replace with your auth logic)
-    const checkLoginStatus = () => {
-      // This is a placeholder - replace with your actual auth check
-      const userToken = localStorage.getItem('accessToken');
-      setIsLoggedIn(!!userToken);
-      
-      // Example cart count - replace with your actual cart logic
-      const cartItems = localStorage.getItem('cartItems');
-      setCartItemCount(cartItems ? JSON.parse(cartItems).length : 0);
+    // Listen for auth state changes
+    const handleAuthStateChange = () => {
+      console.log("Auth state change detected");
+      checkLoginStatus();
     };
     
     checkLoginStatus();
     window.addEventListener('popstate', handleRouteChange);
     window.addEventListener('scroll', handleScroll);
+    window.addEventListener('authStateChanged', handleAuthStateChange);
+    window.addEventListener('storage', handleAuthStateChange);
     
     return () => {
       window.removeEventListener('popstate', handleRouteChange);
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('authStateChanged', handleAuthStateChange);
+      window.removeEventListener('storage', handleAuthStateChange);
     };
-  }, [scrolled]);
+  }, [scrolled, checkLoginStatus]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>, index: number) => {
     setAnchorElNav(event.currentTarget);
@@ -136,15 +150,15 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     setAnchorElUser(null);
   };
 
-  const handleLogout = () => {
-    // Implement your logout logic here
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('nextauth.message');
-    localStorage.removeItem('refreshToken');
-    setIsLoggedIn(false);
-    // handleCloseUserMenu();
-    // toggleMobileMenu(); // Close mobile menu if open
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      handleCloseUserMenu();
+      setMobileOpen(false);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   // Function to check if a menu item is active
@@ -159,141 +173,174 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
 
   const theme = createDynamicTheme({themes});
 
+  // Get navbar colors from theme
+  const navbarBgColor = themes?.navbar?.backgroundColor || (scrolled ? "rgba(0, 0, 0, 0.85)" : "rgba(255, 255, 255, 0)");
+  const navbarTextColor = themes?.navbar?.textColor || (isHomePage ? 'white' : scrolled ? 'white' : 'text.primary');
+
   return (
     <ThemeProvider theme={theme}>
       <AppBar
         position="fixed"
         elevation={scrolled ? 4 : 0}
         sx={{
-          backgroundColor: scrolled 
-            ? "rgba(0, 0, 0, 0.85)" 
-            : "rgba(255, 255, 255, 0)",
+          backgroundColor: navbarBgColor,
           boxShadow: scrolled ? "0px 2px 4px rgba(0, 0, 0, 0.1)" : "none",
           transition: "background-color 0.3s ease",
-          height: { xs: "70px", md: "80px" },
+          height: { xs: "60px", sm: "70px", md: "80px" },
           display: "flex",
           justifyContent: "center",
           zIndex: 1100,
         }}
       >
         <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ height: "100%", justifyContent: "space-between" }}>
-            {/* Logo */}
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Toolbar disableGutters sx={{ height: "100%", justifyContent: "space-between", px: { xs: 1, sm: 2 } }}>
+            {/* Logo Section */}
+            <Box sx={{ display: "flex", alignItems: "center", minWidth: 0, flex: { xs: 1, md: 'none' } }}>
               <Box 
                 component="a"
                 href="/"
-                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', minWidth: 0 }}
               >
+                {/* Palm Tree Static Logo */}
                 <Box 
                   component="img" 
                   src={menuData.imageUrl} 
                   alt="Logo" 
                   sx={{ 
-                    height: { xs: 40, md: 60 },
-                    mr: 1
+                    height: { xs: 32, sm: 40, md: 60 },
+                    mr: { xs: 0.5, sm: 1 },
+                    flexShrink: 0
+                  }} 
+                />
+                {/* Dynamic Logo */}
+                <Box 
+                  component="img" 
+                  src={menuData.imageUrl} 
+                  alt="Logo" 
+                  sx={{ 
+                    height: { xs: 32, sm: 40, md: 60 },
+                    mr: { xs: 0.5, sm: 1 },
+                    flexShrink: 0
                   }} 
                 />
                 <Box
                   component="span"
                   sx={{
                     fontWeight: 700,
-                    fontSize: { xs: '1rem', md: '1.25rem' },
-                    color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
-                    display: { xs: 'none', sm: 'inline' }
+                    fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' },
+                    color: navbarTextColor,
+                    textDecoration: 'none',
+                    display: { xs: 'none', sm: isTablet ? 'none' : 'block' },
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}
                 >
                   {menuData.menuName}
                 </Box>
               </Box>
             </Box>
-            
-            {/* Desktop Navigation */}
+
+            {/* Mobile Menu Button */}
+            {isMobile && (
+              <IconButton
+                size="large"
+                aria-label="menu"
+                onClick={toggleMobileMenu}
+                sx={{ 
+                  color: navbarTextColor,
+                  ml: 'auto'
+                }}
+              >
+                {mobileOpen ? <CloseIcon /> : <MenuIcon />}
+              </IconButton>
+            )}
+
+            {/* Desktop Navigation Menu */}
             {!isMobile && (
               <Box sx={{ 
                 display: 'flex', 
-                justifyContent: "center",
-                alignItems: "center",
-                ml: 'auto',
-                mr: 2
+                alignItems: 'center', 
+                gap: { sm: 1, md: 2 },
+                flex: 1,
+                justifyContent: 'center',
+                overflow: 'hidden'
               }}>
-                {menuData?.items?.map((item, index) => {
-                  const itemPath = `/${item.menuName.toLowerCase().replace(/ /g, '-')}`;
-                  const active = isActive(itemPath);
-
+                {menuData.items.map((item, index) => {
+                  const hasSubItems = item.multiItems && item.multiItems.length > 0;
+                  const itemIsActive = isActive(`/${item.menuName.toLowerCase()}`);
+                  
                   return (
                     <React.Fragment key={index}>
-                      {item.menuType === 'multiple' && item.multiItems?.length ? (
+                      {hasSubItems ? (
                         <>
                           <Button
                             onClick={(e) => handleOpenNavMenu(e, index)}
-                            aria-controls={openMenuIndex === index ? `menu-${index}` : undefined}
-                            aria-haspopup="true"
-                            aria-expanded={openMenuIndex === index ? 'true' : undefined}
                             endIcon={<KeyboardArrowDownIcon />}
-                            sx={{ 
-                              color: active 
-                                ? 'primary.main' 
-                                : isHomePage ? 'white' : scrolled ? 'white' : 'text.primary', 
-                              mx: 1.5, 
-                              '&:hover': { color: 'primary.main' },
-                              fontSize: '0.9rem',
-                              fontWeight: 500,
-                              textTransform: 'none'
+                            sx={{
+                              color: itemIsActive ? 'primary.main' : navbarTextColor,
+                              textTransform: 'none',
+                              fontSize: { sm: '0.85rem', md: '1rem' },
+                              fontWeight: itemIsActive ? 700 : 500,
+                              px: { sm: 1, md: 2 },
+                              minWidth: 'auto',
+                              whiteSpace: 'nowrap',
+                              '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                color: 'primary.main'
+                              },
                             }}
                           >
                             {item.menuName}
                           </Button>
                           <Menu
-                            id={`menu-${index}`}
                             anchorEl={anchorElNav}
-                            anchorOrigin={{
-                              vertical: 'bottom',
-                              horizontal: 'left',
-                            }}
-                            keepMounted
-                            transformOrigin={{
-                              vertical: 'top',
-                              horizontal: 'left',
-                            }}
                             open={openMenuIndex === index}
                             onClose={handleCloseNavMenu}
+                            slotProps={{
+                              paper: {
+                                sx: {
+                                  backgroundColor: 'background.paper',
+                                  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+                                  borderRadius: '8px',
+                                  mt: 1,
+                                }
+                              }
+                            }}
                           >
-                            {item.multiItems.map((subItem, subIndex) => {
-                              const subItemPath = `/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`;
-                              const subActive = isActive(subItemPath);
-                              
-                              return (
-                                <MenuItem 
-                                  key={subIndex} 
-                                  component="a" 
-                                  href={subItemPath}
-                                  onClick={handleCloseNavMenu}
-                                  sx={{
-                                    color: subActive ? 'primary.main' : 'inherit',
-                                    backgroundColor: subActive ? 'action.hover' : 'inherit',
-                                    '&:hover': { backgroundColor: 'action.hover' }
-                                  }}
-                                > 
-                                  {subItem.menuName}
-                                </MenuItem>
-                              );
-                            })}
+                            {item.multiItems?.map((subItem, subIndex) => (
+                              <MenuItem 
+                                key={subIndex} 
+                                onClick={handleCloseNavMenu}
+                                component="a"
+                                href={`/${subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
+                                sx={{
+                                  '&:hover': {
+                                    backgroundColor: 'primary.light',
+                                    color: 'primary.contrastText'
+                                  }
+                                }}
+                              >
+                                {subItem.menuName}
+                              </MenuItem>
+                            ))}
                           </Menu>
                         </>
                       ) : (
-                        <Button 
-                          component="a" 
-                          href={itemPath} 
-                          sx={{ 
-                            color: active 
-                              ? 'primary.main' 
-                              : isHomePage ? 'white' : scrolled ? 'white' : 'text.primary', 
-                            mx: 1.5, 
-                            '&:hover': { color: 'primary.main' },
+                        <Button
+                          href={`/${item.menuName.toLowerCase()}`}
+                          sx={{
+                            color: itemIsActive ? 'primary.main' : navbarTextColor,
                             textTransform: 'none',
-                            fontSize: '0.9rem',
-                            fontWeight: 500
+                            fontSize: { sm: '0.85rem', md: '1rem' },
+                            fontWeight: itemIsActive ? 700 : 500,
+                            px: { sm: 1, md: 2 },
+                            minWidth: 'auto',
+                            whiteSpace: 'nowrap',
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                              color: 'primary.main'
+                            },
                           }}
                         >
                           {item.menuName}
@@ -305,60 +352,53 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               </Box>
             )}
             
-            {/* Cart and Login/Profile Buttons */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+            {/* Action Buttons */}
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: { xs: 0.5, sm: 1, md: 2 },
+              ml: 'auto'
+            }}>
               {/* Membership Button */}
-              <Button
-                variant="contained"
-                href="/membership"
-                sx={{
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                  textTransform: 'none',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  px: 2,
-                  display: { xs: 'none', sm: 'flex' }
-                }}
-              >
-                Membership
-              </Button>
+              {!isMobile && (
+                <Button
+                  variant="contained"
+                  href="/membership"
+                  sx={{
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
+                    },
+                    textTransform: 'none',
+                    fontSize: { sm: '0.8rem', md: '0.9rem' },
+                    fontWeight: 600,
+                    px: { sm: 1.5, md: 2 },
+                    display: { xs: 'none', sm: isTablet ? 'none' : 'flex' }
+                  }}
+                >
+                  Membership
+                </Button>
+              )}
 
-              {/* Cart Button */}
-              <IconButton 
-                color="inherit" 
-                aria-label="cart"
-                href="/cart"
-                sx={{ 
-                  color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
-                }}
-              >
-                <Badge badgeContent={cartItemCount} color="error">
-                  <ShoppingCartIcon />
-                </Badge>
-              </IconButton>
-              
-              {/* Login/Logout/Profile Buttons */}
+              {/* Login/Profile Section */}
               {isLoggedIn ? (
                 <>
-                  {/* Profile Icon with Dropdown */}
-                  {/* <Tooltip title="Account settings">
+                  {/* Profile Dropdown */}
+                  <Tooltip title="Profile">
                     <IconButton 
                       onClick={handleOpenUserMenu} 
                       sx={{ 
-                        p: 0,
-                        color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
+                        p: { xs: 0.5, sm: 1 },
+                        color: navbarTextColor
                       }}
                     >
-                      <AccountCircleIcon />
+                      <AccountCircleIcon sx={{ fontSize: { xs: 28, sm: 32 } }} color="primary" />
                     </IconButton>
                   </Tooltip>
                   <Menu
                     sx={{ mt: '45px' }}
-                    id="menu-appbar"
+                    id="profile-menu"
                     anchorEl={anchorElUser}
                     anchorOrigin={{
                       vertical: 'top',
@@ -371,76 +411,59 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     }}
                     open={Boolean(anchorElUser)}
                     onClose={handleCloseUserMenu}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          backgroundColor: 'background.paper',
+                          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+                          borderRadius: '8px',
+                          minWidth: 200,
+                        }
+                      }
+                    }}
                   >
                     <MenuItem component="a" href="/profile" onClick={handleCloseUserMenu}>
+                      <ListItemIcon>
+                        <PersonIcon fontSize="small" color="primary" />
+                      </ListItemIcon>
                       <ListItemText primary="Profile" />
                     </MenuItem>
-                    <MenuItem component="a" href="/orders" onClick={handleCloseUserMenu}>
-                      <ListItemText primary="My Orders" />
+                    <MenuItem component="a" href="/cart" onClick={handleCloseUserMenu}>
+                      <ListItemIcon>
+                        <Badge badgeContent={cartItemCount} color="error">
+                          <ShoppingCartIcon fontSize="small" color="primary"  />
+                        </Badge>
+                      </ListItemIcon>
+                      <ListItemText primary="Cart" />
                     </MenuItem>
                     <MenuItem onClick={handleLogout}>
+                      <ListItemIcon>
+                        <LogoutIcon fontSize="small" color="primary" />
+                      </ListItemIcon>
                       <ListItemText primary="Logout" />
                     </MenuItem>
-                  </Menu> */}
-                  
-                  {/* Logout Button (Desktop) */}
-                  {!isMobile && (
-                    <Button
-                      variant="outlined"
-                      startIcon={<LogoutIcon />}
-                      onClick={handleLogout}
-                      sx={{
-                        color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
-                        borderColor: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
-                        '&:hover': {
-                          borderColor: 'error.main',
-                          color: 'error.main',
-                          backgroundColor: 'rgba(211, 47, 47, 0.04)'
-                        },
-                        textTransform: 'none',
-                        fontSize: '0.9rem',
-                        display: { xs: 'none', sm: 'flex' }
-                      }}
-                    >
-                      Logout
-                    </Button>
-                  )}
+                  </Menu>
                 </>
               ) : (
                 <Button
                   variant="outlined"
-                  startIcon={<PersonIcon />}
                   href="/login"
                   sx={{
-                    color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
-                    borderColor: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary',
+                    color: navbarTextColor,
+                    borderColor: navbarTextColor,
                     '&:hover': {
                       borderColor: 'primary.main',
                       color: 'primary.main',
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                      backgroundColor: 'rgba(25, 118, 210, 0.04)'
                     },
                     textTransform: 'none',
-                    fontSize: '0.9rem',
-                    display: { xs: 'none', sm: 'flex' }
+                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    fontWeight: 600,
+                    px: { xs: 1.5, sm: 2 }
                   }}
                 >
                   Login
                 </Button>
-              )}
-              
-              {/* Mobile menu icon */}
-              {isMobile && (
-                <IconButton
-                  edge="end"
-                  color="inherit"
-                  aria-label="menu"
-                  onClick={toggleMobileMenu}
-                  sx={{ 
-                    color: isHomePage ? 'white' : scrolled ? 'white' : 'text.primary'
-                  }}
-                >
-                  <MenuIcon />
-                </IconButton>
               )}
             </Box>
           </Toolbar>
@@ -449,187 +472,162 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
 
       {/* Mobile Drawer */}
       <Drawer
-        anchor="right"
+        anchor="top"
         open={mobileOpen}
         onClose={toggleMobileMenu}
         sx={{
-          '& .MuiDrawer-paper': { 
-            width: '75%', 
-            maxWidth: '300px',
-            boxSizing: 'border-box',
-            bgcolor: 'background.paper'
+          '& .MuiDrawer-paper': {
+            backgroundColor: 'background.paper',
+            top: { xs: '60px', sm: '70px' },
+            height: 'calc(100vh - 60px)',
+            width: '100%',
+            overflowY: 'auto'
           },
         }}
       >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <IconButton onClick={toggleMobileMenu}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        <List>
-          {menuData?.items?.map((item, index) => {
-            const itemPath = item.menuName.toLowerCase() === 'home' 
-              ? '/' 
-              : `/${item.menuName.toLowerCase().replace(/ /g, '-')}`;
-            const active = isActive(itemPath);
-            const isExpanded = expandedMobileMenus.includes(index);
-
-            return (
-              <React.Fragment key={index}>
-                {item.menuType === 'multiple' && item.multiItems?.length ? (
-                  <>
-                    <ListItem 
-                      onClick={() => toggleMobileSubmenu(index)}
-                      sx={{ 
-                        color: active ? 'primary.main' : 'text.primary',
-                        bgcolor: active ? 'action.selected' : 'transparent',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <ListItemText primary={item.menuName} />
-                      {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                    </ListItem>
-                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                      <List component="div" disablePadding>
-                        {item.multiItems.map((subItem, subIndex) => {
-                          const subItemPath = `/${subItem.menuName.toLowerCase().replace(/ /g, '-')}`;
-                          const subActive = isActive(subItemPath);
-                          
-                          return (
-                            <ListItem  
-                              key={subIndex}
-                              component="a"
-                              href={subItemPath}
-                              onClick={toggleMobileMenu}
-                              sx={{ 
-                                pl: 4,
-                                color: subActive ? 'primary.main' : 'text.secondary',
-                                bgcolor: subActive ? 'action.selected' : 'transparent',
-                                textDecoration: 'none',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <ListItemText primary={subItem.menuName} />
-                            </ListItem>
-                          );
-                        })}
-                      </List>
-                    </Collapse>
-                  </>
-                ) : (
+        <Box sx={{ p: 2 }}>
+          <List>
+            {menuData.items.map((item, index) => {
+              const hasSubItems = item.multiItems && item.multiItems.length > 0;
+              const isExpanded = expandedMobileMenus.includes(index);
+              const itemIsActive = isActive(`/${item.menuName.toLowerCase()}`);
+              
+              return (
+                <React.Fragment key={index}>
                   <ListItem 
-                    component="a"
-                    href={itemPath}
-                    onClick={toggleMobileMenu}
-                    sx={{ 
-                      color: active ? 'primary.main' : 'text.primary',
-                      bgcolor: active ? 'action.selected' : 'transparent',
-                      textDecoration: 'none',
-                      cursor: 'pointer'
+                    onClick={hasSubItems ? () => toggleMobileSubmenu(index) : undefined}
+                    component={hasSubItems ? "div" : "a"}
+                    href={hasSubItems ? undefined : `/${item.menuName.toLowerCase()}`}
+                    sx={{
+                      cursor: 'pointer',
+                      backgroundColor: itemIsActive ? 'primary.light' : 'transparent',
+                      color: itemIsActive ? 'primary.contrastText' : 'text.primary',
+                      '&:hover': {
+                        backgroundColor: 'primary.light',
+                        color: 'primary.contrastText'
+                      },
+                      borderRadius: 1,
+                      mb: 0.5
                     }}
                   >
-                    <ListItemText primary={item.menuName} />
+                    <ListItemText 
+                      primary={item.menuName}
+                      sx={{
+                        fontWeight: itemIsActive ? 700 : 400
+                      }}
+                    />
+                    {hasSubItems && (
+                      isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                    )}
                   </ListItem>
-                )}
-              </React.Fragment>
-            );
-          })}
-
-          {/* Mobile Membership Button */}
-          <ListItem sx={{ mt: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              href="/membership"
-              fullWidth
-              sx={{
-                borderRadius: '4px',
-                py: 1.5,
-                textTransform: 'none',
-                fontWeight: 600
-              }}
-            >
-              Membership
-            </Button>
-          </ListItem>
-
-          {/* Mobile Login/Profile Button */}
-          <ListItem sx={{ mt: 2 }}>
-            {isLoggedIn ? (
-              <Button
-                variant="outlined"
-                startIcon={<AccountCircleIcon />}
-                href="/profile"
-                fullWidth
-                sx={{
-                  borderRadius: '4px',
-                  py: 1,
-                  textTransform: 'none'
-                }}
-              >
-                My Profile
-              </Button>
-            ) : (
-              <Button
-                variant="outlined"
-                startIcon={<PersonIcon />}
-                href="/login"
-                fullWidth
-                sx={{
-                  borderRadius: '4px',
-                  py: 1,
-                  textTransform: 'none'
-                }}
-              >
-                Login
-              </Button>
-            )}
-          </ListItem>
-          
-          {/* Mobile Cart Button */}
-          <ListItem>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={
-                <Badge badgeContent={cartItemCount} color="error">
-                  <ShoppingCartIcon />
-                </Badge>
-              }
-              href="/cart"
-              fullWidth
-              sx={{
-                borderRadius: '4px',
-                py: 1,
-                textTransform: 'none',
-                mt: 1
-              }}
-            >
-              Cart
-            </Button>
-          </ListItem>
-          
-          {/* Logout Button (Mobile) */}
-          {isLoggedIn && (
-            <ListItem>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<LogoutIcon />}
-                onClick={handleLogout}
-                fullWidth
-                sx={{
-                  borderRadius: '4px',
-                  py: 1,
-                  textTransform: 'none',
-                  mt: 1
-                }}
-              >
-                Logout
-              </Button>
-            </ListItem>
-          )}
-        </List>
+                  
+                  {hasSubItems && (
+                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                      <List component="div" disablePadding>
+                        {item.multiItems?.map((subItem, subIndex) => (
+                          <ListItem 
+                            key={subIndex} 
+                            component="a"
+                            href={`/${subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
+                            sx={{ 
+                              pl: 4,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: 'primary.light',
+                                color: 'primary.contrastText'
+                              },
+                              borderRadius: 1,
+                              mb: 0.5
+                            }}
+                          >
+                            <ListItemText primary={subItem.menuName} />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Collapse>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            
+            {/* Mobile Profile/Login Section */}
+            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+              {isLoggedIn ? (
+                <>
+                  <ListItem component="a" href="/profile" sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    },
+                    borderRadius: 1,
+                    mb: 0.5
+                  }}>
+                    <ListItemIcon>
+                      <PersonIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText primary="Profile" />
+                  </ListItem>
+                  <ListItem component="a" href="/cart" sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    },
+                    borderRadius: 1,
+                    mb: 0.5
+                  }}>
+                    <ListItemIcon>
+                      <Badge badgeContent={cartItemCount} color="error">
+                        <ShoppingCartIcon color="primary" />
+                      </Badge>
+                    </ListItemIcon>
+                    <ListItemText primary="Cart" />
+                  </ListItem>
+                  <ListItem onClick={handleLogout} sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    },
+                    borderRadius: 1,
+                    mb: 0.5
+                  }}>
+                    <ListItemIcon>
+                      <LogoutIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText primary="Logout" />
+                  </ListItem>
+                </>
+              ) : (
+                <ListItem component="a" href="/login" sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'primary.light',
+                    color: 'primary.contrastText'
+                  },
+                  borderRadius: 1,
+                  mb: 0.5
+                }}>
+                  <ListItemIcon>
+                    <PersonIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="Login" />
+                </ListItem>
+              )}
+              <ListItem component="a" href="/membership" sx={{ 
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'primary.contrastText'
+                },
+                borderRadius: 1
+              }}>
+                <ListItemText primary="Membership" />
+              </ListItem>
+            </Box>
+          </List>
+        </Box>
       </Drawer>
     </ThemeProvider>
   );

@@ -1,29 +1,22 @@
 export interface Product {
     name: string
     description: string
-    category: string
-    subCategory?: string
-    brand: string
-    subBrand?: string | null
+    category: string | { name: string; description: string }
+    subCategory?: string | { subCategoryName: string; subCategoryType: string }
+    brand: string | { name: string; description: string }
+    subBrand?: string | { name: string; description: string } | null
     stock: number
-    images?: Image[] | null
+    images?: string[] | null
     RFQ: boolean
     HSN: string
     model: string
     productCode: string
-    notes?: Note[] | null
+    notes?: string[] | null
     variants?: string[] | null
     active: boolean
-  }
-  
-  export interface Image {
-    url: string
-    altText?: string | null
-  }
-  
-  export interface Note {
-    name: string
-    description: string
+    price?: number
+    created_at?: string
+    updated_at?: string
   }
   
   

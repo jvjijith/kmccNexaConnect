@@ -26,3 +26,40 @@ export const baseApiConfig = {
     });
   }
 };
+
+export const getConfig = async (): Promise<Configuration> => {
+  const basePath = process.env.NEXT_PUBLIC_API_BASE_URL || ""
+  const apiKey = process.env.NEXT_PUBLIC_API_KEY || ""
+  
+  console.log('API Configuration:', {
+    basePath,
+    apiKey: apiKey ? 'Set' : 'Not set',
+    hasApiKey: !!apiKey
+  })
+
+  if (!basePath) {
+    console.error('NEXT_PUBLIC_API_BASE_URL is not set')
+    throw new Error('API base URL is not configured')
+  }
+
+  if (!apiKey) {
+    console.error('NEXT_PUBLIC_API_KEY is not set')
+    throw new Error('API key is not configured')
+  }
+
+  return {
+    basePath,
+    fetchApi: fetch,
+    headers: {
+      "x-nexa-appid": apiKey,
+      "x-nexa-appsecret": process.env.NEXT_PUBLIC_API_SECRET || "",
+      "Content-Type": "application/json",
+    },
+  }
+}
+
+export interface Configuration {
+  basePath: string
+  fetchApi: typeof fetch
+  headers: Record<string, string>
+}

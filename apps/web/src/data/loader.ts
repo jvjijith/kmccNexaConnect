@@ -27,6 +27,10 @@ export async function getProduct(productId: string) {
   return await fetchApi(`/apps/product/${productId}`);
 }
 
+export async function getProductPricing(productId: string) {
+  return await fetchApi(`/apps/product/${productId}/pricing`);
+}
+
 export async function getElement(elementId: string) {
   return await fetchApi(`/apps/element/${elementId}`);
 }
@@ -41,56 +45,54 @@ export async function getMenu() {
 
 export async function getAuth(data: any, headers?: any) {
   try {
-    return await postApi('/auth/register', data, headers)
+    console.log('Registration request data:', data)
+    console.log('Registration request headers:', headers)
+    const response = await postApi('/auth/register', data, headers)
+    console.log('Registration response:', response)
+    return response
   } catch (error: any) {
-    throw new Error(error || 'Registration failed')
+    console.error('Registration API error:', error)
+    throw new Error(error.message || 'Registration failed')
   }
 }
 export async function login(data: any, headers?: any) {
   try {
-    return await postApi('/auth/createToken', data, headers)
+    console.log('Login request data:', data)
+    console.log('Login request headers:', headers)
+    const response = await postApi('/auth/createToken', data, headers)
+    console.log('Login response:', response)
+    return response
   } catch (error: any) {
-    throw new Error(error || 'Registration failed')
+    console.error('Login API error:', error)
+    throw new Error(error.message || 'Login failed')
   }
 }
 
 export async function getCart(headers?: HeadersInit) {
-  try {
-    return await fetchApi('/cart', { headers });
-  } catch (error: any) {
-    throw new Error(error || 'Failed to fetch cart');
-  }
+  return await fetchApi('/cart', { headers });
 }
 
 export async function addToCart(data: any, headers?: HeadersInit) {
-  try {
-    return await postApi('/cart/add', data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to add item to cart');
-  }
+  return await postApi('/cart/add', data, headers);
 }
 
 export async function updateCart(data: any, headers?: HeadersInit) {
-  try {
-    return await putApi('/cart/update', data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to update cart');
-  }
+  return await putApi('/cart/update', data, headers);
 }
 
 export async function removeFromCart(data: any, headers?: HeadersInit) {
-  try {
-    return await deleteApi('/cart/remove', data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to remove item from cart');
-  }
+  return await deleteApi('/cart/remove', data, headers);
 }
 
 export async function clearCart(headers?: HeadersInit) {
+  return await deleteApi('/cart/clear', {}, headers);
+}
+
+export async function createCartPayment(headers?: HeadersInit) {
   try {
-    return await deleteApi('/cart/clear', undefined, headers);
+    return await postApi('/payments/cart/create', {}, headers);
   } catch (error: any) {
-    throw new Error(error || 'Failed to clear cart');
+    throw new Error(error || 'Failed to create cart payment');
   }
 }
 
@@ -104,12 +106,9 @@ export async function payment(registrationId: any) {
 
 export async function registerEvent(data: any, headers?: HeadersInit) {
   try {
-    console.log("Registering event with data:", data);
-    console.log("Using headers:", headers);
     return await postApi('/events/register/guest', data, headers);
   } catch (error: any) {
-    console.error("Registration API error:", error);
-    throw new Error(error.message || error || 'Failed to register');
+    throw new Error(error || 'Failed to register');
   }
 }
 
@@ -139,67 +138,31 @@ export async function submitMembershipApplication(data: any, headers?: HeadersIn
 }
 
 export async function createMemberPayment(memberId: string, headers?: HeadersInit) {
+  return await postApi(`/membership/${memberId}/payment`, {}, headers);
+}
+
+export async function createSalesInvoice(data: any, headers?: HeadersInit) {
   try {
-    return await postApi(`/payments/member/create/${memberId}`, {}, headers);
+    console.log('Creating sales invoice with data:', JSON.stringify(data, null, 2))
+    console.log('Using headers:', headers)
+
+    const result = await postApi('/sales-invoices', data, headers);
+    console.log('Sales invoice created successfully:', result)
+    return result
   } catch (error: any) {
-    throw new Error(error || 'Failed to create payment');
+    console.error('Sales invoice creation failed:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+
+    // Re-throw with a more descriptive message
+    const errorMessage = error.message || 'Failed to create sales invoice'
+    throw new Error(`Sales invoice creation failed: ${errorMessage}`)
   }
 }
 
-// Media Upload API functions
-export async function generateSignedUrl(data: {
-  title: string;
-  mediaType: 'image' | 'document' | 'signature';
-  ext: string;
-  active: boolean;
-  uploadStatus: 'progressing' | 'completed' | 'failed';
-  uploadProgress: number;
-}, headers?: HeadersInit) {
-  try {
-    return await postApi('/media/generateSignedUrl', data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to generate signed URL');
-  }
-}
-
-export async function updateMediaStatus(mediaId: string, data: {
-  title: string;
-  mediaType: 'image' | 'document' | 'signature';
-  ext: string;
-  active: boolean;
-  uploadStatus: 'progressing' | 'completed' | 'failed';
-  uploadProgress: number;
-}, headers?: HeadersInit) {
-  try {
-    return await putApi(`/media/update/${mediaId}`, data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to update media status');
-  }
-}
-
-// Cart Payment API
-export async function createCartPayment(headers?: HeadersInit) {
-  try {
-    return await postApi('/payments/cart/create', {}, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to create cart payment');
-  }
-}
-
-// User Signup API
-export async function signupUser(data: any, headers?: HeadersInit) {
-  try {
-    return await postApi('/auth/register', data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to signup user');
-  }
-}
-
-// Event Donors API - for donation events
-export async function getEventDonors(eventId: string, headers?: HeadersInit) {
-  try {
-    return await fetchApi(`/events/${eventId}/donors`, { headers });
-  } catch (error: any) {
-    throw new Error(error || 'Failed to fetch event donors');
-  }
+export async function getEventRegistrationsByPaymentStatus(eventId: string, paymentStatus: string, headers?: HeadersInit) {
+  return await fetchApi(`/events/${eventId}/registrations/payment-status/${paymentStatus}`, { headers });
 }

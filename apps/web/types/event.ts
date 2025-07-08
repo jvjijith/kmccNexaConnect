@@ -18,30 +18,41 @@ export interface Event {
     priceConfig?: PriceConfig
     registrationStartDate: string
     registrationEndDate: string
-    donors?: Donor[]
-    totalDonationAmount?: number
+    showDonorNames?: boolean
   }
-  
+
   export interface Metadata {
     name: string
     description: string
     imageUrl?: string
   }
 
-  export interface Donor {
-    id: string
-    name: string
-    amount: number
-    isAnonymous: boolean
-    donatedAt: string
-    message?: string
-  }
-  
   export interface GeoAllow {
     location: string
     coordinates?: [number, number] // Longitude and latitude
   }
-  
+
+  export interface Donor {
+    eventId: string
+    userId: string
+    email: string
+    eventData: {
+      fieldName: string
+      fieldValue: string
+      _id: string
+    }[]
+    price: string
+    stripeId: string
+    currency: string
+    status: string
+    paymentStatus: string
+    registrationDate: string
+    createdAt: string
+    updatedAt: string
+    _id: string
+    __v: number
+  }
+
   export interface RegistrationField {
     name: string
     displayName: string
@@ -54,22 +65,23 @@ export interface Event {
     falseValue?: any
     formula?: Formula[]
   }
-  
+
   export interface Option {
     fieldName?: string
     parentName?: string
     labelName?: string
   }
-  
+
   export interface Formula {
     type: "symbol" | "operation" | "customField" | "number"
     fieldName?: string
     operationName?: string
   }
-  
+
   export interface PriceConfig {
     type: "fixed" | "dynamic"
     amount?: number
     dependantField?: string
   }
+  
   

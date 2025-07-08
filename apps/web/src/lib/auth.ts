@@ -132,14 +132,20 @@ export async function registerUser(
   phone: string
 ): Promise<User> {
   try {
+    console.log('Starting registration process for:', email)
+
     // Step 1: Firebase registration
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
+    console.log('Firebase user created:', user.uid)
+
     const firebaseToken = await user.getIdToken()
+    console.log('Firebase token obtained')
 
     await updateProfile(user, {
       displayName: `${firstName} ${lastName}`
     })
+    console.log('Firebase profile updated')
 
     // Step 2: Register with backend
     const registerData: RegisterRequest = {
@@ -156,53 +162,70 @@ export async function registerUser(
       "Authorization": `Bearer ${firebaseToken}`,
     }
 
-    const response = await getAuth(registerData, customHeaders) as RegisterResponse
+    console.log('Sending registration request to backend...')
+    const response = await getAuth(registerData, customHeaders) as any
+    console.log('Backend registration response:', response)
 
-    if (response.error || !response.success) {
-      throw new Error(response.error || response.message || 'Registration failed')
+    // Check if the response has tokens (successful registration)
+    if (response && response.accessToken && response.refreshToken && response.id) {
+      console.log('Backend registration successful - tokens received')
+
+      // Step 3: Create user data object
+      const userData: User = {
+        id: response.id,
+        firstName,
+        lastName,
+        email,
+        phone,
+        lastLogin: new Date().toISOString()
+      }
+
+      // Step 4: Store everything in localStorage
+      setLocalStorage(STORAGE_KEYS.USER_DATA, userData)
+      setLocalStorage(STORAGE_KEYS.IS_LOGGED_IN, "true")
+      setLocalStorage(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken)
+      setLocalStorage(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken)
+      setLocalStorage(STORAGE_KEYS.USER_ID, response.id)
+      setLocalStorage(STORAGE_KEYS.LAST_LOGIN, new Date().toISOString())
+
+      console.log('Registration completed successfully')
+      return userData
+    } else {
+      // If response doesn't have tokens, check for error structure
+      if (response && response.error) {
+        console.error('Backend registration failed:', response.error)
+        throw new Error(response.error)
+      } else if (response && response.success === false) {
+        console.error('Backend registration failed:', response.message)
+        throw new Error(response.message || 'Registration failed')
+      } else {
+        console.error('Unexpected response format:', response)
+        throw new Error('Unexpected response from server')
+      }
     }
-
-    // Step 3: Get backend tokens
-    const loginData = {
-      emailId: email
-    }
-
-    const tokenResponse = await login(loginData, customHeaders) as TokenResponse
-
-    // Step 4: Create user data object
-    const userData: User = {
-      id: tokenResponse.id || user.uid, // Use backend ID if available
-      firstName,
-      lastName,
-      email,
-      phone,
-      lastLogin: new Date().toISOString()
-    }
-
-    // Step 5: Store everything in localStorage
-    setLocalStorage(STORAGE_KEYS.USER_DATA, userData)
-    setLocalStorage(STORAGE_KEYS.IS_LOGGED_IN, "true")
-    setLocalStorage(STORAGE_KEYS.ACCESS_TOKEN, tokenResponse.accessToken)
-    setLocalStorage(STORAGE_KEYS.REFRESH_TOKEN, tokenResponse.refreshToken)
-    setLocalStorage(STORAGE_KEYS.USER_ID, tokenResponse.id)
-    setLocalStorage(STORAGE_KEYS.LAST_LOGIN, new Date().toISOString())
-
-    return userData
   } catch (error: any) {
     console.error("Registration error:", error)
-    
+
     // Clear localStorage if there's an error
     clearLocalStorage(Object.values(STORAGE_KEYS))
-    
+
     if (error.code) {
       const errorMessages: Record<string, string> = {
         'auth/email-already-in-use': 'Email already registered',
         'auth/invalid-email': 'Invalid email format',
-        'auth/weak-password': 'Password is too weak'
+        'auth/weak-password': 'Password is too weak (minimum 6 characters)',
+        'auth/operation-not-allowed': 'Email/password accounts are not enabled',
+        'auth/network-request-failed': 'Network error. Please check your connection'
       }
       throw new Error(errorMessages[error.code] || error.message)
     }
-    throw error
+
+    // Handle API errors
+    if (error.message) {
+      throw new Error(error.message)
+    }
+
+    throw new Error('Registration failed. Please try again.')
   }
 }
 
