@@ -1,12 +1,9 @@
-import { generateSignedUrl, updateMediaStatus } from '../data/loader';
-
 export interface UploadProgress {
   [fileName: string]: number;
 }
 
 export interface UploadResult {
   url: string;
-  mediaId: string;
   fileName: string;
 }
 
@@ -19,69 +16,36 @@ export const getAuthHeaders = (): HeadersInit => {
   };
 };
 
-// Upload file with progress tracking
+// Upload file with progress tracking using our Blackblaze B2 API
 export const uploadFile = async (
   file: File,
   mediaType: 'image' | 'document' | 'signature',
   onProgress?: (progress: number) => void
 ): Promise<UploadResult> => {
   try {
-    const fileExtension = file.name.split('.').pop() || '';
-    const headers = getAuthHeaders();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', mediaType);
 
-    // Step 1: Generate signed URL
-    const signedUrlResponse = await generateSignedUrl({
-      title: file.name,
-      mediaType,
-      ext: fileExtension,
-      active: true,
-      uploadStatus: 'progressing',
-      uploadProgress: 0
-    }, headers) as any;
-
-    if (!signedUrlResponse?.signedUrl || !signedUrlResponse?.media?._id) {
-      throw new Error('Failed to generate signed URL');
-    }
-
-    const { signedUrl, media } = signedUrlResponse;
-    const mediaId = media._id;
-
-    // Step 2: Upload file to signed URL
-    const uploadResponse = await fetch(signedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type
-      }
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
     });
 
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload file');
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
     }
 
-    // Step 3: Update media status to completed
-    await updateMediaStatus(mediaId, {
-      title: file.name,
-      mediaType,
-      ext: fileExtension,
-      active: true,
-      uploadStatus: 'completed',
-      uploadProgress: 100
-    }, headers);
-
-    // Step 4: Return the final URL
-    const finalUrl = `https://media.nexalogics.in/${mediaId}.${fileExtension}`;
+    const result = await response.json();
     
     if (onProgress) {
       onProgress(100);
     }
 
     return {
-      url: finalUrl,
-      mediaId,
+      url: result.url,
       fileName: file.name
     };
-
   } catch (error) {
     console.error('Upload error:', error);
     throw error;
@@ -89,48 +53,26 @@ export const uploadFile = async (
 };
 
 // Upload multiple files
-export const uploadMultipleFiles = async (
+export const uploadFiles = async (
   files: File[],
   mediaType: 'image' | 'document' | 'signature',
   onProgress?: (fileName: string, progress: number) => void
 ): Promise<UploadResult[]> => {
-  const uploadPromises = files.map(file => 
-    uploadFile(file, mediaType, (progress) => {
-      if (onProgress) {
-        onProgress(file.name, progress);
-      }
-    })
-  );
-
-  return Promise.all(uploadPromises);
-};
-
-// Convert canvas to blob for signature upload
-export const canvasToBlob = (canvas: HTMLCanvasElement, quality = 0.8): Promise<Blob> => {
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-      } else {
-        throw new Error('Failed to convert canvas to blob');
-      }
-    }, 'image/png', quality);
-  });
-};
-
-// Upload signature from canvas
-export const uploadSignature = async (
-  canvas: HTMLCanvasElement,
-  fileName: string = 'signature.png',
-  onProgress?: (progress: number) => void
-): Promise<UploadResult> => {
-  try {
-    const blob = await canvasToBlob(canvas);
-    const file = new File([blob], fileName, { type: 'image/png' });
-    
-    return await uploadFile(file, 'signature', onProgress);
-  } catch (error) {
-    console.error('Signature upload error:', error);
-    throw error;
+  const results: UploadResult[] = [];
+  
+  for (const file of files) {
+    try {
+      const result = await uploadFile(file, mediaType, (progress) => {
+        if (onProgress) {
+          onProgress(file.name, progress);
+        }
+      });
+      results.push(result);
+    } catch (error) {
+      console.error(`Failed to upload ${file.name}:`, error);
+      throw error;
+    }
   }
+  
+  return results;
 };

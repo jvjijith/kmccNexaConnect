@@ -1,10 +1,20 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import RegisterPageUI from "@repo/ui/register"
 import { registerUser } from "../../src/lib/auth"
+
+// Constants for localStorage keys - matching auth.ts
+const STORAGE_KEYS = {
+  IS_LOGGED_IN: "isLoggedIn",
+  USER_DATA: "userData", 
+  ACCESS_TOKEN: "accessToken",
+  REFRESH_TOKEN: "refreshToken",
+  USER_ID: "userId",
+  LAST_LOGIN: "lastLogin"
+} as const
 
 export default function Page() {
   const [firstName, setFirstName] = useState("")
@@ -16,6 +26,14 @@ export default function Page() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  // Clear localStorage on component mount to ensure fresh registration
+  useEffect(() => {
+    // Clear all auth-related localStorage items on register page load
+    Object.values(STORAGE_KEYS).forEach(key => {
+      localStorage.removeItem(key)
+    })
+  }, [])
 
   const validateForm = () => {
     if (!firstName.trim()) {
@@ -64,10 +82,17 @@ export default function Page() {
     setError(null)
 
     try {
+      // Clear localStorage before registration attempt
+      Object.values(STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(key)
+      })
+
       console.log('Starting registration process...')
       await registerUser(firstName, lastName, email, password, phone)
-      console.log('Registration successful, redirecting...')
-      router.push("/home") // Redirect to home on success
+      console.log('Registration successful, tokens should be stored in localStorage')
+      
+      // Redirect to home on success
+      router.push("/home")
     } catch (err: any) {
       console.error("Registration error in component:", err)
       setError(err.message || "Registration failed. Please try again.")

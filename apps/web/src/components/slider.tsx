@@ -126,6 +126,13 @@ interface SlideData {
     actionButtonPosition: string;
   };
   withDescription?: boolean;
+  metadata?: {
+    name?: string;
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+  };
+  isRFQ?: boolean; // Add RFQ flag to slide data
 }
 
 // Format date for events
@@ -424,7 +431,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       link: productId ? `/product/${productId}` : '#',
       price: discountedPrice > 0 ? discountedPrice : (product.RFQ ? 0 : price),
       rating: 4.5, // Default rating since it's not in the API
-      isBestseller: false // Default since it's not in the API
+      isBestseller: false, // Default since it's not in the API
+      isRFQ: product.RFQ || false // Add RFQ flag from product data
     };
   };
 
@@ -462,7 +470,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       location: event.location || '',
       date: event.startingDate ? formatDate(event.startingDate) : '',
       endDate: event.endingDate ? formatDate(event.endingDate) : '',
-      price: event.priceConfig?.amount
+      price: event.priceConfig?.amount,
+      metadata: event.metadata
     };
   };
 
@@ -497,6 +506,36 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   };
 
   // Handle add to cart
+  // Handle RFQ request
+  const handleRFQRequest = async (productId: string, event: React.MouseEvent) => {
+    // Prevent card click when clicking RFQ button
+    event.stopPropagation();
+
+    try {
+      // Get access token from localStorage
+      const accessToken = localStorage.getItem("accessToken");
+
+      if (!accessToken) {
+        alert("Please login to request a quote");
+        return;
+      }
+
+      // For now, show a simple alert. In a real implementation, this would
+      // open a modal or navigate to an RFQ form
+      alert("RFQ functionality will be implemented soon. Please contact us directly for a quote.");
+
+      // TODO: Implement actual RFQ functionality
+      // This could involve:
+      // - Opening an RFQ modal
+      // - Navigating to an RFQ form page
+      // - Sending an RFQ request to the backend
+
+    } catch (error: any) {
+      console.error("RFQ request error:", error);
+      alert("Failed to process RFQ request");
+    }
+  };
+
   const handleAddToCart = async (productId: string, price: number, event: React.MouseEvent) => {
     // Prevent card click when clicking add to cart
     event.stopPropagation();
@@ -899,42 +938,172 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
           <Button
             variant="contained"
-            onClick={(e) => handleAddToCart(slide.id, slide.price || 0, e)}
-            disabled={addingToCart[slide.id] || !slide.price || slide.price <= 0}
+            onClick={(e) =>
+              slide.isRFQ ? handleRFQRequest(slide.id, e) : handleAddToCart(slide.id, slide.price || 0, e)
+            }
+            disabled={addingToCart[slide.id]}
             sx={{
-              minWidth: 'auto',
-              width: { xs: 44, sm: 46, md: 48 },
+              minWidth: slide.isRFQ ? 'auto' : 'auto',
+              width: slide.isRFQ ? 'auto' : { xs: 44, sm: 46, md: 48 },
               height: { xs: 44, sm: 46, md: 48 },
-              borderRadius: '50%',
-              p: 0,
-              // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              // boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-              // transition: 'all 0.3s ease',
-              // "&:hover": {
-              //   transform: 'scale(1.1)',
-              //   boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
-              //   background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
-              // }
+              borderRadius: slide.isRFQ ? '8px' : '50%',
+              p: slide.isRFQ ? { xs: 1, sm: 1.2, md: 1.5 } : 0,
+              px: slide.isRFQ ? { xs: 2, sm: 2.5, md: 3 } : 0,
+              fontSize: slide.isRFQ ? { xs: '0.75rem', sm: '0.8rem', md: '0.85rem' } : 'inherit',
+              fontWeight: slide.isRFQ ? 'bold' : 'normal',
+              backgroundColor: slide.isRFQ ? 'primary.main' : 'primary.main',
+              '&:hover': {
+                backgroundColor: slide.isRFQ ? 'primary.dark' : 'primary.dark',
+                transform: slide.isRFQ ? 'none' : 'scale(1.05)',
+              }
             }}
           >
             {addingToCart[slide.id] ? (
-              <Box sx={{ 
-                width: 20, 
-                height: 20,
-                border: '2px solid white',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                '@keyframes spin': {
-                  '0%': { transform: 'rotate(0deg)' },
-                  '100%': { transform: 'rotate(360deg)' }
-                }
-              }} />
+              <Box
+                sx={{
+                  width: 20,
+                  height: 20,
+                  border: '2px solid white',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' }
+                  }
+                }}
+              />
+            ) : slide.isRFQ ? (
+              'Request Quote'
             ) : (
               <ShoppingCartIcon sx={{ fontSize: 20 }} />
             )}
           </Button>
         </Box>
+      </Box>
+    </Box>
+  );
+
+  // Render minimal donation event card with only name and description
+  const renderDonationEventCard = (slide: SlideData) => (
+    <Box
+      onClick={() => handleCardClick(slide)}
+      sx={{
+        width: "100%",
+        maxWidth: { xs: "280px", sm: "300px", md: "350px" },
+        height: { xs: "auto", sm: "auto", md: "auto" },
+        borderRadius: { xs: "16px", sm: "20px" },
+        overflow: 'hidden',
+        boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+        backgroundColor: theme.palette.background.paper,
+        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: 'pointer',
+        position: 'relative',
+        "&:hover": {
+          transform: "translateY(-8px)",
+          boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+        }
+      }}
+    >
+      {/* Image section with gradient overlay */}
+      <Box sx={{
+        width: "100%",
+        position: 'relative',
+        height: { xs: 180, sm: 200, md: 220 },
+        overflow: 'hidden',
+        "&::after": {
+          content: '""',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '40%',
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
+          pointerEvents: 'none'
+        }
+      }}>
+        <img
+          src={slide.image || '/api/placeholder/400/360'}
+          alt={slide.title || 'Donation Event'}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.4s ease'
+          }}
+        />
+      </Box>
+
+      {/* Content section - minimal for donations but same layout as regular cards */}
+      <Box sx={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: { xs: "16px", sm: "18px", md: "20px" }
+      }}>
+        {/* Title */}
+        <Typography
+          variant="h6"
+          gutterBottom
+          fontWeight="bold"
+          sx={{
+            fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' },
+            mb: 1.5,
+            lineHeight: 1.3,
+            color: theme.palette.text.primary,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
+          }}
+        >
+          {slide.title}
+        </Typography>
+
+        {/* Description - taking up more space since no other details */}
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            display: '-webkit-box',
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            mb: 2,
+            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+            lineHeight: 1.6,
+            flex: 1,
+            minHeight: { xs: '4.8rem', sm: '5.2rem', md: '5.6rem' }
+          }}
+        >
+          {slide.description}
+        </Typography>
+
+        {/* Action button */}
+        <Button
+          variant="contained"
+          fullWidth
+          sx={{
+            mt: 'auto',
+            py: 1.5,
+            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+            fontWeight: 'bold',
+            borderRadius: '12px',
+            // background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+            // boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
+            transition: 'all 0.3s ease',
+            textTransform: 'none',
+            "&:hover": {
+              transform: 'translateY(-2px)',
+              // boxShadow: '0 6px 20px rgba(255, 107, 107, 0.6)',
+              // background: 'linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%)'
+            }
+          }}
+        >
+          💝 Support This Cause
+        </Button>
       </Box>
     </Box>
   );
@@ -1204,8 +1373,10 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             padding: "8px"
           }}
         >
-          {slide.type === 'event' 
-            ? renderEventCard(slide)
+          {slide.type === 'event'
+            ? (slide.metadata?.name === 'donation'
+                ? renderDonationEventCard(slide)
+                : renderEventCard(slide))
             : slide.type === 'page'
             ? renderPageCard(slide)
             : renderProductCard(slide)}

@@ -14,11 +14,45 @@ const STORAGE_KEYS = {
 
 export interface User {
   id: string
+  customerId?: string
   firstName?: string
   lastName?: string
   email: string
   phone?: string
   lastLogin?: string
+}
+
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid JWT token format');
+    }
+
+    const base64Url = parts[1];
+    if (!base64Url) {
+      throw new Error('Invalid JWT token - missing payload');
+    }
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT token:', error);
+    return null;
+  }
+}
+
+export function getCustomerIdFromToken(): string | null {
+  if (!isLocalStorageAvailable()) return null;
+
+  const accessToken = getLocalStorage(STORAGE_KEYS.ACCESS_TOKEN);
+  if (!accessToken) return null;
+
+  const decoded = decodeJWT(accessToken);
+  return decoded?.customerId || decoded?.sub || null;
 }
 
 interface TokenResponse {
@@ -188,6 +222,11 @@ export async function registerUser(
       setLocalStorage(STORAGE_KEYS.USER_ID, response.id)
       setLocalStorage(STORAGE_KEYS.LAST_LOGIN, new Date().toISOString())
 
+      // Trigger auth state change event for NavBar
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('authStateChanged'))
+      }
+
       console.log('Registration completed successfully')
       return userData
     } else {
@@ -262,6 +301,11 @@ export async function logoutUser(): Promise<void> {
   try {
     await auth.signOut()
     clearLocalStorage(Object.values(STORAGE_KEYS))
+
+    // Trigger auth state change event for NavBar
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('authStateChanged'))
+    }
   } catch (error: any) {
     console.error("Logout error:", error)
     throw new Error('Logout failed: ' + error.message)

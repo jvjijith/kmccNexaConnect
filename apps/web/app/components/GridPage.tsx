@@ -3,7 +3,7 @@ import { Grid, Box, Typography, Button } from "@repo/ui/mui";
 import Element from "./Element";
 import { ArrowRight } from "@repo/ui/mui";
 import { createDynamicTheme } from "@repo/ui/theme";
-import { getColor, getElement } from "../data/loader";
+import { getColor, getElement } from "../../src/data/loader";
 
 interface ContainerItem {
   element: string;

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef, Suspense } from "react"
+import { useRouter } from "next/navigation"
 import {
   Box,
   Button,
@@ -57,9 +58,48 @@ import {
   Email,
   LocationOn,
   Payment,
+  Edit,
+  Clear,
 } from "@mui/icons-material"
-import { theme } from "../../../../packages/ui/src/theme"
-import { submitMembershipApplication, createMemberPayment } from "../../src/data/loader" 
+import { createDynamicTheme } from "@repo/ui/theme"
+import { getColor, submitMembershipApplication, createMemberPayment } from "../../src/data/loader"
+import {
+  uploadFileWithSignedUrl,
+  uploadMultipleFilesWithSignedUrl,
+  uploadSignature,
+  canvasToBlob,
+  validateFile,
+  validateFiles
+} from "../../src/services/api"
+
+// JWT decoding utility function
+function decodeJWT(token: string) {
+  try {
+    // Split the token into parts
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid JWT token format');
+    }
+
+    // Decode the payload (second part)
+    const payload = parts[1];
+
+    if (!payload) {
+      throw new Error('Invalid JWT payload');
+    }
+
+    // Add padding if needed for base64 decoding
+    const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+
+    // Decode base64 and parse JSON
+    const decodedPayload = JSON.parse(atob(paddedPayload));
+
+    return decodedPayload;
+  } catch (error) {
+    console.error('Error decoding JWT token:', error);
+    return null;
+  }
+}
 
 interface FormData {
   supportKMCC: boolean | null
@@ -69,29 +109,34 @@ interface FormData {
   amountTobePaid: number
   firstName: string
   lastName: string
+  partnerFirstName: string
+  partnerLastName: string
+  partnerEmail: string
+  partnerDob: string
+  partnerMobileNumber: string
+  partnerWhatsappNumber: string
   dob: string
   email: string
   address: string
+  rejectionNotes: string
   mobileNumber: string
   whatsappNumber: string
   visaStatus: string
-  partnerFirstName: string
-  partnerLastName: string
-  partnerDob: string
-  partnerEmail: string
-  partnerMobile: string
-  partnerWhatsapp: string
   emergencyContactName: string
   emergencyContactMobile: string
   addressInKerala: string
   assemblyName: string
   district: string
   emergencyContactNameKerala: string
-  emergencyContactMobileKerala: string
+  emergencyContactNumberKerala: string
   IUMLContact: string
   queryType: string
   supportDocuments: Array<{ docuName: string; docuUrl: string }>
   query: string
+  queryFullName: string
+  queryEmail: string
+  queryAddress: string
+  queryMobileNumber: string
   customer: string
   iuMLContactName: string
   iuMLContactPosition: string
@@ -102,18 +147,11 @@ interface FormData {
   shareInfoNorka: boolean
   signatureURL: string
   paymentStatus: string
+  memberStatus: string
   stripeId: string
 }
 
-interface ContactFormData {
-  fullName: string
-  email: string
-  mobile: string
-  address: string
-  queryType: string
-  queryDetail: string
-  supportDocuments: File[]
-}
+
 
 interface FormErrors {
   [key: string]: string
@@ -136,29 +174,34 @@ const initialFormData: FormData = {
   amountTobePaid: 25,
   firstName: "",
   lastName: "",
+  partnerFirstName: "",
+  partnerLastName: "",
+  partnerEmail: "",
+  partnerDob: "",
+  partnerMobileNumber: "",
+  partnerWhatsappNumber: "",
   dob: "",
   email: "",
   address: "",
+  rejectionNotes: "",
   mobileNumber: "",
   whatsappNumber: "",
   visaStatus: "",
-  partnerFirstName: "",
-  partnerLastName: "",
-  partnerDob: "",
-  partnerEmail: "",
-  partnerMobile: "",
-  partnerWhatsapp: "",
   emergencyContactName: "",
   emergencyContactMobile: "",
   addressInKerala: "",
   assemblyName: "",
   district: "",
   emergencyContactNameKerala: "",
-  emergencyContactMobileKerala: "",
+  emergencyContactNumberKerala: "",
   IUMLContact: "",
-  queryType: "",
+  queryType: "Others",
   supportDocuments: [],
   query: "",
+  queryFullName: "",
+  queryEmail: "",
+  queryAddress: "",
+  queryMobileNumber: "",
   customer: "",
   iuMLContactName: "",
   iuMLContactPosition: "",
@@ -169,26 +212,71 @@ const initialFormData: FormData = {
   shareInfoNorka: false,
   signatureURL: "",
   paymentStatus: "unpaid",
+  memberStatus: "pending",
   stripeId: "",
 }
 
 export default function MembershipApplication() {
+  const router = useRouter()
   const [activeStep, setActiveStep] = useState(0)
   const [showBylaw, setShowBylaw] = useState(false)
-  const [showContactDialog, setShowContactDialog] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [contactForm, setContactForm] = useState<ContactFormData>({
-    fullName: "",
-    email: "",
-    mobile: "",
-    address: "",
-    queryType: "",
-    queryDetail: "",
-    supportDocuments: [],
+  const [color, setColor] = useState<any>(null)
+  const [colorLoading, setColorLoading] = useState(true)
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [showSignatureDialog, setShowSignatureDialog] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string>("")
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "warning" | "info"
   })
+  const [submissionStep, setSubmissionStep] = useState<"idle" | "submitting" | "payment" | "success">("idle")
+
+  // Color system integration - fetch colors on component mount (exactly like product page)
+  useEffect(() => {
+    async function fetchColors() {
+      try {
+        setColorLoading(true)
+        const colorData = await getColor("light");
+        if (colorData?.theme?.palette?.primary?.main) {
+          setColor(colorData);
+        }
+      } catch (error) {
+        console.error("Error fetching colors:", error);
+      } finally {
+        setColorLoading(false)
+      }
+    }
+    fetchColors();
+  }, []);
+
+  // Extract customer information from access token on component mount
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken) {
+      const decodedToken = decodeJWT(accessToken);
+      if (decodedToken) {
+        // Extract customer information from the decoded token
+        const customer = decodedToken.customer || decodedToken.sub || decodedToken.user_id || decodedToken.id;
+        console.log("Decoded token on mount:", decodedToken);
+        console.log("Extracted customer on mount:", customer);
+
+        // Update form data with customer information if available
+        if (customer) {
+          setFormData(prev => ({
+            ...prev,
+            customer: customer
+          }));
+        }
+      }
+    }
+  }, []);
 
   const bylawText = `Objectives: Melbourne KMCC aims to foster unity among its members, support charitable activities, promote cultural heritage, and assist in the welfare and development of the community. The association organizes social, cultural, and educational events to enrich the lives of its members.
 
@@ -198,13 +286,7 @@ Organizational Structure: KMCC operates under a structured framework that includ
 
 Note: Once your application is final, we will provide you detailed bylaw via digital means.`
 
-  // New state for better user feedback
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error" | "warning" | "info"
-  })
-  const [submissionStep, setSubmissionStep] = useState<"idle" | "submitting" | "payment" | "success">("idle")
+  // New state for better user feedback - already declared above
 
   const handleInputChange = useCallback(
     (field: string, value: any) => {
@@ -217,49 +299,302 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     [errors],
   )
 
-  const handleContactFormChange = useCallback((field: string, value: any) => {
-    setContactForm((prev) => ({ ...prev, [field]: value }))
-  }, [])
 
-  const handleFileUpload = useCallback((files: FileList | null, isContactForm = false) => {
+
+  const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files) return
 
     const fileArray = Array.from(files)
-    const validFiles = fileArray.filter((file) => {
-      const isValidType = ["image/jpeg", "image/jpg", "image/png", "application/pdf"].includes(file.type)
-      const isValidSize = file.size <= 2 * 1024 * 1024 // 2MB
-      return isValidType && isValidSize
-    })
 
-    if (isContactForm) {
-      setContactForm((prev) => ({
-        ...prev,
-        supportDocuments: [...prev.supportDocuments, ...validFiles],
-      }))
-    } else {
-      const newDocs = validFiles.map((file) => ({
-        docuName: file.name,
-        docuUrl: URL.createObjectURL(file),
-      }))
+    // Validate files using the API service
+    const validationResult = validateFiles(fileArray, 2 * 1024 * 1024) // 2MB
+    if (validationResult.invalidFiles.length > 0) {
+      const errorMessages = validationResult.invalidFiles.map(item => item.error)
+      setSnackbar({
+        open: true,
+        message: errorMessages.join(', '),
+        severity: "error"
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Upload files using signed URL approach
+      const uploadPromises = validationResult.validFiles.map(async (file, index) => {
+        const progressKey = `file_${Date.now()}_${index}`
+
+        const onProgress = (progress: number) => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [progressKey]: progress
+          }))
+        }
+
+        try {
+          const uploadResult = await uploadFileWithSignedUrl(file, 'document', onProgress as any)
+
+          // Clean up progress tracking
+          setUploadProgress(prev => {
+            const newProgress = { ...prev }
+            delete newProgress[progressKey]
+            return newProgress
+          })
+
+          return {
+            docuName: file.name,
+            docuUrl: uploadResult.url
+          }
+        } catch (error) {
+          console.error(`Failed to upload ${file.name}:`, error)
+          setSnackbar({
+            open: true,
+            message: `Failed to upload ${file.name}`,
+            severity: "error"
+          })
+          return null
+        }
+      })
+
+      const uploadResults = await Promise.all(uploadPromises)
+      const successfulUploads = uploadResults.filter(result => result !== null)
+
       setFormData((prev) => ({
         ...prev,
-        supportDocuments: [...prev.supportDocuments, ...newDocs],
+        supportDocuments: [...prev.supportDocuments, ...successfulUploads],
       }))
+
+      if (successfulUploads.length > 0) {
+        setSnackbar({
+          open: true,
+          message: `Successfully uploaded ${successfulUploads.length} file(s)`,
+          severity: "success"
+        })
+      }
+    } catch (error) {
+      console.error('File upload error:', error)
+      setSnackbar({
+        open: true,
+        message: "File upload failed. Please try again.",
+        severity: "error"
+      })
+    } finally {
+      setLoading(false)
     }
   }, [])
 
-  const removeDocument = useCallback((index: number, isContactForm = false) => {
-    if (isContactForm) {
-      setContactForm((prev) => ({
-        ...prev,
-        supportDocuments: prev.supportDocuments.filter((_, i) => i !== index),
-      }))
-    } else {
+  const removeDocument = useCallback((index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      supportDocuments: prev.supportDocuments.filter((_, i) => i !== index),
+    }))
+  }, [])
+
+  // Handle photo upload
+  const handlePhotoUpload = useCallback(async (file: File) => {
+    const validationResult = validateFile(file, 2 * 1024 * 1024)
+    if (!validationResult.isValid) {
+      setSnackbar({
+        open: true,
+        message: validationResult.error || "Invalid photo file",
+        severity: "error"
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+      const onProgress = (progress: number) => {
+        setUploadProgress(prev => ({
+          ...prev,
+          photo: progress
+        }))
+      }
+
+      const uploadResult = await uploadFileWithSignedUrl(file, 'image', onProgress as any)
+
       setFormData((prev) => ({
         ...prev,
-        supportDocuments: prev.supportDocuments.filter((_, i) => i !== index),
+        photoURL: uploadResult.url
       }))
+
+      setUploadProgress(prev => {
+        const newProgress = { ...prev }
+        delete newProgress.photo
+        return newProgress
+      })
+
+      setSnackbar({
+        open: true,
+        message: "Photo uploaded successfully",
+        severity: "success"
+      })
+    } catch (error) {
+      console.error('Photo upload error:', error)
+      setSnackbar({
+        open: true,
+        message: "Photo upload failed. Please try again.",
+        severity: "error"
+      })
+    } finally {
+      setLoading(false)
     }
+  }, [])
+
+  // Signature canvas functionality
+  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.strokeStyle = '#000000'
+      ctx.lineWidth = 2
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      setIsDrawing(true)
+    }
+  }, [])
+
+  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.lineTo(x, y)
+      ctx.stroke()
+    }
+  }, [isDrawing])
+
+  const stopDrawing = useCallback(() => {
+    setIsDrawing(false)
+  }, [])
+
+  const clearSignature = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
+    setSignatureDataUrl("")
+  }, [])
+
+  const saveSignature = useCallback(async () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    try {
+      setLoading(true)
+
+      const onProgress = (progress: number) => {
+        setUploadProgress(prev => ({
+          ...prev,
+          signature: progress
+        }))
+      }
+
+      const uploadResult = await uploadSignature(canvas, 'signature.png', onProgress as any)
+
+      setFormData((prev) => ({
+        ...prev,
+        signatureURL: uploadResult.url
+      }))
+
+      setUploadProgress(prev => {
+        const newProgress = { ...prev }
+        delete newProgress.signature
+        return newProgress
+      })
+
+      setSignatureDataUrl(canvas.toDataURL())
+      setShowSignatureDialog(false)
+
+      setSnackbar({
+        open: true,
+        message: "Signature saved successfully",
+        severity: "success"
+      })
+    } catch (error) {
+      console.error('Signature upload error:', error)
+      setSnackbar({
+        open: true,
+        message: "Failed to save signature. Please try again.",
+        severity: "error"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Handle signature file upload as alternative
+  const handleSignatureFileUpload = useCallback(async (file: File) => {
+    const validationResult = validateFile(file, 2 * 1024 * 1024)
+    if (!validationResult.isValid) {
+      setSnackbar({
+        open: true,
+        message: validationResult.error || "Invalid signature file",
+        severity: "error"
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+      const onProgress = (progress: number) => {
+        setUploadProgress(prev => ({
+          ...prev,
+          signature: progress
+        }))
+      }
+
+      const uploadResult = await uploadFileWithSignedUrl(file, 'image', onProgress as any)
+
+      setFormData((prev) => ({
+        ...prev,
+        signatureURL: uploadResult.url
+      }))
+
+      setUploadProgress(prev => {
+        const newProgress = { ...prev }
+        delete newProgress.signature
+        return newProgress
+      })
+
+      setSnackbar({
+        open: true,
+        message: "Signature uploaded successfully",
+        severity: "success"
+      })
+    } catch (error) {
+      console.error('Signature upload error:', error)
+      setSnackbar({
+        open: true,
+        message: "Signature upload failed. Please try again.",
+        severity: "error"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Snackbar handler
+  const handleCloseSnackbar = useCallback(() => {
+    setSnackbar(prev => ({ ...prev, open: false }))
   }, [])
 
   const validateStep = (step: number): boolean => {
@@ -289,8 +624,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         if (!formData.district) newErrors.district = "District is required"
         if (!formData.emergencyContactNameKerala)
           newErrors.emergencyContactNameKerala = "Kerala emergency contact name is required"
-        if (!formData.emergencyContactMobileKerala)
-          newErrors.emergencyContactMobileKerala = "Kerala emergency contact mobile is required"
+        if (!formData.emergencyContactNumberKerala)
+          newErrors.emergencyContactNumberKerala = "Kerala emergency contact mobile is required"
         break
       case 4:
         if (!formData.IUMLContact) newErrors.IUMLContact = "IUML contact selection is required"
@@ -323,11 +658,6 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
   }
 
   const handleSubmit = async () => {
-    if (formData.IUMLContact === "Not able to provide any") {
-      setShowContactDialog(true)
-      return
-    }
-
     setLoading(true)
     setSubmissionStep("submitting")
 
@@ -341,29 +671,34 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         amountTobePaid: formData.amountTobePaid,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        partnerFirstName: formData.partnerFirstName,
+        partnerLastName: formData.partnerLastName,
+        partnerEmail: formData.partnerEmail,
+        partnerDob: formData.partnerDob,
+        partnerMobileNumber: formData.partnerMobileNumber,
+        partnerWhatsappNumber: formData.partnerWhatsappNumber,
         dob: formData.dob,
         email: formData.email,
         address: formData.address,
+        rejectionNotes: formData.rejectionNotes,
         mobileNumber: formData.mobileNumber,
         whatsappNumber: formData.whatsappNumber,
         visaStatus: formData.visaStatus,
-        partnerFirstName: formData.partnerFirstName,
-        partnerLastName: formData.partnerLastName,
-        partnerDob: formData.partnerDob,
-        partnerEmail: formData.partnerEmail,
-        partnerMobile: formData.partnerMobile,
-        partnerWhatsapp: formData.partnerWhatsapp,
         emergencyContactName: formData.emergencyContactName,
         emergencyContactMobile: formData.emergencyContactMobile,
         addressInKerala: formData.addressInKerala,
         assemblyName: formData.assemblyName,
         district: formData.district,
         emergencyContactNameKerala: formData.emergencyContactNameKerala,
-        emergencyContactMobileKerala: formData.emergencyContactMobileKerala,
+        emergencyContactNumberKerala: formData.emergencyContactNumberKerala,
         IUMLContact: formData.IUMLContact,
         queryType: formData.queryType,
         supportDocuments: formData.supportDocuments,
         query: formData.query,
+        queryFullName: formData.queryFullName,
+        queryEmail: formData.queryEmail,
+        queryAddress: formData.queryAddress,
+        queryMobileNumber: formData.queryMobileNumber,
         customer: formData.customer,
         iuMLContactName: formData.iuMLContactName,
         iuMLContactPosition: formData.iuMLContactPosition,
@@ -374,11 +709,37 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         shareInfoNorka: formData.shareInfoNorka,
         signatureURL: formData.signatureURL,
         paymentStatus: formData.paymentStatus,
-        stripeId: formData.stripeId
+        memberStatus: formData.memberStatus,
+        stripeId: ""
       }
 
-      // Submit membership application
-      const membershipResponse = await submitMembershipApplication(membershipData) as any
+      console.log("membershipData", membershipData);
+
+      // Get access token from localStorage and decode it to get customer info
+      const accessToken = localStorage.getItem("accessToken");
+      let customer = null;
+
+      if (accessToken) {
+        const decodedToken = decodeJWT(accessToken);
+        if (decodedToken) {
+          // Extract customer information from the decoded token
+          customer = decodedToken.customer || decodedToken.sub || decodedToken.user_id || decodedToken.id;
+          console.log("Decoded token:", decodedToken);
+          console.log("Extracted customer:", customer);
+
+          // Update membershipData with customer information if available
+          if (customer) {
+            membershipData.customer = customer;
+          }
+        }
+      }
+
+      // Submit membership application with Bearer token if available
+      const membershipResponse = accessToken
+        ? await submitMembershipApplication(membershipData, {
+            "Authorization": `Bearer ${accessToken}`
+          })
+        : await submitMembershipApplication(membershipData)
 
       setSnackbar({
         open: true,
@@ -386,37 +747,12 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         severity: "success"
       })
 
-      // If membership submission is successful, proceed with payment
-      if (membershipResponse && membershipResponse.id) {
-        setSubmissionStep("payment")
+      setSubmissionStep("success")
 
-        try {
-          const paymentResponse = await createMemberPayment(membershipResponse.id) as any
-
-          if (paymentResponse && paymentResponse.url) {
-            setSnackbar({
-              open: true,
-              message: "Redirecting to payment...",
-              severity: "info"
-            })
-
-            // Redirect to payment URL
-            window.location.href = paymentResponse.url
-          } else {
-            throw new Error("Payment URL not received")
-          }
-        } catch (paymentError) {
-          console.error("Payment error:", paymentError)
-          setSnackbar({
-            open: true,
-            message: "Application submitted but payment setup failed. Please contact support.",
-            severity: "warning"
-          })
-          setSubmissionStep("success")
-        }
-      } else {
-        throw new Error("Member ID not received from application submission")
-      }
+      // Redirect to home page after successful submission
+      setTimeout(() => {
+        router.push("/home")
+      }, 2000) // Wait 2 seconds to show the success message before redirecting)
 
     } catch (error) {
       console.error("Submission error:", error)
@@ -431,24 +767,9 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     }
   }
 
-  const handleContactSubmit = async () => {
-    setLoading(true)
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      console.log("Contact form submitted:", contactForm)
-      setShowContactDialog(false)
-      alert("Contact form submitted! We will get back to you soon.")
-    } catch (error) {
-      alert("Error submitting contact form. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }))
-  }
+
+
 
   const renderStep1 = () => (
     <Card elevation={3}>
@@ -744,8 +1065,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             <TextField
               fullWidth
               label="Partner Mobile Number"
-              value={formData.partnerMobile}
-              onChange={(e) => handleInputChange("partnerMobile", e.target.value)}
+              value={formData.partnerMobileNumber}
+              onChange={(e) => handleInputChange("partnerMobileNumber", e.target.value)}
               required={formData.applicationFor === "couple"}
               InputProps={{
                 startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
@@ -756,8 +1077,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             <TextField
               fullWidth
               label="Partner WhatsApp Number"
-              value={formData.partnerWhatsapp}
-              onChange={(e) => handleInputChange("partnerWhatsapp", e.target.value)}
+              value={formData.partnerWhatsappNumber}
+              onChange={(e) => handleInputChange("partnerWhatsappNumber", e.target.value)}
               required={formData.applicationFor === "couple"}
             />
           </Grid>
@@ -871,10 +1192,10 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               required
               fullWidth
               label="Emergency Contact Mobile in Kerala"
-              value={formData.emergencyContactMobileKerala}
-              onChange={(e) => handleInputChange("emergencyContactMobileKerala", e.target.value)}
-              error={!!errors.emergencyContactMobileKerala}
-              helperText={errors.emergencyContactMobileKerala}
+              value={formData.emergencyContactNumberKerala}
+              onChange={(e) => handleInputChange("emergencyContactNumberKerala", e.target.value)}
+              error={!!errors.emergencyContactNumberKerala}
+              helperText={errors.emergencyContactNumberKerala}
               InputProps={{
                 startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
               }}
@@ -1017,7 +1338,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) {
-                    handleInputChange("photoURL", URL.createObjectURL(file))
+                    handlePhotoUpload(file)
                   }
                 }}
               />
@@ -1135,21 +1456,272 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             {errors.shareInfoNorka && <FormHelperText>{errors.shareInfoNorka}</FormHelperText>}
           </FormControl>
 
-          <TextField
-            required
-            fullWidth
-            label="Digital Signature"
-            placeholder="Type your full name as digital signature"
-            value={formData.signatureURL}
-            onChange={(e) => handleInputChange("signatureURL", e.target.value)}
-            error={!!errors.signatureURL}
-            helperText={errors.signatureURL || "This serves as your digital signature for the application"}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "grey.50",
-              },
-            }}
-          />
+          {/* Signature Section - Direct Canvas Integration */}
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Digital Signature *
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Please draw your signature in the box below or upload an image
+            </Typography>
+
+            {/* Canvas for drawing signature */}
+            <Box sx={{ mb: 2 }}>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  border: '2px dashed #ccc',
+                  borderRadius: 1,
+                  textAlign: 'center',
+                  bgcolor: 'grey.50'
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Draw your signature below:
+                </Typography>
+                <canvas
+                  ref={canvasRef}
+                  width={500}
+                  height={150}
+                  style={{
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'crosshair',
+                    backgroundColor: 'white',
+                    maxWidth: '100%'
+                  }}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                />
+                <Box sx={{ mt: 1, display: 'flex', gap: 1, justifyContent: 'center' }}>
+                  <Button
+                    size="small"
+                    onClick={clearSignature}
+                    variant="outlined"
+                    startIcon={<Clear />}
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={saveSignature}
+                    variant="contained"
+                    startIcon={<CheckCircle />}
+                    disabled={loading}
+                  >
+                    Save Signature
+                  </Button>
+                </Box>
+              </Paper>
+            </Box>
+
+            {/* Alternative: Upload signature */}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1, textAlign: 'center' }}>
+              Or upload a signature image:
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <input
+                accept="image/*"
+                style={{ display: "none" }}
+                id="signature-upload"
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    handleSignatureFileUpload(file)
+                  }
+                }}
+              />
+              <label htmlFor="signature-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<CloudUpload />}
+                >
+                  Upload Signature
+                </Button>
+              </label>
+            </Box>
+
+            {uploadProgress.signature && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Processing signature... {Math.round(uploadProgress.signature)}%
+                </Typography>
+                <LinearProgress variant="determinate" value={uploadProgress.signature} />
+              </Box>
+            )}
+
+            {formData.signatureURL && (
+              <Box sx={{ mt: 2, textAlign: "center" }}>
+                <Chip
+                  label="Signature saved successfully"
+                  color="success"
+                  icon={<CheckCircle />}
+                  onDelete={() => handleInputChange("signatureURL", "")}
+                  deleteIcon={<Clear />}
+                />
+              </Box>
+            )}
+
+            {errors.signatureURL && (
+              <FormHelperText error>{errors.signatureURL}</FormHelperText>
+            )}
+          </Box>
+
+          {/* Contact Form Integration */}
+          <Box>
+            <Typography variant="h6" gutterBottom color="primary">
+              Contact Information for Queries
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Please provide your contact details for any follow-up queries regarding your membership application
+            </Typography>
+
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Full Name"
+                  value={formData.queryFullName}
+                  onChange={(e) => handleInputChange("queryFullName", e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  type="email"
+                  label="Email Address"
+                  value={formData.queryEmail}
+                  onChange={(e) => handleInputChange("queryEmail", e.target.value)}
+                  InputProps={{
+                    startAdornment: <Email sx={{ mr: 1, color: "action.active" }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Mobile Number"
+                  value={formData.queryMobileNumber}
+                  onChange={(e) => handleInputChange("queryMobileNumber", e.target.value)}
+                  InputProps={{
+                    startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Address"
+                  value={formData.queryAddress}
+                  onChange={(e) => handleInputChange("queryAddress", e.target.value)}
+                  InputProps={{
+                    startAdornment: <LocationOn sx={{ mr: 1, color: "action.active" }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Query Type</InputLabel>
+                  <Select
+                    value={formData.queryType}
+                    label="Query Type"
+                    onChange={(e) => handleInputChange("queryType", e.target.value)}
+                  >
+                    <MenuItem value="Accomodation">Accommodation</MenuItem>
+                    <MenuItem value="Airport Pickup">Airport Pickup</MenuItem>
+                    <MenuItem value="Carrer Guide">Career Guide</MenuItem>
+                    <MenuItem value="funeral Service">Funeral Service</MenuItem>
+                    <MenuItem value="ISlamic Schools">Islamic Schools</MenuItem>
+                    <MenuItem value="Membership">Membership</MenuItem>
+                    <MenuItem value="Mosque or Musallahs">Mosque or Musallahs</MenuItem>
+                    <MenuItem value="Visa">Visa</MenuItem>
+                    <MenuItem value="Others">Others</MenuItem>
+                  </Select>
+                </FormControl>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Choosing the right query type would direct to the right person
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Query Details"
+                  value={formData.query}
+                  onChange={(e) => handleInputChange("query", e.target.value)}
+                  placeholder="Please provide details about your query..."
+                />
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* Contact Form Evidence Upload */}
+          <Box>
+            <Typography variant="h6" gutterBottom color="primary">
+              Further Evidence for Queries
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Providing the correct evidence of your enquires ensures a speedy application processing time. Use the
+              evidence upload guide to assist you with the requirements of each documents. (JPEG, JPG, PNG, PDF, files
+              accepted). No larger than 2MB per file. You can add multiple files if scanned individual pages.
+            </Typography>
+            <Paper
+              sx={{
+                p: 4,
+                textAlign: "center",
+                border: "2px dashed",
+                borderColor: "secondary.main",
+                borderRadius: 2,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  borderColor: "secondary.dark",
+                  bgcolor: "secondary.light",
+                  color: "white",
+                },
+              }}
+            >
+              {/* SignatureDialog removed and integrated into form */}
+              {/* Removed the entire SignatureDialog component usage */}
+            </Paper>
+            {formData.supportDocuments.length > 0 && (
+              <List dense sx={{ mt: 2 }}>
+                {formData.supportDocuments.map((doc, index) => (
+                  <ListItem
+                    key={index}
+                    sx={{
+                      bgcolor: "grey.50",
+                      borderRadius: 1,
+                      mb: 1,
+                      border: "1px solid",
+                      borderColor: "grey.200",
+                    }}
+                  >
+                    <ListItemIcon>
+                      <AttachFile color="secondary" />
+                    </ListItemIcon>
+                    <ListItemText primary={doc.docuName || `Document ${index + 1}`} />
+                    <IconButton
+                      edge="end"
+                      onClick={() => removeDocument(index)}
+                      size="small"
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Box>
 
           <Paper elevation={2} sx={{ p: 3, bgcolor: "info.light", borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom color="info.contrastText">
@@ -1196,6 +1768,10 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         subheader="Please review your application carefully before submission"
       />
       <CardContent>
+        {/* Basic Information Section */}
+        <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2, mb: 2 }}>
+          Basic Information
+        </Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
@@ -1203,6 +1779,14 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 Support KMCC
               </Typography>
               <Typography variant="body2">{formData.supportKMCC ? "Yes" : "No"}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Read Bylaw
+              </Typography>
+              <Typography variant="body2">{formData.readBylaw ? "Yes" : "No"}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -1216,11 +1800,40 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
           <Grid item xs={12} sm={6}>
             <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
               <Typography variant="subtitle2" color="primary" gutterBottom>
-                Full Name
+                Amount to be Paid
               </Typography>
-              <Typography variant="body2">
-                {formData.firstName} {formData.lastName}
+              <Typography variant="body2">${formData.amountTobePaid}</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* Personal Information Section */}
+        <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4, mb: 2 }}>
+          Personal Information
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                First Name
               </Typography>
+              <Typography variant="body2">{formData.firstName}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Last Name
+              </Typography>
+              <Typography variant="body2">{formData.lastName}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Date of Birth
+              </Typography>
+              <Typography variant="body2">{formData.dob}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -1234,9 +1847,25 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
           <Grid item xs={12} sm={6}>
             <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
               <Typography variant="subtitle2" color="primary" gutterBottom>
-                Mobile
+                Mobile Number
               </Typography>
               <Typography variant="body2">{formData.mobileNumber}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                WhatsApp Number
+              </Typography>
+              <Typography variant="body2">{formData.whatsappNumber}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Address
+              </Typography>
+              <Typography variant="body2">{formData.address}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -1247,10 +1876,100 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               <Typography variant="body2">{formData.visaStatus}</Typography>
             </Paper>
           </Grid>
+        </Grid>
+
+        {/* Partner Details Section */}
+        {(formData.partnerFirstName || formData.partnerLastName || formData.partnerEmail) && (
+          <>
+            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4, mb: 2 }}>
+              Partner Details
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Partner First Name
+                  </Typography>
+                  <Typography variant="body2">{formData.partnerFirstName}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Partner Last Name
+                  </Typography>
+                  <Typography variant="body2">{formData.partnerLastName}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Partner Email
+                  </Typography>
+                  <Typography variant="body2">{formData.partnerEmail}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Partner Date of Birth
+                  </Typography>
+                  <Typography variant="body2">{formData.partnerDob}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Partner Mobile Number
+                  </Typography>
+                  <Typography variant="body2">{formData.partnerMobileNumber}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Partner WhatsApp Number
+                  </Typography>
+                  <Typography variant="body2">{formData.partnerWhatsappNumber}</Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </>
+        )}
+
+        {/* Emergency Contacts Section */}
+        <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4, mb: 2 }}>
+          Emergency Contacts
+        </Typography>
+        <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
               <Typography variant="subtitle2" color="primary" gutterBottom>
-                Assembly
+                Emergency Contact Name
+              </Typography>
+              <Typography variant="body2">{formData.emergencyContactName}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Emergency Contact Mobile
+              </Typography>
+              <Typography variant="body2">{formData.emergencyContactMobile}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Address in Kerala
+              </Typography>
+              <Typography variant="body2">{formData.addressInKerala}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Assembly Name
               </Typography>
               <Typography variant="body2">{formData.assemblyName}</Typography>
             </Paper>
@@ -1266,9 +1985,172 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
           <Grid item xs={12} sm={6}>
             <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
               <Typography variant="subtitle2" color="primary" gutterBottom>
+                Emergency Contact Name (Kerala)
+              </Typography>
+              <Typography variant="body2">{formData.emergencyContactNameKerala}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Emergency Contact Number (Kerala)
+              </Typography>
+              <Typography variant="body2">{formData.emergencyContactNumberKerala}</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* IUML References Section */}
+        <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4, mb: 2 }}>
+          IUML References
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
                 IUML Contact
               </Typography>
               <Typography variant="body2">{formData.IUMLContact}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                IUML Contact Name
+              </Typography>
+              <Typography variant="body2">{formData.iuMLContactName}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                IUML Contact Position
+              </Typography>
+              <Typography variant="body2">{formData.iuMLContactPosition}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                IUML Contact Number
+              </Typography>
+              <Typography variant="body2">{formData.iuMLContactNumber}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                IUML Location
+              </Typography>
+              <Typography variant="body2">{formData.iuMLLocation}</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* Contact Information for Queries Section - Only show if IUML Contact References is not able to provide any */}
+        {formData.IUMLContact === "not able to provide any" && (
+          <>
+            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4, mb: 2 }}>
+              Contact Information for Queries
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Query Type
+                  </Typography>
+                  <Typography variant="body2">{formData.queryType}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Query
+                  </Typography>
+                  <Typography variant="body2">{formData.query}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Query Full Name
+                  </Typography>
+                  <Typography variant="body2">{formData.queryFullName}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Query Email
+                  </Typography>
+                  <Typography variant="body2">{formData.queryEmail}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Query Address
+                  </Typography>
+                  <Typography variant="body2">{formData.queryAddress}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Query Mobile Number
+                  </Typography>
+                  <Typography variant="body2">{formData.queryMobileNumber}</Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </>
+        )}
+
+        {/* Documents & Final Section */}
+        <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4, mb: 2 }}>
+          Documents & Final
+        </Typography>
+        <Grid container spacing={3}>
+          {formData.supportDocuments.length > 0 && (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  Support Documents
+                </Typography>
+                {formData.supportDocuments.map((doc, index) => (
+                  <Typography key={index} variant="body2" sx={{ mb: 1 }}>
+                    • {doc.docuName}
+                  </Typography>
+                ))}
+              </Paper>
+            </Grid>
+          )}
+          {formData.photoURL && (
+            <Grid item xs={12} sm={6}>
+              <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  Photo
+                </Typography>
+                <Typography variant="body2">Photo uploaded</Typography>
+              </Paper>
+            </Grid>
+          )}
+          {formData.signatureURL && (
+            <Grid item xs={12} sm={6}>
+              <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  Signature
+                </Typography>
+                <Typography variant="body2">Signature provided</Typography>
+              </Paper>
+            </Grid>
+          )}
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Accept KMCC
+              </Typography>
+              <Typography variant="body2">{formData.acceptKmcc ? "Yes" : "No"}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -1279,6 +2161,16 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               <Typography variant="body2">{formData.shareInfoNorka ? "Yes" : "No"}</Typography>
             </Paper>
           </Grid>
+          {formData.customer && (
+            <Grid item xs={12} sm={6}>
+              <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  Customer ID
+                </Typography>
+                <Typography variant="body2">{formData.customer}</Typography>
+              </Paper>
+            </Grid>
+          )}
         </Grid>
 
         <Box sx={{ display: "flex", gap: 2, mt: 4, justifyContent: "center" }}>
@@ -1313,210 +2205,125 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     </Card>
   )
 
-  const ContactDialog = () => (
+  // Signature Dialog Component
+  const SignatureDialog = () => (
     <Dialog
-      open={showContactDialog}
-      onClose={() => setShowContactDialog(false)}
+      open={showSignatureDialog}
+      onClose={() => setShowSignatureDialog(false)}
       maxWidth="md"
       fullWidth
       PaperProps={{
         sx: { borderRadius: 2 },
       }}
     >
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-        <Typography variant="h5" color="primary">
-          Contact Us
-        </Typography>
-        <IconButton onClick={() => setShowContactDialog(false)} size="small">
-          <Close />
-        </IconButton>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6">Draw Your Signature</Typography>
+          <IconButton onClick={() => setShowSignatureDialog(false)} size="small">
+            <Close />
+          </IconButton>
+        </Box>
       </DialogTitle>
+
       <DialogContent>
-        <Typography variant="body1" gutterBottom sx={{ mb: 3 }}>
-          Let us know how can we help you. All your general queries go to our contact us page.
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Please draw your signature in the box below using your mouse or touch device
         </Typography>
 
-        <Paper elevation={2} sx={{ p: 3, bgcolor: "primary.light", borderRadius: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }} color="white">
-            <Phone /> You can contact KMCC Australia via phone:
-          </Typography>
-          <Typography variant="h6" color="white" sx={{ fontWeight: "bold" }}>
-            +61 426 748 871 / +61 433 520 001
-          </Typography>
-        </Paper>
+        <Box sx={{
+          border: '2px dashed #ccc',
+          borderRadius: 1,
+          p: 2,
+          textAlign: 'center',
+          bgcolor: 'grey.50'
+        }}>
+          <canvas
+            ref={canvasRef}
+            width={500}
+            height={200}
+            style={{
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              cursor: 'crosshair',
+              backgroundColor: 'white'
+            }}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+          />
+        </Box>
 
-        <Typography variant="h6" gutterBottom color="primary">
-          General Enquiry Form
-        </Typography>
-
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={contactForm.fullName}
-              onChange={(e) => handleContactFormChange("fullName", e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="email"
-              label="Email Address"
-              value={contactForm.email}
-              onChange={(e) => handleContactFormChange("email", e.target.value)}
-              InputProps={{
-                startAdornment: <Email sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Mobile Number"
-              value={contactForm.mobile}
-              onChange={(e) => handleContactFormChange("mobile", e.target.value)}
-              InputProps={{
-                startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Address"
-              value={contactForm.address}
-              onChange={(e) => handleContactFormChange("address", e.target.value)}
-              InputProps={{
-                startAdornment: <LocationOn sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel>Query Type</InputLabel>
-              <Select
-                value={contactForm.queryType}
-                label="Query Type"
-                onChange={(e) => handleContactFormChange("queryType", e.target.value)}
-              >
-                <MenuItem value="Accommodation">Accommodation</MenuItem>
-                <MenuItem value="Airport Pickup">Airport Pickup</MenuItem>
-                <MenuItem value="Career Guide">Career Guide</MenuItem>
-                <MenuItem value="Funeral Service">Funeral Service</MenuItem>
-                <MenuItem value="Islamic Schools">Islamic Schools</MenuItem>
-                <MenuItem value="Membership">Membership</MenuItem>
-                <MenuItem value="Mosque or Musallahs">Mosque or Musallahs</MenuItem>
-                <MenuItem value="Visa">Visa</MenuItem>
-                <MenuItem value="Others">Others</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Choosing the right query type would direct to the right person
+        {uploadProgress.signature && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Saving signature... {Math.round(uploadProgress.signature)}%
             </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Further Evidence
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Providing the correct evidence of your enquires ensures a speedy application processing time. Use the
-              evidence upload guide to assist you with the requirements of each documents. (JPEG, JPG, PNG, PDF, files
-              accepted). No larger than 2MB per file. You can add multiple files if scanned individual pages.
-            </Typography>
-            <Paper
-              sx={{
-                p: 4,
-                textAlign: "center",
-                border: "2px dashed",
-                borderColor: "secondary.main",
-                borderRadius: 2,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  borderColor: "secondary.dark",
-                  bgcolor: "secondary.light",
-                  color: "white",
-                },
-              }}
-            >
-              <input
-                accept=".pdf,.jpg,.jpeg,.png"
-                style={{ display: "none" }}
-                id="contact-doc-upload"
-                type="file"
-                multiple
-                onChange={(e) => handleFileUpload(e.target.files, true)}
-              />
-              <label htmlFor="contact-doc-upload" style={{ cursor: "pointer", display: "block" }}>
-                <CloudUpload sx={{ fontSize: 48, mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Drop files here or click to upload
-                </Typography>
-              </label>
-            </Paper>
-            {contactForm.supportDocuments.length > 0 && (
-              <List dense sx={{ mt: 2 }}>
-                {contactForm.supportDocuments.map((file, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      bgcolor: "grey.50",
-                      borderRadius: 1,
-                      mb: 1,
-                      border: "1px solid",
-                      borderColor: "grey.200",
-                    }}
-                  >
-                    <ListItemIcon>
-                      <AttachFile color="primary" />
-                    </ListItemIcon>
-                    <ListItemText primary={file.name} />
-                    <IconButton edge="end" onClick={() => removeDocument(index, true)} size="small" color="error">
-                      <Delete />
-                    </IconButton>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Please describe your queries in detail"
-              value={contactForm.queryDetail}
-              onChange={(e) => handleContactFormChange("queryDetail", e.target.value)}
-            />
-          </Grid>
-        </Grid>
+            <LinearProgress variant="determinate" value={uploadProgress.signature} />
+          </Box>
+        )}
       </DialogContent>
-      <DialogActions sx={{ p: 3 }}>
-        <Button onClick={() => setShowContactDialog(false)} variant="outlined">
+
+      <DialogActions sx={{ p: 3, gap: 1 }}>
+        <Button
+          onClick={clearSignature}
+          variant="outlined"
+          startIcon={<Clear />}
+        >
+          Clear
+        </Button>
+        <Button
+          onClick={() => setShowSignatureDialog(false)}
+          variant="outlined"
+        >
           Cancel
         </Button>
-        <Button variant="contained" onClick={handleContactSubmit} disabled={loading} startIcon={<Send />}>
-          {loading ? "Submitting..." : "Submit Query"}
+        <Button
+          onClick={saveSignature}
+          variant="contained"
+          startIcon={<CheckCircle />}
+          disabled={loading}
+        >
+          Save Signature
         </Button>
       </DialogActions>
       {loading && <LinearProgress />}
     </Dialog>
   )
 
+
+
+  // Show loading state while colors are being fetched
+  if (colorLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Box sx={{ textAlign: "center" }}>
+          <CircularProgress size={60} sx={{ mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Loading membership application...
+          </Typography>
+        </Box>
+      </Container>
+    )
+  }
+
   if (showPreview) {
     return (
-      <ThemeProvider theme={theme}>
-        <Container maxWidth="lg" sx={{ py: 4, bgcolor: "background.default", minHeight: "100vh" }}>
-          {renderPreview()}
-          <ContactDialog />
-        </Container>
-      </ThemeProvider>
+      <Suspense fallback={<div>Loading...</div>}>
+        <ThemeProvider theme={createDynamicTheme(color || {})}>
+          <Container maxWidth="lg" sx={{ py: 4, bgcolor: "background.default", minHeight: "100vh" }}>
+            {renderPreview()}
+            {/* ContactDialog removed - now integrated into step 6 */}
+            <SignatureDialog />
+          </Container>
+        </ThemeProvider>
+      </Suspense>
     )
   }
 
   return (
-    <ThemeProvider theme={theme}>
+    <Suspense fallback={<div>Loading...</div>}>
+      <ThemeProvider theme={createDynamicTheme(color || {})}>
       <Container maxWidth="lg" sx={{ py: 4, bgcolor: "background.default", minHeight: "100vh" }}>
         <Paper elevation={1} sx={{ p: 4, mb: 4, textAlign: "center", borderRadius: 3 }}>
           <Typography variant="h3" component="h1" gutterBottom>
@@ -1574,7 +2381,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
           </Box>
         </Paper>
 
-        <ContactDialog />
+        {/* ContactDialog removed - now integrated into step 6 */}
+        <SignatureDialog />
 
         {/* Snackbar for user feedback */}
         <Snackbar
@@ -1593,5 +2401,6 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         </Snackbar>
       </Container>
     </ThemeProvider>
+    </Suspense>
   )
 }

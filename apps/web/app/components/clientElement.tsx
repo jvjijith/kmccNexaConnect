@@ -10,7 +10,7 @@ import Banner from "@repo/ui/banner";
 import Paragraph from "@repo/ui/biography";
 import TextBanner from "@repo/ui/textbanner";
 import { withOpacity } from "../../src/utils/colors";
-import SliderPage from "./slider";
+import SliderPage from "../../src/components/slider";
 import { Box, Typography } from "@repo/ui/mui";
 
 interface ClientElementProps {

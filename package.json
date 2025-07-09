@@ -25,6 +25,9 @@
     "packages/*"
   ],
   "dependencies": {
-    "nextjs-toploader": "^3.7.15"
+    "@aws-sdk/client-s3": "^3.842.0",
+    "@aws-sdk/s3-request-presigner": "^3.842.0",
+    "nextjs-toploader": "^3.7.15",
+    "uuid": "^11.1.0"
   }
 }

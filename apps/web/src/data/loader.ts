@@ -166,3 +166,12 @@ export async function createSalesInvoice(data: any, headers?: HeadersInit) {
 export async function getEventRegistrationsByPaymentStatus(eventId: string, paymentStatus: string, headers?: HeadersInit) {
   return await fetchApi(`/events/${eventId}/registrations/payment-status/${paymentStatus}`, { headers });
 }
+
+// Get membership by customer ID
+export async function getMembershipByCustomerId(customerId: string, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/members/customer/${customerId}`, { headers });
+  } catch (error: any) {
+    throw new Error(error || 'Failed to fetch membership data');
+  }
+}

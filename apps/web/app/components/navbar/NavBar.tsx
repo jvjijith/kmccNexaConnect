@@ -33,7 +33,8 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
-import { logoutUser } from '../../../src/lib/auth';
+import { logoutUser, getCustomerIdFromToken, getAuthHeaders } from '../../../src/lib/auth';
+import { getMembershipByCustomerId } from '../../../src/data/loader';
 
 interface MenuItemType {
   menuName: string;
@@ -63,22 +64,66 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [cartItemCount, setCartItemCount] = useState<number>(0);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
-  
+  const [showMembership, setShowMembership] = useState<boolean>(false);
+
   const isMobile = useMediaQuery('(max-width:900px)');
   const isTablet = useMediaQuery('(max-width:1200px)');
   const isHomePage = activePath === '/home';
 
+  // Check membership eligibility function
+  const checkMembershipEligibility = useCallback(async () => {
+    // If not logged in, do not show membership
+    if (!isLoggedIn) {
+      setShowMembership(false);
+      return;
+    }
+
+    try {
+      const customerId = getCustomerIdFromToken();
+
+      // If no customerId, treat as new user and show membership button
+      if (!customerId) {
+        setShowMembership(true); // Show if no membership found (new user)
+        return;
+      }
+
+      const headers = getAuthHeaders();
+      const membershipData = await getMembershipByCustomerId(customerId, headers);
+
+      // Show membership button if no membership found
+      if (!membershipData || membershipData.length === 0) {
+        setShowMembership(true);
+        return;
+      }
+
+      const membership = membershipData; // Get the first membership record
+      const { memberStatus, paymentStatus } = membership;
+
+      // Show membership button only if memberStatus is pending/rejected or paymentStatus is unpaid
+      // Update: According to code, we hide membership in these cases, else show
+      if (memberStatus === 'pending' || memberStatus === 'rejected') {
+        setShowMembership(false);
+      } else {
+        setShowMembership(true);
+      }
+    } catch (error) {
+      console.error('Error checking membership eligibility:', error);
+      setShowMembership(true); // Show on error (assume new user)
+    }
+  }, [isLoggedIn]);
+
   // Check login status function
   const checkLoginStatus = useCallback(() => {
     const userToken = localStorage.getItem('accessToken');
-    const isUserLoggedIn = !!userToken;
+    const isLoggedInFlag = localStorage.getItem('isLoggedIn');
+    const isUserLoggedIn = !!userToken && isLoggedInFlag === 'true';
     setIsLoggedIn(isUserLoggedIn);
-    
+
     // Example cart count - replace with your actual cart logic
     const cartItems = localStorage.getItem('cartItems');
     setCartItemCount(cartItems ? JSON.parse(cartItems).length : 0);
-    
-    console.log("Login status checked:", isUserLoggedIn);
+
+    console.log("Login status checked:", isUserLoggedIn, "Token exists:", !!userToken, "Flag:", isLoggedInFlag);
   }, []);
 
   // Update active path when component mounts or path changes
@@ -86,7 +131,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     // Get the current path from window.location
     const path = window.location.pathname;
     setActivePath(path);
-    
+
     // Listen for path changes
     const handleRouteChange = () => {
       setActivePath(window.location.pathname);
@@ -100,25 +145,31 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
       }
     };
 
-    // Listen for auth state changes
+    // Check login status on mount
+    checkLoginStatus();
+
+    // Listen for custom auth state changes
     const handleAuthStateChange = () => {
-      console.log("Auth state change detected");
       checkLoginStatus();
     };
-    
-    checkLoginStatus();
+
+    // Add event listeners
     window.addEventListener('popstate', handleRouteChange);
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('authStateChanged', handleAuthStateChange);
-    window.addEventListener('storage', handleAuthStateChange);
-    
+
+    // Cleanup
     return () => {
       window.removeEventListener('popstate', handleRouteChange);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('authStateChanged', handleAuthStateChange);
-      window.removeEventListener('storage', handleAuthStateChange);
     };
-  }, [scrolled, checkLoginStatus]);
+  }, [checkLoginStatus]);
+
+  // Check membership eligibility when login status changes
+  useEffect(() => {
+    checkMembershipEligibility();
+  }, [isLoggedIn, checkMembershipEligibility]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>, index: number) => {
     setAnchorElNav(event.currentTarget);
@@ -204,7 +255,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 {/* Palm Tree Static Logo */}
                 <Box 
                   component="img" 
-                  src={menuData.imageUrl} 
+                  src="/logo.png" 
                   alt="Logo" 
                   sx={{ 
                     height: { xs: 32, sm: 40, md: 60 },
@@ -236,7 +287,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     textOverflow: 'ellipsis'
                   }}
                 >
-                  {menuData.menuName}
+                  {/* {menuData.menuName} */}
                 </Box>
               </Box>
             </Box>
@@ -360,7 +411,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               ml: 'auto'
             }}>
               {/* Membership Button */}
-              {!isMobile && (
+              {!isMobile && showMembership && (
                 <Button
                   variant="contained"
                   href="/membership"
@@ -615,16 +666,18 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                   <ListItemText primary="Login" />
                 </ListItem>
               )}
-              <ListItem component="a" href="/membership" sx={{ 
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: 'primary.light',
-                  color: 'primary.contrastText'
-                },
-                borderRadius: 1
-              }}>
-                <ListItemText primary="Membership" />
-              </ListItem>
+              {showMembership && (
+                <ListItem component="a" href="/membership" sx={{
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'primary.light',
+                    color: 'primary.contrastText'
+                  },
+                  borderRadius: 1
+                }}>
+                  <ListItemText primary="Membership" />
+                </ListItem>
+              )}
             </Box>
           </List>
         </Box>

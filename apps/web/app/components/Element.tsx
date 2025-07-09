@@ -1,8 +1,8 @@
 // element.tsx
-import { getColor, getPageById } from "../data/loader";
+import { getColor, getPageById } from "../../src/data/loader";
 
 // Import theme constants (not functions)
-import { themes } from "../utils/colors";
+import { themes } from "../../src/utils/colors";
 import ClientElement from "./clientElement";
 
 interface ElementProps {

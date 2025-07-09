@@ -46,7 +46,7 @@ function CartPageContent() {
         
         return {
           id: item._id,
-          productCode: product.productCode,
+          productCode: product._id,
           name: product.name,
           brand: typeof product.brand === 'string' ? product.brand : product.brand?.name || '',
           model: product.model || '',
@@ -87,7 +87,7 @@ function CartPageContent() {
       }
 
       const data = {
-        product: productId,
+        productId: productId,
         quantity: quantity
       }
 
@@ -113,7 +113,7 @@ function CartPageContent() {
       }
 
       const data = {
-        product: productId
+        productId: productId
       }
 
       console.log("Removing cart item:", data)
