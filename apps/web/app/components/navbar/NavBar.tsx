@@ -34,8 +34,7 @@ import {
   Favorite as DonationIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
-import { logoutUser, getCustomerIdFromToken, getAuthHeaders } from '../../../src/lib/auth';
-import { getMembershipByCustomerId } from '../../../src/data/loader';
+import { logoutUser } from '../../../src/lib/auth';
 
 interface MenuItemType {
   menuName: string;
@@ -221,16 +220,18 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                   }} 
                 />
                 {/* Dynamic Logo */}
-                <Box 
-                  component="img" 
-                  src={menuData.imageUrl} 
-                  alt="Logo" 
-                  sx={{ 
-                    height: { xs: 32, sm: 40, md: 60 },
-                    mr: { xs: 0.5, sm: 1 },
-                    flexShrink: 0
-                  }} 
-                />
+                {menuData?.imageUrl && (
+                  <Box
+                    component="img"
+                    src={menuData.imageUrl}
+                    alt="Logo"
+                    sx={{
+                      height: { xs: 32, sm: 40, md: 60 },
+                      mr: { xs: 0.5, sm: 1 },
+                      flexShrink: 0
+                    }}
+                  />
+                )}
                 <Box
                   component="span"
                   sx={{
@@ -274,7 +275,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 justifyContent: 'center',
                 overflow: 'hidden'
               }}>
-                {menuData.items.map((item, index) => {
+                {(menuData?.items || []).map((item, index) => {
                   const hasSubItems = item.multiItems && item.multiItems.length > 0;
                   const itemIsActive = isActive(`/${item.menuName.toLowerCase()}`);
                   
@@ -526,14 +527,14 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
       >
         <Box sx={{ p: 2 }}>
           <List>
-            {menuData.items.map((item, index) => {
+            {(menuData?.items || []).map((item, index) => {
               const hasSubItems = item.multiItems && item.multiItems.length > 0;
               const isExpanded = expandedMobileMenus.includes(index);
               const itemIsActive = isActive(`/${item.menuName.toLowerCase()}`);
-              
+
               return (
                 <React.Fragment key={index}>
-                  <ListItem 
+                  <ListItem
                     onClick={hasSubItems ? () => toggleMobileSubmenu(index) : undefined}
                     component={hasSubItems ? "div" : "a"}
                     href={hasSubItems ? undefined : `/${item.menuName.toLowerCase()}`}
@@ -549,7 +550,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                       mb: 0.5
                     }}
                   >
-                    <ListItemText 
+                    <ListItemText
                       primary={item.menuName}
                       sx={{
                         fontWeight: itemIsActive ? 700 : 400
@@ -559,16 +560,16 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                       isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />
                     )}
                   </ListItem>
-                  
+
                   {hasSubItems && (
                     <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                       <List component="div" disablePadding>
                         {item.multiItems?.map((subItem, subIndex) => (
-                          <ListItem 
-                            key={subIndex} 
+                          <ListItem
+                            key={subIndex}
                             component="a"
                             href={`/${subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
-                            sx={{ 
+                            sx={{
                               pl: 4,
                               cursor: 'pointer',
                               '&:hover': {
