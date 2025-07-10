@@ -225,7 +225,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const theme = createDynamicTheme({themes});
 
   // Get navbar colors from theme
-  const navbarBgColor = themes?.navbar?.backgroundColor || (scrolled ? "rgba(0, 0, 0, 0.85)" : "rgba(255, 255, 255, 0)");
+  const navbarBgColor = themes?.navbar?.backgroundColor || (scrolled ? "#F5F5DC" : "rgba(255, 255, 255, 0)");
   const navbarTextColor = themes?.navbar?.textColor || (isHomePage ? 'white' : scrolled ? 'white' : 'text.primary');
 
   return (
