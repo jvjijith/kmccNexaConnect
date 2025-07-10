@@ -616,6 +616,17 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         if (!formData.whatsappNumber) newErrors.whatsappNumber = "WhatsApp number is required"
         if (!formData.visaStatus) newErrors.visaStatus = "Visa status is required"
         break
+      case 2:
+        // Partner details validation - required only for couple membership
+        if (formData.applicationFor === "couple") {
+          if (!formData.partnerFirstName) newErrors.partnerFirstName = "Partner first name is required"
+          if (!formData.partnerLastName) newErrors.partnerLastName = "Partner last name is required"
+          if (!formData.partnerDob) newErrors.partnerDob = "Partner date of birth is required"
+          if (!formData.partnerEmail) newErrors.partnerEmail = "Partner email is required"
+          if (!formData.partnerMobileNumber) newErrors.partnerMobileNumber = "Partner mobile number is required"
+          if (!formData.partnerWhatsappNumber) newErrors.partnerWhatsappNumber = "Partner WhatsApp number is required"
+        }
+        break
       case 3:
         if (!formData.emergencyContactName) newErrors.emergencyContactName = "Emergency contact name is required"
         if (!formData.emergencyContactMobile) newErrors.emergencyContactMobile = "Emergency contact mobile is required"
@@ -830,7 +841,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               }}
             >
               <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Info />
+                <Info color="primary" />
                 Melbourne KMCC ByLaw Overview
               </Typography>
               <Typography variant="body2" sx={{ whiteSpace: "pre-line", lineHeight: 1.6 }}>
@@ -854,7 +865,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
           <Alert
             severity="info"
-            icon={<CheckCircle />}
+            icon={<CheckCircle color="primary" />}
             sx={{
               borderRadius: 2,
               "& .MuiAlert-message": { width: "100%" },
@@ -925,19 +936,19 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             />
           </Grid>
           <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              type="email"
-              label="Email Address"
-              value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              error={!!errors.email}
-              helperText={errors.email}
-              InputProps={{
-                startAdornment: <Email sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
+          <TextField
+            required
+            fullWidth
+            type="email"
+            label="Email Address"
+            value={formData.email}
+            onChange={(e) => handleInputChange("email", e.target.value)}
+            error={!!errors.email}
+            helperText={errors.email}
+            InputProps={{
+              startAdornment: <Email sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+            }}
+          />
           </Grid>
           <Grid item xs={12}>
             <TextField
@@ -952,23 +963,23 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               error={!!errors.address}
               helperText={errors.address}
               InputProps={{
-                startAdornment: <LocationOn sx={{ mr: 1, color: "action.active", alignSelf: "flex-start", mt: 1 }} />,
+                startAdornment: <LocationOn  sx={{ mr: 1, color: "primary.main", alignSelf: "flex-start", mt: 1 }} />,
               }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              required
-              fullWidth
-              label="Mobile Number (Australia)"
-              value={formData.mobileNumber}
-              onChange={(e) => handleInputChange("mobileNumber", e.target.value)}
-              error={!!errors.mobileNumber}
-              helperText={errors.mobileNumber}
-              InputProps={{
-                startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
+          <TextField
+            required
+            fullWidth
+            label="Mobile Number (Australia)"
+            value={formData.mobileNumber}
+            onChange={(e) => handleInputChange("mobileNumber", e.target.value)}
+            error={!!errors.mobileNumber}
+            helperText={errors.mobileNumber}
+            InputProps={{
+              startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+            }}
+          />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -1026,6 +1037,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               value={formData.partnerFirstName}
               onChange={(e) => handleInputChange("partnerFirstName", e.target.value)}
               required={formData.applicationFor === "couple"}
+              error={!!errors.partnerFirstName}
+              helperText={errors.partnerFirstName}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -1035,6 +1048,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               value={formData.partnerLastName}
               onChange={(e) => handleInputChange("partnerLastName", e.target.value)}
               required={formData.applicationFor === "couple"}
+              error={!!errors.partnerLastName}
+              helperText={errors.partnerLastName}
             />
           </Grid>
           <Grid item xs={12}>
@@ -1046,32 +1061,38 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               value={formData.partnerDob}
               onChange={(e) => handleInputChange("partnerDob", e.target.value)}
               required={formData.applicationFor === "couple"}
+              error={!!errors.partnerDob}
+              helperText={errors.partnerDob}
             />
           </Grid>
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              type="email"
-              label="Partner Email"
-              value={formData.partnerEmail}
-              onChange={(e) => handleInputChange("partnerEmail", e.target.value)}
-              required={formData.applicationFor === "couple"}
-              InputProps={{
-                startAdornment: <Email sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
+          <TextField
+            fullWidth
+            type="email"
+            label="Partner Email"
+            value={formData.partnerEmail}
+            onChange={(e) => handleInputChange("partnerEmail", e.target.value)}
+            required={formData.applicationFor === "couple"}
+            error={!!errors.partnerEmail}
+            helperText={errors.partnerEmail}
+            InputProps={{
+              startAdornment: <Email sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+            }}
+          />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Partner Mobile Number"
-              value={formData.partnerMobileNumber}
-              onChange={(e) => handleInputChange("partnerMobileNumber", e.target.value)}
-              required={formData.applicationFor === "couple"}
-              InputProps={{
-                startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
+          <TextField
+            fullWidth
+            label="Partner Mobile Number"
+            value={formData.partnerMobileNumber}
+            onChange={(e) => handleInputChange("partnerMobileNumber", e.target.value)}
+            required={formData.applicationFor === "couple"}
+            error={!!errors.partnerMobileNumber}
+            helperText={errors.partnerMobileNumber}
+            InputProps={{
+              startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+            }}
+          />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -1080,6 +1101,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               value={formData.partnerWhatsappNumber}
               onChange={(e) => handleInputChange("partnerWhatsappNumber", e.target.value)}
               required={formData.applicationFor === "couple"}
+              error={!!errors.partnerWhatsappNumber}
+              helperText={errors.partnerWhatsappNumber}
             />
           </Grid>
         </Grid>
@@ -1117,18 +1140,18 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              required
-              fullWidth
-              label="Emergency Contact Mobile in Australia"
-              value={formData.emergencyContactMobile}
-              onChange={(e) => handleInputChange("emergencyContactMobile", e.target.value)}
-              error={!!errors.emergencyContactMobile}
-              helperText={errors.emergencyContactMobile}
-              InputProps={{
-                startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
-              }}
-            />
+          <TextField
+            required
+            fullWidth
+            label="Emergency Contact Mobile in Australia"
+            value={formData.emergencyContactMobile}
+            onChange={(e) => handleInputChange("emergencyContactMobile", e.target.value)}
+            error={!!errors.emergencyContactMobile}
+            helperText={errors.emergencyContactMobile}
+            InputProps={{
+              startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+            }}
+          />
           </Grid>
 
           <Grid item xs={12}>
@@ -1138,21 +1161,21 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             <Divider sx={{ mb: 2 }} />
           </Grid>
           <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              multiline
-              rows={3}
-              label="Address in Kerala"
-              placeholder="Street Address, City, State, Zip Code, Country"
-              value={formData.addressInKerala}
-              onChange={(e) => handleInputChange("addressInKerala", e.target.value)}
-              error={!!errors.addressInKerala}
-              helperText={errors.addressInKerala}
-              InputProps={{
-                startAdornment: <LocationOn sx={{ mr: 1, color: "action.active", alignSelf: "flex-start", mt: 1 }} />,
-              }}
-            />
+          <TextField
+            required
+            fullWidth
+            multiline
+            rows={3}
+            label="Address in Kerala"
+            placeholder="Street Address, City, State, Zip Code, Country"
+            value={formData.addressInKerala}
+            onChange={(e) => handleInputChange("addressInKerala", e.target.value)}
+            error={!!errors.addressInKerala}
+            helperText={errors.addressInKerala}
+            InputProps={{
+              startAdornment: <LocationOn sx={{ mr: 1, color: "primary.main", alignSelf: "flex-start", mt: 1 }} />, // Changed from "action.active"
+            }}
+          />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -1188,6 +1211,20 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             />
           </Grid>
           <Grid item xs={12} sm={6}>
+          <TextField
+            required
+            fullWidth
+            label="Emergency Contact Mobile in Kerala"
+            value={formData.emergencyContactNumberKerala}
+            onChange={(e) => handleInputChange("emergencyContactNumberKerala", e.target.value)}
+            error={!!errors.emergencyContactNumberKerala}
+            helperText={errors.emergencyContactNumberKerala}
+            InputProps={{
+              startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+            }}
+          />
+          </Grid>
+          {/* <Grid item xs={12} sm={6}>
             <TextField
               required
               fullWidth
@@ -1197,10 +1234,10 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               error={!!errors.emergencyContactNumberKerala}
               helperText={errors.emergencyContactNumberKerala}
               InputProps={{
-                startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
+                startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />,
               }}
             />
-          </Grid>
+          </Grid> */}
         </Grid>
       </CardContent>
     </Card>
@@ -1277,18 +1314,18 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    required
-                    fullWidth
-                    label="Phone Number"
-                    value={formData.iuMLContactNumber}
-                    onChange={(e) => handleInputChange("iuMLContactNumber", e.target.value)}
-                    error={!!errors.iuMLContactNumber}
-                    helperText={errors.iuMLContactNumber}
-                    InputProps={{
-                      startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
-                    }}
-                  />
+                <TextField
+                  required
+                  fullWidth
+                  label="Phone Number"
+                  value={formData.iuMLContactNumber}
+                  onChange={(e) => handleInputChange("iuMLContactNumber", e.target.value)}
+                  error={!!errors.iuMLContactNumber}
+                  helperText={errors.iuMLContactNumber}
+                  InputProps={{
+                    startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+                  }}
+                />
                 </Grid>
               </Grid>
             </Paper>
@@ -1343,7 +1380,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 }}
               />
               <label htmlFor="photo-upload" style={{ cursor: "pointer", display: "block" }}>
-                <CloudUpload sx={{ fontSize: 48, mb: 2 }} />
+                <CloudUpload color="primary" sx={{ fontSize: 48, mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
                   Click to upload or drag and drop
                 </Typography>
@@ -1352,7 +1389,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             </Paper>
             {formData.photoURL && (
               <Box sx={{ mt: 2, textAlign: "center" }}>
-                <Chip label="Photo uploaded successfully" color="success" icon={<CheckCircle />} />
+                <Chip label="Photo uploaded successfully" color="success" icon={<CheckCircle color="primary" />} />
               </Box>
             )}
           </Box>
@@ -1386,7 +1423,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 onChange={(e) => handleFileUpload(e.target.files)}
               />
               <label htmlFor="doc-upload" style={{ cursor: "pointer", display: "block" }}>
-                <AttachFile sx={{ fontSize: 48, mb: 2 }} />
+                <AttachFile color="primary" sx={{ fontSize: 48, mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
                   Click to upload documents
                 </Typography>
@@ -1411,7 +1448,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                     </ListItemIcon>
                     <ListItemText primary={doc.docuName} />
                     <IconButton edge="end" onClick={() => removeDocument(index)} size="small" color="error">
-                      <Delete />
+                      <Delete color="error" />
                     </IconButton>
                   </ListItem>
                 ))}
@@ -1501,7 +1538,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                     size="small"
                     onClick={clearSignature}
                     variant="outlined"
-                    startIcon={<Clear />}
+                    startIcon={<Clear color="primary" />}
                   >
                     Clear
                   </Button>
@@ -1509,7 +1546,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                     size="small"
                     onClick={saveSignature}
                     variant="contained"
-                    startIcon={<CheckCircle />}
+                    startIcon={<CheckCircle color="primary" />}
                     disabled={loading}
                   >
                     Save Signature
@@ -1560,9 +1597,9 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 <Chip
                   label="Signature saved successfully"
                   color="success"
-                  icon={<CheckCircle />}
+                  icon={<CheckCircle color="primary" />}
                   onDelete={() => handleInputChange("signatureURL", "")}
-                  deleteIcon={<Clear />}
+                  deleteIcon={<Clear color="primary" />}
                 />
               </Box>
             )}
@@ -1592,39 +1629,39 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  type="email"
-                  label="Email Address"
-                  value={formData.queryEmail}
-                  onChange={(e) => handleInputChange("queryEmail", e.target.value)}
-                  InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: "action.active" }} />,
-                  }}
-                />
+              <TextField
+                required
+                fullWidth
+                type="email"
+                label="Email Address"
+                value={formData.queryEmail}
+                onChange={(e) => handleInputChange("queryEmail", e.target.value)}
+                InputProps={{
+                  startAdornment: <Email sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+                }}
+              />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Mobile Number"
-                  value={formData.queryMobileNumber}
-                  onChange={(e) => handleInputChange("queryMobileNumber", e.target.value)}
-                  InputProps={{
-                    startAdornment: <Phone sx={{ mr: 1, color: "action.active" }} />,
-                  }}
-                />
+              <TextField
+                fullWidth
+                label="Mobile Number"
+                value={formData.queryMobileNumber}
+                onChange={(e) => handleInputChange("queryMobileNumber", e.target.value)}
+                InputProps={{
+                  startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+                }}
+              />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Address"
-                  value={formData.queryAddress}
-                  onChange={(e) => handleInputChange("queryAddress", e.target.value)}
-                  InputProps={{
-                    startAdornment: <LocationOn sx={{ mr: 1, color: "action.active" }} />,
-                  }}
-                />
+              <TextField
+                fullWidth
+                label="Address"
+                value={formData.queryAddress}
+                onChange={(e) => handleInputChange("queryAddress", e.target.value)}
+                InputProps={{
+                  startAdornment: <LocationOn sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
+                }}
+              />
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
@@ -1706,7 +1743,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                     }}
                   >
                     <ListItemIcon>
-                      <AttachFile color="secondary" />
+                      <AttachFile color="primary" />
                     </ListItemIcon>
                     <ListItemText primary={doc.docuName || `Document ${index + 1}`} />
                     <IconButton
@@ -1715,7 +1752,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                       size="small"
                       color="error"
                     >
-                      <Delete />
+                      <Delete color="error" />
                     </IconButton>
                   </ListItem>
                 ))}
@@ -1761,7 +1798,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             sx={{ display: "flex", alignItems: "center", gap: 1 }}
             color="primary"
           >
-            <Visibility />
+            <Visibility color="primary" />
             Application Preview
           </Typography>
         }
@@ -2174,7 +2211,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         </Grid>
 
         <Box sx={{ display: "flex", gap: 2, mt: 4, justifyContent: "center" }}>
-          <Button variant="outlined" onClick={() => setShowPreview(false)} size="large" startIcon={<NavigateBefore />}>
+          <Button variant="outlined" onClick={() => setShowPreview(false)} size="large" startIcon={<NavigateBefore color="primary" />}>
             Edit Application
           </Button>
           <Button
@@ -2182,7 +2219,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             onClick={handleSubmit}
             startIcon={
               loading ? <CircularProgress size={20} color="inherit" /> :
-              submissionStep === "payment" ? <Payment /> : <Send />
+              submissionStep === "payment" ? <Payment color="primary" /> : <Send color="primary" />
             }
             size="large"
             disabled={loading}
@@ -2220,7 +2257,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6">Draw Your Signature</Typography>
           <IconButton onClick={() => setShowSignatureDialog(false)} size="small">
-            <Close />
+            <Close color="primary" />
           </IconButton>
         </Box>
       </DialogTitle>
@@ -2268,7 +2305,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         <Button
           onClick={clearSignature}
           variant="outlined"
-          startIcon={<Clear />}
+          startIcon={<Clear color="primary" />}
         >
           Clear
         </Button>
@@ -2281,7 +2318,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         <Button
           onClick={saveSignature}
           variant="contained"
-          startIcon={<CheckCircle />}
+          startIcon={<CheckCircle color="primary" />}
           disabled={loading}
         >
           Save Signature
@@ -2359,7 +2396,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
               disabled={activeStep === 0}
               onClick={handleBack}
               variant="outlined"
-              startIcon={<NavigateBefore />}
+              startIcon={<NavigateBefore color="primary" />}
               size="large"
             >
               Previous
@@ -2370,11 +2407,11 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             </Typography>
 
             {activeStep < steps.length - 1 ? (
-              <Button onClick={handleNext} variant="contained" endIcon={<NavigateNext />} size="large">
+              <Button onClick={handleNext} variant="contained" endIcon={<NavigateNext color="primary" />} size="large">
                 Next
               </Button>
             ) : (
-              <Button onClick={() => setShowPreview(true)} variant="contained" startIcon={<Visibility />} size="large">
+              <Button onClick={() => setShowPreview(true)} variant="contained" startIcon={<Visibility color="primary" />} size="large">
                 Preview & Submit
               </Button>
             )}

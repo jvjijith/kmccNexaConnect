@@ -30,7 +30,8 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Person as PersonIcon,
   AccountCircle as AccountCircleIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Favorite as DonationIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
 import { logoutUser, getCustomerIdFromToken, getAuthHeaders } from '../../../src/lib/auth';
@@ -64,53 +65,11 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [cartItemCount, setCartItemCount] = useState<number>(0);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
-  const [showMembership, setShowMembership] = useState<boolean>(false);
 
   const isMobile = useMediaQuery('(max-width:900px)');
   const isTablet = useMediaQuery('(max-width:1200px)');
-  const isHomePage = activePath === '/home';
 
-  // Check membership eligibility function
-  const checkMembershipEligibility = useCallback(async () => {
-    // If not logged in, do not show membership
-    if (!isLoggedIn) {
-      setShowMembership(false);
-      return;
-    }
 
-    try {
-      const customerId = getCustomerIdFromToken();
-
-      // If no customerId, treat as new user and show membership button
-      if (!customerId) {
-        setShowMembership(true); // Show if no membership found (new user)
-        return;
-      }
-
-      const headers = getAuthHeaders();
-      const membershipData = await getMembershipByCustomerId(customerId, headers);
-
-      // Show membership button if no membership found
-      if (!membershipData || membershipData.length === 0) {
-        setShowMembership(true);
-        return;
-      }
-
-      const membership = membershipData; // Get the first membership record
-      const { memberStatus, paymentStatus } = membership;
-
-      // Show membership button only if memberStatus is pending/rejected or paymentStatus is unpaid
-      // Update: According to code, we hide membership in these cases, else show
-      if (memberStatus === 'pending' || memberStatus === 'rejected') {
-        setShowMembership(false);
-      } else {
-        setShowMembership(true);
-      }
-    } catch (error) {
-      console.error('Error checking membership eligibility:', error);
-      setShowMembership(true); // Show on error (assume new user)
-    }
-  }, [isLoggedIn]);
 
   // Check login status function
   const checkLoginStatus = useCallback(() => {
@@ -167,9 +126,6 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   }, [checkLoginStatus]);
 
   // Check membership eligibility when login status changes
-  useEffect(() => {
-    checkMembershipEligibility();
-  }, [isLoggedIn, checkMembershipEligibility]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>, index: number) => {
     setAnchorElNav(event.currentTarget);
@@ -225,8 +181,8 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const theme = createDynamicTheme({themes});
 
   // Get navbar colors from theme
-  const navbarBgColor = themes?.navbar?.backgroundColor || (scrolled ? "#F5F5DC" : "rgba(255, 255, 255, 0)");
-  const navbarTextColor = themes?.navbar?.textColor || (isHomePage ? 'white' : scrolled ? 'white' : 'text.primary');
+  const navbarBgColor = themes?.navbar?.backgroundColor || (scrolled ? "rgba(245, 245, 220, 0.71)" : "rgba(255, 255, 255, 0.05)");
+  const navbarTextColor = themes?.navbar?.textColor || (scrolled ? 'text.primary' : 'text.primary');
 
   return (
     <ThemeProvider theme={theme}>
@@ -235,8 +191,9 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
         elevation={scrolled ? 4 : 0}
         sx={{
           backgroundColor: navbarBgColor,
+          backdropFilter: scrolled ? "blur(10px)" : "blur(5px)",
           boxShadow: scrolled ? "0px 2px 4px rgba(0, 0, 0, 0.1)" : "none",
-          transition: "background-color 0.3s ease",
+          transition: "all 0.3s ease",
           height: { xs: "60px", sm: "70px", md: "80px" },
           display: "flex",
           justifyContent: "center",
@@ -404,17 +361,40 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
             )}
             
             {/* Action Buttons */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
               gap: { xs: 0.5, sm: 1, md: 2 },
               ml: 'auto'
             }}>
-              {/* Membership Button */}
-              {!isMobile && showMembership && (
+              {/* Donation Button */}
+              {!isMobile && (
                 <Button
                   variant="contained"
-                  href="/membership"
+                  href="/donation"
+                  startIcon={<DonationIcon />}
+                  sx={{
+                    backgroundColor: 'error.main',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'error.dark',
+                    },
+                    textTransform: 'none',
+                    fontSize: { sm: '0.8rem', md: '0.9rem' },
+                    fontWeight: 600,
+                    px: { sm: 1.5, md: 2 },
+                    display: { xs: 'none', sm: isTablet ? 'none' : 'flex' }
+                  }}
+                >
+                  Donate
+                </Button>
+              )}
+
+              {/* Membership Button - Always show */}
+              {!isMobile && (
+                <Button
+                  variant="contained"
+                  href={isLoggedIn ? "/membership" : "/login"}
                   sx={{
                     backgroundColor: 'primary.main',
                     color: 'white',
@@ -435,11 +415,27 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               {/* Login/Profile Section */}
               {isLoggedIn ? (
                 <>
+                  {/* Cart Icon - Only show when logged in */}
+                  <Tooltip title="Cart">
+                    <IconButton
+                      component="a"
+                      href="/cart"
+                      sx={{
+                        p: { xs: 0.5, sm: 1 },
+                        color: navbarTextColor
+                      }}
+                    >
+                      <Badge badgeContent={cartItemCount} color="error">
+                        <ShoppingCartIcon sx={{ fontSize: { xs: 28, sm: 32 } }} color="primary" />
+                      </Badge>
+                    </IconButton>
+                  </Tooltip>
+
                   {/* Profile Dropdown */}
                   <Tooltip title="Profile">
-                    <IconButton 
-                      onClick={handleOpenUserMenu} 
-                      sx={{ 
+                    <IconButton
+                      onClick={handleOpenUserMenu}
+                      sx={{
                         p: { xs: 0.5, sm: 1 },
                         color: navbarTextColor
                       }}
@@ -478,14 +474,6 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                         <PersonIcon fontSize="small" color="primary" />
                       </ListItemIcon>
                       <ListItemText primary="Profile" />
-                    </MenuItem>
-                    <MenuItem component="a" href="/cart" onClick={handleCloseUserMenu}>
-                      <ListItemIcon>
-                        <Badge badgeContent={cartItemCount} color="error">
-                          <ShoppingCartIcon fontSize="small" color="primary"  />
-                        </Badge>
-                      </ListItemIcon>
-                      <ListItemText primary="Cart" />
                     </MenuItem>
                     <MenuItem onClick={handleLogout}>
                       <ListItemIcon>
@@ -666,18 +654,32 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                   <ListItemText primary="Login" />
                 </ListItem>
               )}
-              {showMembership && (
-                <ListItem component="a" href="/membership" sx={{
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: 'primary.light',
-                    color: 'primary.contrastText'
-                  },
-                  borderRadius: 1
-                }}>
-                  <ListItemText primary="Membership" />
-                </ListItem>
-              )}
+              {/* Donation Button for Mobile */}
+              <ListItem component="a" href="/donation" sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText'
+                },
+                borderRadius: 1,
+                mb: 0.5
+              }}>
+                <ListItemIcon>
+                  <DonationIcon color="error" />
+                </ListItemIcon>
+                <ListItemText primary="Donate" />
+              </ListItem>
+              {/* Membership Button for Mobile - Always show */}
+              <ListItem component="a" href={isLoggedIn ? "/membership" : "/login"} sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'primary.contrastText'
+                },
+                borderRadius: 1
+              }}>
+                <ListItemText primary="Membership" />
+              </ListItem>
             </Box>
           </List>
         </Box>
