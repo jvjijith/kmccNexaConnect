@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to prevent build timeouts
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { signIn, useSession, SessionProvider } from "next-auth/react"
@@ -8,7 +11,7 @@ import LoginPageUI from "@repo/ui/login"
 // Constants for localStorage keys - matching auth.ts
 const STORAGE_KEYS = {
   IS_LOGGED_IN: "isLoggedIn",
-  USER_DATA: "userData", 
+  USER_DATA: "userData",
   ACCESS_TOKEN: "accessToken",
   REFRESH_TOKEN: "refreshToken",
   USER_ID: "userId",
@@ -92,7 +95,7 @@ function LoginForm() {
 
       // Session handling is done in useEffect above
       console.log("SignIn successful, waiting for session...")
-      
+
     } catch (error: any) {
       console.error("Login error:", error)
       setError('Login failed. Please check your credentials.')

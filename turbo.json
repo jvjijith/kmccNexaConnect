@@ -5,7 +5,29 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "NEXT_PUBLIC_API_BASE_URL",
+        "NEXT_PUBLIC_API_KEY",
+        "NEXT_PUBLIC_API_SECRET",
+        "NEXT_PUBLIC_BASE_URL",
+        "NEXT_PUBLIC_MEDIA_BASE_URL",
+        "MEDIA_BASE_URL",
+        "FIREBASE_ADMIN_PROJECT_ID",
+        "FIREBASE_ADMIN_CLIENT_EMAIL",
+        "FIREBASE_ADMIN_PRIVATE_KEY",
+        "NEXT_PUBLIC_FB_API_KEY",
+        "NEXT_PUBLIC_FB_AUTH_DOMAIN",
+        "NEXT_PUBLIC_FB_PROJECT_ID",
+        "NEXT_PUBLIC_FB_STORAGE_BUCKET",
+        "NEXT_PUBLIC_FB_MESSAGING_CENTER_ID",
+        "NEXT_PUBLIC_FB_APP_ID",
+        "B2_ENDPOINT",
+        "B2_APPLICATION_KEY_ID",
+        "B2_APPLICATION_KEY",
+        "B2_BUCKET_NAME",
+        "NODE_ENV"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

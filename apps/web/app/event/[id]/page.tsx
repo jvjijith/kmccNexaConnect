@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering to prevent build timeouts
+export const dynamic = 'force-dynamic'
+
 import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";

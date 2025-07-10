@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Button, 
-  Container, 
-  Box, 
-  Menu, 
-  MenuItem, 
+import { useRouter } from 'next/navigation';
+import { useClientSide } from '../../../src/hooks/useClientSide';
+import {
+  AppBar,
+  Toolbar,
+  Button,
+  Container,
+  Box,
+  Menu,
+  MenuItem,
   IconButton,
   ThemeProvider,
   useMediaQuery,
@@ -54,16 +56,19 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
+  const router = useRouter();
+  const isClient = useClientSide();
+
   // Add state for dropdown menus
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [openMenuIndex, setOpenMenuIndex] = React.useState<number | null>(null);
   const [activePath, setActivePath] = useState<string>('');
   const [scrolled, setScrolled] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
-  const [expandedMobileMenus, setExpandedMobileMenus] = useState<number[]>([]);
+  const [expandedMobileMenus, setExpandedMobileMenus] = React.useState<number[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [cartItemCount, setCartItemCount] = useState<number>(0);
-  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
   const isMobile = useMediaQuery('(max-width:900px)');
   const isTablet = useMediaQuery('(max-width:1200px)');
@@ -72,6 +77,9 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
 
   // Check login status function
   const checkLoginStatus = useCallback(() => {
+    // Only run on client side
+    if (!isClient) return;
+
     const userToken = localStorage.getItem('accessToken');
     const isLoggedInFlag = localStorage.getItem('isLoggedIn');
     const isUserLoggedIn = !!userToken && isLoggedInFlag === 'true';
@@ -82,10 +90,13 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     setCartItemCount(cartItems ? JSON.parse(cartItems).length : 0);
 
     console.log("Login status checked:", isUserLoggedIn, "Token exists:", !!userToken, "Flag:", isLoggedInFlag);
-  }, []);
+  }, [isClient]);
 
   // Update active path when component mounts or path changes
   useEffect(() => {
+    // Only run on client side
+    if (!isClient) return;
+
     // Get the current path from window.location
     const path = window.location.pathname;
     setActivePath(path);
@@ -159,7 +170,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
       await logoutUser();
       handleCloseUserMenu();
       setMobileOpen(false);
-      window.location.href = '/';
+      router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -393,7 +404,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               {!isMobile && (
                 <Button
                   variant="contained"
-                  href={isLoggedIn ? "/membership" : "/login"}
+                  href={isClient ? (isLoggedIn ? "/membership" : "/login") : "/login"}
                   sx={{
                     backgroundColor: 'primary.main',
                     color: 'white',
@@ -412,7 +423,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               )}
 
               {/* Login/Profile Section */}
-              {isLoggedIn ? (
+              {isClient && isLoggedIn ? (
                 <>
                   {/* Cart Icon - Only show when logged in */}
                   <Tooltip title="Cart">
@@ -482,7 +493,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     </MenuItem>
                   </Menu>
                 </>
-              ) : (
+              ) : isClient ? (
                 <Button
                   variant="outlined"
                   href="/login"
@@ -502,6 +513,9 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 >
                   Login
                 </Button>
+              ) : (
+                // Placeholder for hydration - shows nothing until client-side
+                <Box sx={{ width: 80, height: 36 }} />
               )}
             </Box>
           </Toolbar>
@@ -590,9 +604,9 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
             
             {/* Mobile Profile/Login Section */}
             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-              {isLoggedIn ? (
+              {isClient && isLoggedIn ? (
                 <>
-                  <ListItem component="a" href="/profile" sx={{ 
+                  <ListItem component="a" href="/profile" sx={{
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'primary.light',
@@ -606,7 +620,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     </ListItemIcon>
                     <ListItemText primary="Profile" />
                   </ListItem>
-                  <ListItem component="a" href="/cart" sx={{ 
+                  <ListItem component="a" href="/cart" sx={{
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'primary.light',
@@ -622,7 +636,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     </ListItemIcon>
                     <ListItemText primary="Cart" />
                   </ListItem>
-                  <ListItem onClick={handleLogout} sx={{ 
+                  <ListItem onClick={handleLogout} sx={{
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'primary.light',
@@ -637,8 +651,8 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     <ListItemText primary="Logout" />
                   </ListItem>
                 </>
-              ) : (
-                <ListItem component="a" href="/login" sx={{ 
+              ) : isClient ? (
+                <ListItem component="a" href="/login" sx={{
                   cursor: 'pointer',
                   '&:hover': {
                     backgroundColor: 'primary.light',
@@ -652,6 +666,9 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                   </ListItemIcon>
                   <ListItemText primary="Login" />
                 </ListItem>
+              ) : (
+                // Placeholder for hydration
+                <Box sx={{ height: 48 }} />
               )}
               {/* Donation Button for Mobile */}
               <ListItem component="a" href="/donation" sx={{
@@ -669,14 +686,18 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 <ListItemText primary="Donate" />
               </ListItem>
               {/* Membership Button for Mobile - Always show */}
-              <ListItem component="a" href={isLoggedIn ? "/membership" : "/login"} sx={{
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: 'primary.light',
-                  color: 'primary.contrastText'
-                },
-                borderRadius: 1
-              }}>
+              <ListItem
+                component="a"
+                href={isClient ? (isLoggedIn ? "/membership" : "/login") : "/login"}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'primary.light',
+                    color: 'primary.contrastText'
+                  },
+                  borderRadius: 1
+                }}
+              >
                 <ListItemText primary="Membership" />
               </ListItem>
             </Box>

@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to prevent build timeouts
+export const dynamic = 'force-dynamic'
+
 import React, { useEffect, useState } from "react";
 import { 
   Box, 

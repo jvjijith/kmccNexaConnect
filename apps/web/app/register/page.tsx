@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to prevent build timeouts
+export const dynamic = 'force-dynamic'
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -9,7 +12,7 @@ import { registerUser } from "../../src/lib/auth"
 // Constants for localStorage keys - matching auth.ts
 const STORAGE_KEYS = {
   IS_LOGGED_IN: "isLoggedIn",
-  USER_DATA: "userData", 
+  USER_DATA: "userData",
   ACCESS_TOKEN: "accessToken",
   REFRESH_TOKEN: "refreshToken",
   USER_ID: "userId",

@@ -1,6 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, Suspense } from "react"
+// Force dynamic rendering to prevent build timeouts
+export const dynamic = 'force-dynamic'
+
+import React, { useState, useCallback, useEffect, useRef, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import {
   Box,

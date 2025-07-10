@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to prevent build timeouts
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 
 export default function TestRegistration() {
@@ -9,7 +12,7 @@ export default function TestRegistration() {
   const testRegistration = async () => {
     setLoading(true)
     setResult("")
-    
+
     try {
       // Test API connectivity first
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/health`, {
@@ -19,7 +22,7 @@ export default function TestRegistration() {
           'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
         }
       })
-      
+
       if (response.ok) {
         setResult("✅ API is reachable")
       } else {
@@ -35,7 +38,7 @@ export default function TestRegistration() {
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
       <h1>Registration Test Page</h1>
-      
+
       <div style={{ marginBottom: '20px' }}>
         <h3>Environment Variables:</h3>
         <p><strong>API Base URL:</strong> {process.env.NEXT_PUBLIC_API_BASE_URL || 'Not set'}</p>
@@ -43,8 +46,8 @@ export default function TestRegistration() {
         <p><strong>Firebase Project ID:</strong> {process.env.NEXT_PUBLIC_FB_PROJECT_ID || 'Not set'}</p>
       </div>
 
-      <button 
-        onClick={testRegistration} 
+      <button
+        onClick={testRegistration}
         disabled={loading}
         style={{
           padding: '10px 20px',
@@ -59,9 +62,9 @@ export default function TestRegistration() {
       </button>
 
       {result && (
-        <div style={{ 
-          marginTop: '20px', 
-          padding: '10px', 
+        <div style={{
+          marginTop: '20px',
+          padding: '10px',
           backgroundColor: result.includes('✅') ? '#d4edda' : '#f8d7da',
           border: `1px solid ${result.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`,
           borderRadius: '4px'
