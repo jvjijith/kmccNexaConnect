@@ -5,6 +5,11 @@ This document describes the implementation of Bearer token authentication for th
 
 ## Changes Made
 
+
+
+
+
+
 ### Modified File: `apps/web/app/membership/page.tsx`
 
 #### Updated `handleSubmit` Function
