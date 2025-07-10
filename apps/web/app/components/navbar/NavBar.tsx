@@ -98,9 +98,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     // Handle scroll events
     const handleScroll = () => {
       const isScrolled = window.scrollY > 10;
-      if (isScrolled !== scrolled) {
-        setScrolled(isScrolled);
-      }
+      setScrolled(isScrolled);
     };
 
     // Check login status on mount
