@@ -40,7 +40,16 @@ import {
 } from "@mui/icons-material"
 
 // Import the API functions
-import { payment, registerEvent } from "../../../src/data/loader";
+import {
+  payment,
+  registerEvent,
+  registerEventAuthenticated,
+  getMembershipByCustomerId,
+  decodeAccessToken,
+  getAccessToken,
+  isAuthenticated,
+  checkEventAccess
+} from "../../../src/data/loader";
 
 // Import the Event type from your types file
 import type { Event } from "../../../types/event";
@@ -219,10 +228,84 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const [confirmationNumber, setConfirmationNumber] = useState<string>("");
   const [registrationId, setRegistrationId] = useState<string>("");
 
+  // Authentication state
+  const [isUserAuthenticated, setIsUserAuthenticated] = useState<boolean>(false);
+  const [userId, setUserId] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [membershipStatus, setMembershipStatus] = useState<string>("");
+  const [authError, setAuthError] = useState<string>("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+
   // Calculate dynamic field values whenever fieldValues change
   useEffect(() => {
     calculateDynamicFields();
   }, [fieldValues]);
+
+  // Check authentication status and membership when component mounts
+  useEffect(() => {
+    const checkAuthenticationStatus = async () => {
+      setIsCheckingAuth(true);
+      setAuthError("");
+
+      try {
+        // Use the helper function to check event access
+        const accessCheck = checkEventAccess(eventData);
+
+        if (!accessCheck.canAccess) {
+          setAuthError(accessCheck.message || "Access denied");
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        // Check if user is authenticated
+        const authenticated = isAuthenticated();
+        setIsUserAuthenticated(authenticated);
+
+        if (authenticated) {
+          const token = getAccessToken();
+          if (token) {
+            const decoded = decodeAccessToken(token);
+            if (decoded) {
+              setUserId(decoded.userId);
+
+              // If membership is required, check membership status
+              if (accessCheck.requiresMembership) {
+                try {
+                  const membershipData = await getMembershipByCustomerId(decoded.userId, {
+                    'Authorization': `Bearer ${token}`
+                  });
+
+                  if (membershipData && membershipData.memberStatus) {
+                    setMembershipStatus(membershipData.memberStatus);
+
+                    // Check if member status allows access
+                    if (membershipData.memberStatus !== 'active') {
+                      setAuthError("Only active members can register for this event.");
+                    }
+                  } else {
+                    setAuthError("Membership not found. Only members can register for this event.");
+                  }
+                } catch (error) {
+                  console.error("Error checking membership:", error);
+                  setAuthError("Unable to verify membership status. Only members can register for this event.");
+                }
+              }
+            }
+          }
+        } else if (eventData.allowLogin && !eventData.allowGuest) {
+          // User must be logged in but isn't
+          setAuthError("You must be logged in to register for this event.");
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setAuthError("Unable to verify authentication status.");
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthenticationStatus();
+  }, [eventData.allowLogin, eventData.allowGuest, eventData.allowMemberLogin]);
 
   // Function to calculate values for dynamic fields based on formulas
   const calculateDynamicFields = (): void => {
@@ -428,12 +511,17 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
     setIsSubmitting(true);
 
     try {
+      // Check authentication requirements before proceeding
+      if (authError) {
+        throw new Error(authError);
+      }
+
+      // Determine which registration API to use based on authentication
+      const useAuthenticatedAPI = isUserAuthenticated && eventData.allowLogin;
+
       // Prepare the registration data
-      const registrationData = {
+      let registrationData: any = {
         eventId: id || (eventData as any)._id,
-        email: fieldValues.email,
-        name: fieldValues.fullName,
-        phone: fieldValues.phone,
         eventData: Object.entries(fieldValues).map(([fieldName, fieldValue]) => ({
           fieldName,
           fieldValue: typeof fieldValue === 'object' ? JSON.stringify(fieldValue) : String(fieldValue)
@@ -444,11 +532,24 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         paymentStatus: isFreeEvent ? "free" : "unpaid"
       };
 
+      // Add user-specific fields based on authentication status
+      if (useAuthenticatedAPI) {
+        // For authenticated users, use the /events/register endpoint
+        registrationData.userId = userId;
+        registrationData.email = fieldValues.email || userEmail;
+      } else {
+        // For guest users, use the /events/register/guest endpoint
+        registrationData.email = fieldValues.email;
+        registrationData.name = fieldValues.fullName;
+        registrationData.phone = fieldValues.phone;
+      }
+
       // Debug logging
       console.log("Registration Data being sent:", registrationData);
       console.log("Field Values:", fieldValues);
       console.log("Event ID:", id || (eventData as any)._id);
       console.log("Event Data:", eventData);
+      console.log("Using authenticated API:", useAuthenticatedAPI);
 
       // Validate required fields before sending
       if (!registrationData.eventId) {
@@ -457,11 +558,21 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       if (!registrationData.email) {
         throw new Error("Email is required");
       }
-      if (!registrationData.name) {
-        throw new Error("Full name is required");
-      }
-      if (!registrationData.phone) {
-        throw new Error("Phone number is required");
+
+      // Additional validation for guest registration
+      if (!useAuthenticatedAPI) {
+        if (!registrationData.name) {
+          throw new Error("Full name is required");
+        }
+        if (!registrationData.phone) {
+          throw new Error("Phone number is required");
+        }
+
+        // Validate phone format for guest users
+        const phoneRegex = /^\+?[0-9\s\-()]{10,15}$/;
+        if (!phoneRegex.test(registrationData.phone)) {
+          throw new Error("Please enter a valid phone number");
+        }
       }
 
       // Validate email format
@@ -470,20 +581,20 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         throw new Error("Please enter a valid email address");
       }
 
-      // Validate phone format
-      const phoneRegex = /^\+?[0-9\s\-()]{10,15}$/;
-      if (!phoneRegex.test(registrationData.phone)) {
-        throw new Error("Please enter a valid phone number");
-      }
-
       // Ensure eventData array is not empty and contains valid data
       if (!registrationData.eventData || registrationData.eventData.length === 0) {
         console.warn("No event data fields found, adding basic fields");
-        registrationData.eventData = [
-          { fieldName: "fullName", fieldValue: registrationData.name },
-          { fieldName: "email", fieldValue: registrationData.email },
-          { fieldName: "phone", fieldValue: registrationData.phone }
-        ];
+        if (useAuthenticatedAPI) {
+          registrationData.eventData = [
+            { fieldName: "email", fieldValue: registrationData.email }
+          ];
+        } else {
+          registrationData.eventData = [
+            { fieldName: "fullName", fieldValue: registrationData.name },
+            { fieldName: "email", fieldValue: registrationData.email },
+            { fieldName: "phone", fieldValue: registrationData.phone }
+          ];
+        }
       }
 
       // Ensure price is a valid number string
@@ -492,8 +603,19 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
         registrationData.price = "0";
       }
 
-      // Register the event
-      const registrationResult = await registerEvent(registrationData);
+      // Prepare headers for authenticated requests
+      const headers: HeadersInit = {};
+      if (useAuthenticatedAPI) {
+        const token = getAccessToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
+      // Register the event using appropriate API
+      const registrationResult = useAuthenticatedAPI
+        ? await registerEventAuthenticated(registrationData, headers)
+        : await registerEvent(registrationData);
 
       if (registrationResult && (registrationResult as { _id: string })._id) {
         setRegistrationId((registrationResult as { _id: string })._id);
@@ -1164,6 +1286,41 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
           <Typography variant="h4" gutterBottom>
             {isDonationEvent ? "Make a Donation" : "Event Registration"}
           </Typography>
+
+          {/* Authentication Status and Loading */}
+          {isCheckingAuth && (
+            <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+              <CircularProgress />
+              <Typography variant="body1" sx={{ ml: 2 }}>
+                Checking authentication status...
+              </Typography>
+            </Box>
+          )}
+
+          {/* Authentication Error */}
+          {authError && !isCheckingAuth && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {authError}
+              {!isUserAuthenticated && eventData.allowLogin && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    Please log in to continue with registration.
+                  </Typography>
+                </Box>
+              )}
+            </Alert>
+          )}
+
+          {/* Authentication Success for Member-only Events */}
+          {isUserAuthenticated && eventData.allowMemberLogin && membershipStatus === 'active' && !authError && (
+            <Alert severity="success" sx={{ mb: 3 }}>
+              Welcome! Your membership is active and you can proceed with registration.
+            </Alert>
+          )}
+
+          {/* Show form only if authentication checks pass */}
+          {!isCheckingAuth && !authError && (
+            <>
           
           <Stepper 
             activeStep={activeStep} 
@@ -1251,6 +1408,8 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
               )}
             </Box>
           </Box>
+          </>
+          )}
         </CardContent>
       </StyledCard>
     </Box>

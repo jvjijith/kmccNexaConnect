@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "./firebase"
 import { getAuth, login } from "../data/loader"
+import React from "react"
 
 // Constants for localStorage keys
 const STORAGE_KEYS = {
@@ -44,6 +45,123 @@ function decodeJWT(token: string): any {
     return null;
   }
 }
+
+// Check if token is expired
+export function isTokenExpired(token: string): boolean {
+  try {
+    const decoded = decodeJWT(token);
+    if (!decoded || !decoded.exp) {
+      return true; // If we can't decode or no expiration, consider expired
+    }
+
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decoded.exp < currentTime;
+  } catch (error) {
+    console.error('Error checking token expiration:', error);
+    return true;
+  }
+}
+
+// Get token expiration time in milliseconds
+export function getTokenExpirationTime(token: string): number | null {
+  try {
+    const decoded = decodeJWT(token);
+    if (!decoded || !decoded.exp) {
+      return null;
+    }
+    return decoded.exp * 1000; // Convert to milliseconds
+  } catch (error) {
+    console.error('Error getting token expiration time:', error);
+    return null;
+  }
+}
+
+// Token monitoring interval ID
+let tokenMonitorInterval: NodeJS.Timeout | null = null;
+
+// Callbacks for token expiration
+const tokenExpirationCallbacks: (() => void)[] = [];
+
+// Add callback for token expiration
+export function onTokenExpiration(callback: () => void): () => void {
+  tokenExpirationCallbacks.push(callback);
+
+  // Return unsubscribe function
+  return () => {
+    const index = tokenExpirationCallbacks.indexOf(callback);
+    if (index > -1) {
+      tokenExpirationCallbacks.splice(index, 1);
+    }
+  };
+}
+
+// Notify all callbacks about token expiration
+function notifyTokenExpiration() {
+  tokenExpirationCallbacks.forEach(callback => {
+    try {
+      callback();
+    } catch (error) {
+      console.error('Error in token expiration callback:', error);
+    }
+  });
+}
+
+// Start monitoring token expiration
+export function startTokenMonitoring(): void {
+  // Clear existing interval if any
+  if (tokenMonitorInterval) {
+    clearInterval(tokenMonitorInterval);
+  }
+
+  // Check token every 30 seconds
+  tokenMonitorInterval = setInterval(() => {
+    if (!isLocalStorageAvailable()) return;
+
+    const accessToken = getLocalStorage(STORAGE_KEYS.ACCESS_TOKEN);
+    const isLoggedIn = getLocalStorage(STORAGE_KEYS.IS_LOGGED_IN) === "true";
+
+    if (isLoggedIn && accessToken) {
+      if (isTokenExpired(accessToken)) {
+        console.log('Access token expired, logging out...');
+        handleTokenExpiration();
+      }
+    }
+  }, 30000); // Check every 30 seconds
+}
+
+// Stop monitoring token expiration
+export function stopTokenMonitoring(): void {
+  if (tokenMonitorInterval) {
+    clearInterval(tokenMonitorInterval);
+    tokenMonitorInterval = null;
+  }
+}
+
+// Handle token expiration
+async function handleTokenExpiration(): Promise<void> {
+  try {
+    // First try to refresh the token
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      const newAccessToken = await refreshAuthToken();
+      if (newAccessToken) {
+        console.log('Token refreshed successfully');
+        return;
+      }
+    }
+
+    // If refresh fails or no refresh token, logout
+    console.log('Token refresh failed, logging out user');
+    await logoutUser();
+    notifyTokenExpiration();
+  } catch (error) {
+    console.error('Error handling token expiration:', error);
+    // Force logout even if there's an error
+    await logoutUser();
+    notifyTokenExpiration();
+  }
+}
+
 
 export function getCustomerIdFromToken(): string | null {
   if (!isLocalStorageAvailable()) return null;
@@ -151,6 +269,9 @@ export async function loginUser(email: string, password: string): Promise<User> 
     setLocalStorage(STORAGE_KEYS.USER_ID, tokenResponse.id)
     setLocalStorage(STORAGE_KEYS.LAST_LOGIN, new Date().toISOString())
 
+    // Start token monitoring
+    startTokenMonitoring()
+
     return userData
   } catch (error: any) {
     console.error("Login error:", error)
@@ -222,6 +343,9 @@ export async function registerUser(
       setLocalStorage(STORAGE_KEYS.USER_ID, response.id)
       setLocalStorage(STORAGE_KEYS.LAST_LOGIN, new Date().toISOString())
 
+      // Start token monitoring
+      startTokenMonitoring()
+
       // Trigger auth state change event for NavBar
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('authStateChanged'))
@@ -272,8 +396,20 @@ export async function isUserLoggedIn(): Promise<boolean> {
   const isLoggedIn = getLocalStorage(STORAGE_KEYS.IS_LOGGED_IN) === "true"
   const accessToken = getLocalStorage(STORAGE_KEYS.ACCESS_TOKEN)
   const userData = getLocalStorage(STORAGE_KEYS.USER_DATA)
-  
-  return isLoggedIn && !!accessToken && !!userData
+
+  // Check if user is logged in and has valid token
+  if (!isLoggedIn || !accessToken || !userData) {
+    return false
+  }
+
+  // Check if token is expired
+  if (isTokenExpired(accessToken)) {
+    console.log('Token expired during login check, logging out...')
+    await logoutUser()
+    return false
+  }
+
+  return true
 }
 
 export function getCurrentUser(): User | null {
@@ -299,6 +435,9 @@ export function getUserId(): string | null {
 
 export async function logoutUser(): Promise<void> {
   try {
+    // Stop token monitoring
+    stopTokenMonitoring();
+
     await auth.signOut()
     clearLocalStorage(Object.values(STORAGE_KEYS))
 
@@ -371,5 +510,42 @@ export function isLocalStorageAvailable(): boolean {
     return true
   } catch (e) {
     return false
+  }
+}
+
+// React hook for handling automatic logout on token expiration
+export function useTokenExpiration() {
+  if (typeof window === 'undefined') return;
+
+  React.useEffect(() => {
+    // Start monitoring when component mounts
+    startTokenMonitoring();
+
+    // Add callback for token expiration
+    const unsubscribe = onTokenExpiration(() => {
+      // Redirect to login page or show notification
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      stopTokenMonitoring();
+    };
+  }, []);
+}
+
+// Initialize token monitoring on app start
+export function initializeTokenMonitoring(): void {
+  if (typeof window !== 'undefined') {
+    // Check if user is logged in and start monitoring
+    const isLoggedIn = getLocalStorage(STORAGE_KEYS.IS_LOGGED_IN) === "true";
+    const accessToken = getLocalStorage(STORAGE_KEYS.ACCESS_TOKEN);
+
+    if (isLoggedIn && accessToken) {
+      startTokenMonitoring();
+    }
   }
 }

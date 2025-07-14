@@ -21,7 +21,18 @@ import {
   Collapse,
   Badge,
   Tooltip,
-  ListItemIcon
+  ListItemIcon,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Avatar,
+  Grid,
+  Card,
+  CardContent,
+  Chip,
+  Divider
 } from '@mui/material';
 import { 
   KeyboardArrowDown as KeyboardArrowDownIcon,
@@ -33,10 +44,15 @@ import {
   Person as PersonIcon,
   AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon,
-  Favorite as DonationIcon
+  Favorite as DonationIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  CalendarToday as CalendarIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
 import { logoutUser } from '../../../src/lib/auth';
+import { getMembershipByCustomerId } from '../../../src/data/loader';
 
 interface MenuItemType {
   menuName: string;
@@ -55,6 +71,61 @@ interface NavbarProps {
   themes: any;
 }
 
+interface MembershipData {
+  supportKMCC: boolean;
+  readBylaw: boolean;
+  byLaw: string;
+  applicationFor: string;
+  amountTobePaid: number;
+  firstName: string;
+  lastName: string;
+  partnerFirstName?: string;
+  partnerLastName?: string;
+  partnerEmail?: string;
+  partnerDob?: string;
+  partnerMobileNumber?: string;
+  partnerWhatsappNumber?: string;
+  dob: string;
+  email: string;
+  address: string;
+  rejectionNotes?: string;
+  mobileNumber: string;
+  whatsappNumber: string;
+  visaStatus: string;
+  emergencyContactName: string;
+  emergencyContactMobile: string;
+  addressInKerala: string;
+  assemblyName: string;
+  district: string;
+  emergencyContactNameKerala: string;
+  emergencyContactNumberKerala: string;
+  IUMLContact: string;
+  queryType: string;
+  supportDocuments: Array<{
+    docuName: string;
+    docuUrl: string;
+  }>;
+  query: string;
+  queryFullName: string;
+  queryEmail: string;
+  queryAddress: string;
+  queryMobileNumber: string;
+  customer: string;
+  iuMLContactName: string;
+  iuMLContactPosition: string;
+  iuMLContactNumber: string;
+  iuMLLocation: string;
+  photoURL: string;
+  acceptKmcc: boolean;
+  shareInfoNorka: boolean;
+  signatureURL: string;
+  paymentStatus: string;
+  memberStatus: string;
+  stripeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const router = useRouter();
   const isClient = useClientSide();
@@ -69,11 +140,64 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [cartItemCount, setCartItemCount] = useState<number>(0);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+  
+  // New state for membership data and profile modal
+  const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
+  const [loadingMembership, setLoadingMembership] = useState<boolean>(false);
 
   const isMobile = useMediaQuery('(max-width:900px)');
   const isTablet = useMediaQuery('(max-width:1200px)');
 
+  // Function to decode JWT token and extract customer ID
+  const decodeToken = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      if (!base64Url) return null;
+      
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  };
 
+  // Function to fetch membership data
+  const fetchMembershipData = async () => {
+    if (!isClient) return;
+    
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    try {
+      setLoadingMembership(true);
+      const decodedToken = decodeToken(token);
+      
+      if (!decodedToken || !decodedToken.id) {
+        console.error('No customer ID found in token');
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const membershipResponse = await getMembershipByCustomerId(decodedToken.id, headers);
+      
+      if (membershipResponse && membershipResponse.length > 0) {
+        setMembershipData(membershipResponse[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching membership data:', error);
+    } finally {
+      setLoadingMembership(false);
+    }
+  };
 
   // Check login status function
   const checkLoginStatus = useCallback(() => {
@@ -115,6 +239,11 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     // Check login status on mount
     checkLoginStatus();
 
+    // Fetch membership data if logged in
+    if (isLoggedIn) {
+      fetchMembershipData();
+    }
+
     // Listen for custom auth state changes
     const handleAuthStateChange = () => {
       checkLoginStatus();
@@ -131,9 +260,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('authStateChanged', handleAuthStateChange);
     };
-  }, [checkLoginStatus]);
-
-  // Check membership eligibility when login status changes
+  }, [checkLoginStatus, isLoggedIn]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>, index: number) => {
     setAnchorElNav(event.currentTarget);
@@ -163,6 +290,36 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
+  };
+
+  // Handle profile click - fetch membership data and open modal
+  const handleProfileClick = async () => {
+    handleCloseUserMenu();
+    await fetchMembershipData();
+    setProfileModalOpen(true);
+  };
+
+  // Handle profile modal close
+  const handleProfileModalClose = () => {
+    setProfileModalOpen(false);
+  };
+
+  // Check if membership button should be shown
+  const shouldShowMembershipButton = () => {
+    if (!membershipData) return true;
+
+
+    // Safely get status values with defaults
+    const memberStatus = membershipData?.memberStatus?.toLowerCase() || '';
+    const paymentStatus = membershipData?.paymentStatus?.toLowerCase() || '';
+    
+
+    // Check if member is pending/accepted AND payment is paid
+    const isPendingOrAccepted = ['pending', 'accepted'].includes(memberStatus);
+    const isPaid = paymentStatus === 'paid';
+
+    // Show button if not both conditions are true
+    return !(isPendingOrAccepted && isPaid);
   };
 
   const handleLogout = async () => {
@@ -400,11 +557,11 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 </Button>
               )}
 
-              {/* Membership Button - Always show */}
-              {!isMobile && (
+              {/* Membership Button - Conditionally show based on membership status */}
+              {!isMobile && shouldShowMembershipButton() && (
                 <Button
                   variant="contained"
-                  href={isClient ? (isLoggedIn ? "/membership" : "/login") : "/login"}
+                  href={isClient ? (isLoggedIn ?  "/membership" : "/login") : "/login"}
                   sx={{
                     backgroundColor: 'primary.main',
                     color: 'white',
@@ -479,7 +636,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                       }
                     }}
                   >
-                    <MenuItem component="a" href="/profile" onClick={handleCloseUserMenu}>
+                    <MenuItem onClick={handleProfileClick}>
                       <ListItemIcon>
                         <PersonIcon fontSize="small" color="primary" />
                       </ListItemIcon>
@@ -606,7 +763,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
               {isClient && isLoggedIn ? (
                 <>
-                  <ListItem component="a" href="/profile" sx={{
+                  <ListItem onClick={() => { setMobileOpen(false); handleProfileClick(); }} sx={{
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'primary.light',
@@ -685,25 +842,423 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                 </ListItemIcon>
                 <ListItemText primary="Donate" />
               </ListItem>
-              {/* Membership Button for Mobile - Always show */}
-              <ListItem
-                component="a"
-                href={isClient ? (isLoggedIn ? "/membership" : "/login") : "/login"}
-                sx={{
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: 'primary.light',
-                    color: 'primary.contrastText'
-                  },
-                  borderRadius: 1
-                }}
-              >
-                <ListItemText primary="Membership" />
-              </ListItem>
+              {/* Membership Button for Mobile - Conditionally show based on membership status */}
+              {shouldShowMembershipButton() && (
+                <ListItem
+                  component="a"
+                  href={isClient ? (isLoggedIn ? "/membership" : "/login") : "/login"}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    },
+                    borderRadius: 1
+                  }}
+                >
+                  <ListItemText primary="Membership" />
+                </ListItem>
+              )}
             </Box>
           </List>
         </Box>
       </Drawer>
+
+      {/* Profile Modal */}
+      <Dialog
+        open={profileModalOpen}
+        onClose={handleProfileModalClose}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            maxHeight: '95vh',
+            background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.02) 0%, rgba(255, 255, 255, 1) 100%)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+          color: 'white',
+          p: 3,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.3
+          }
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, position: 'relative', zIndex: 1 }}>
+            <Box sx={{ position: 'relative' }}>
+              <Avatar
+                src={membershipData?.photoURL}
+                sx={{
+                  width: 80,
+                  height: 80,
+                  border: '4px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                  fontSize: '2rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {membershipData?.firstName?.charAt(0)}
+              </Avatar>
+              <Box sx={{
+                position: 'absolute',
+                bottom: -2,
+                right: -2,
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                backgroundColor: membershipData?.memberStatus === 'accepted' ? '#4caf50' : '#ff9800',
+                border: '3px solid white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {membershipData?.memberStatus === 'accepted' ? '✓' : '⏳'}
+              </Box>
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
+                {membershipData ? `${membershipData.firstName} ${membershipData.lastName}` : 'Profile'}
+              </Typography>
+              <Typography variant="subtitle1" sx={{ opacity: 0.9, mb: 2 }}>
+                Member ID: {membershipData?.customer || 'N/A'}
+              </Typography>
+              {membershipData && (
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Chip
+                    label={membershipData.memberStatus?.toUpperCase() || 'PENDING'}
+                    sx={{
+                      backgroundColor: membershipData.memberStatus === 'accepted' ? '#4caf50' : '#ff9800',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem',
+                      height: 28
+                    }}
+                    size="small"
+                  />
+                  <Chip
+                    label={`Payment: ${membershipData.paymentStatus?.toUpperCase() || 'PENDING'}`}
+                    sx={{
+                      backgroundColor: membershipData.paymentStatus === 'paid' ? '#4caf50' : '#f44336',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem',
+                      height: 28
+                    }}
+                    size="small"
+                  />
+                  <Chip
+                    label={`Application: ${membershipData.applicationFor?.toUpperCase() || 'GENERAL'}`}
+                    sx={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem',
+                      height: 28
+                    }}
+                    size="small"
+                  />
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 0 }}>
+          {loadingMembership ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 6 }}>
+              <Box sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                border: '4px solid #e3f2fd',
+                borderTop: '4px solid #1976d2',
+                animation: 'spin 1s linear infinite',
+                mb: 2,
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }} />
+              <Typography variant="h6" color="text.secondary">Loading membership data...</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Please wait while we fetch your information
+              </Typography>
+            </Box>
+          ) : membershipData ? (
+            <Box sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <Grid container spacing={0}>
+                {/* Personal Information */}
+                <Grid item xs={12}>
+                  <Box sx={{
+                    background: 'linear-gradient(90deg, #1976d2 0%, #1565c0 100%)',
+                    color: 'white',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2
+                  }}>
+                    <PersonIcon sx={{ fontSize: 28 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      Personal Information
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{
+                          p: 2,
+                          backgroundColor: 'white',
+                          borderRadius: 2,
+                          border: '1px solid #e0e0e0',
+                          height: '100%',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                            <EmailIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                            <Typography variant="subtitle2" sx={{ color: '#666', fontWeight: 600 }}>
+                              Email Address
+                            </Typography>
+                          </Box>
+                          <Typography variant="body1" sx={{ fontWeight: 500, wordBreak: 'break-word' }}>
+                            {membershipData.email || 'Not provided'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{
+                          p: 2,
+                          backgroundColor: 'white',
+                          borderRadius: 2,
+                          border: '1px solid #e0e0e0',
+                          height: '100%',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                            <PhoneIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                            <Typography variant="subtitle2" sx={{ color: '#666', fontWeight: 600 }}>
+                              Mobile Number
+                            </Typography>
+                          </Box>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {membershipData.mobileNumber || 'Not provided'}
+                          </Typography>
+                          {membershipData.whatsappNumber && (
+                            <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
+                              WhatsApp: {membershipData.whatsappNumber}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{
+                          p: 2,
+                          backgroundColor: 'white',
+                          borderRadius: 2,
+                          border: '1px solid #e0e0e0',
+                          height: '100%',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                            <CalendarIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                            <Typography variant="subtitle2" sx={{ color: '#666', fontWeight: 600 }}>
+                              Date of Birth
+                            </Typography>
+                          </Box>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {membershipData.dob ? new Date(membershipData.dob).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            }) : 'Not provided'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{
+                          p: 2,
+                          backgroundColor: 'white',
+                          borderRadius: 2,
+                          border: '1px solid #e0e0e0',
+                          height: '100%',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                            <LocationIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                            <Typography variant="subtitle2" sx={{ color: '#666', fontWeight: 600 }}>
+                              Visa Status
+                            </Typography>
+                          </Box>
+                          <Typography variant="body1" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>
+                            {membershipData.visaStatus || 'Not provided'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Box sx={{
+                          p: 2,
+                          backgroundColor: 'white',
+                          borderRadius: 2,
+                          border: '1px solid #e0e0e0',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                            <LocationIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                            <Typography variant="subtitle2" sx={{ color: '#666', fontWeight: 600 }}>
+                              Current Address
+                            </Typography>
+                          </Box>
+                          <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.6 }}>
+                            {membershipData.address || 'Not provided'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          ) : (
+            <Box sx={{
+              textAlign: 'center',
+              p: 6,
+              background: 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)'
+            }}>
+              <Box sx={{
+                width: 120,
+                height: 120,
+                borderRadius: '50%',
+                backgroundColor: '#e3f2fd',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 2rem',
+                border: '4px solid #1976d2'
+              }}>
+                <PersonIcon sx={{ fontSize: 60, color: '#1976d2' }} />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, color: '#333' }}>
+                No Membership Data Found
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
+                You haven't submitted a membership application yet. Start your journey with KMCC Melbourne today!
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                href="/membership"
+                sx={{
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  borderRadius: 3,
+                  background: 'linear-gradient(45deg, #1976d2 30%, #1565c0 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #1565c0 30%, #0d47a1 90%)',
+                  }
+                }}
+              >
+                Apply for Membership
+              </Button>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{
+          p: 3,
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+          borderTop: '1px solid #dee2e6',
+          gap: 2
+        }}>
+          <Button
+            onClick={handleProfileModalClose}
+            variant="outlined"
+            size="large"
+            sx={{
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              fontWeight: 600
+            }}
+          >
+            Close
+          </Button>
+          {membershipData && membershipData.memberStatus !== 'accepted' && (
+            <Button
+              variant="contained"
+              href="/membership"
+              size="large"
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                fontWeight: 600,
+                background: 'linear-gradient(45deg, #1976d2 30%, #1565c0 90%)',
+                boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #1565c0 30%, #0d47a1 90%)',
+                }
+              }}
+            >
+              Update Membership
+            </Button>
+          )}
+          {membershipData && membershipData.memberStatus === 'accepted' && membershipData.paymentStatus !== 'paid' && (
+            <Button
+              variant="contained"
+              color="success"
+              href="/membership"
+              size="large"
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                fontWeight: 600,
+                background: 'linear-gradient(45deg, #4caf50 30%, #388e3c 90%)',
+                boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #388e3c 30%, #2e7d32 90%)',
+                }
+              }}
+            >
+              Complete Payment
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 };

@@ -7,11 +7,12 @@ import type React from "react"
 
 import { useEffect, useState, Suspense } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Button, Container, Typography, Box, Paper, Grid, Chip, Divider, Rating, TextField, ThemeProvider, Skeleton } from "@mui/material"
+import { Button, Container, Typography, Box, Paper, Grid, Chip, Divider, Rating, TextField, ThemeProvider, Skeleton, Alert, Snackbar } from "@mui/material"
 import { ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Star } from "lucide-react"
 import Image from "next/image"
-import { getColor, getProduct, getProductPricing } from "../../../src/data/loader"
+import { getColor, getProduct, getProductPricing, addToCart } from "../../../src/data/loader"
 import { createDynamicTheme } from "@repo/ui/theme"
+import { getAuthHeaders, isUserLoggedIn } from "../../../src/lib/auth"
 
 // Product type definition based on API response
 interface Brand {
@@ -112,6 +113,44 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] = useState("")
   const [inWishlist, setInWishlist] = useState(false)
   const [selectedImage, setSelectedImage] = useState("")
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+
+  const handleAddToCart = async () => {
+    if (!product) return
+
+    // Check if user is authenticated
+    const isAuthenticated = await isUserLoggedIn()
+    if (!isAuthenticated) {
+      setCartMessage({ type: 'error', text: 'Please login to add items to cart.' })
+      return
+    }
+
+    setIsAddingToCart(true)
+    setCartMessage(null)
+
+    try {
+      const price = getProductPrice()
+      const cartData = {
+        productId: id,
+        quantity: quantity,
+        price: price,
+        notes: ""
+      }
+
+      const authHeaders = getAuthHeaders()
+      await addToCart(cartData, authHeaders)
+      setCartMessage({ type: 'success', text: 'Product added to cart successfully!' })
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      setCartMessage({ type: 'error', text: 'Failed to add product to cart. Please try again.' })
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
+
+
 
   useEffect(() => {
     async function fetchProduct() {
@@ -393,13 +432,15 @@ export default function ProductDetail() {
                           size="large"
                           startIcon={<ShoppingCart />}
                           sx={{ flex: 1 }}
+                          onClick={handleAddToCart}
+                          disabled={isAddingToCart || product.stock === 0}
                         >
-                          Add to Cart
+                          {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                         </Button>
                         <Button
                           variant="outlined"
                           size="large"
-                          onClick={toggleWishlist}
+                          onClick={handleAddToCart}
                           sx={{ minWidth: 56 }}
                         >
                           <Heart fill={inWishlist ? "currentColor" : "none"} />
@@ -457,6 +498,22 @@ export default function ProductDetail() {
               </Grid>
             </Grid>
           </Paper>
+
+          {/* Snackbar for cart messages */}
+          <Snackbar
+            open={!!cartMessage}
+            autoHideDuration={4000}
+            onClose={() => setCartMessage(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert
+              onClose={() => setCartMessage(null)}
+              severity={cartMessage?.type}
+              sx={{ width: '100%' }}
+            >
+              {cartMessage?.text}
+            </Alert>
+          </Snackbar>
         </Container>
       </ThemeProvider>
     </Suspense>

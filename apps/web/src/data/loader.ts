@@ -1,4 +1,4 @@
-import { deleteApi, fetchApi, postApi, putApi } from "../utils/api";
+import { deleteApi, fetchApi, postApi, putApi, patchApi } from "../utils/api";
 
 export async function getPage(slug?: string) {
   if (slug) {
@@ -112,6 +112,145 @@ export async function registerEvent(data: any, headers?: HeadersInit) {
   }
 }
 
+export async function registerEventAuthenticated(data: any, headers?: HeadersInit) {
+  try {
+    return await postApi('/events/register', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to register');
+  }
+}
+
+export async function getRegisterEvent(registerId: any, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/events/register/${registerId}`, { headers });
+  } catch (error: any) {
+    throw new Error(error || 'Failed to fetch event registration');
+  }
+}
+
+export function decodeAccessToken(token: string): { userId: string } | null {
+  try {
+    if (!token) {
+      throw new Error('Token is required');
+    }
+
+    // Remove 'Bearer ' prefix if present
+    const cleanToken = token.replace('Bearer ', '');
+
+    // Split the JWT token and decode the payload
+    const parts = cleanToken.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid token format');
+    }
+
+    const payloadPart = parts[1];
+    if (!payloadPart) {
+      throw new Error('Invalid token payload');
+    }
+
+    // Decode the payload (second part)
+    // Use Buffer for Node.js environment or atob for browser
+    let decodedPayload: string;
+    if (typeof window !== 'undefined') {
+      // Browser environment
+      decodedPayload = atob(payloadPart);
+    } else {
+      // Node.js environment
+      decodedPayload = Buffer.from(payloadPart, 'base64').toString('utf-8');
+    }
+
+    const payload = JSON.parse(decodedPayload);
+    return {
+      userId: payload.id || payload.userId || payload.sub
+    };
+  } catch (error) {
+    console.error('Error decoding access token:', error);
+    return null;
+  }
+}
+
+export function getAccessToken(): string | null {
+  try {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken') || localStorage.getItem('token');
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    return null;
+  }
+}
+
+export function isAuthenticated(): boolean {
+  const token = getAccessToken();
+  if (!token) return false;
+
+  const decoded = decodeAccessToken(token);
+  return decoded !== null;
+}
+
+export function checkEventAccess(eventData: any): {
+  canAccess: boolean;
+  requiresLogin: boolean;
+  requiresMembership: boolean;
+  message?: string;
+} {
+  // If allowLogin is false, anyone can access (guest access)
+  if (!eventData.allowLogin) {
+    return {
+      canAccess: true,
+      requiresLogin: false,
+      requiresMembership: false
+    };
+  }
+
+  // If allowGuest is true, both guests and logged-in users can access
+  if (eventData.allowGuest) {
+    return {
+      canAccess: true,
+      requiresLogin: false,
+      requiresMembership: false
+    };
+  }
+
+  // Check if user is authenticated
+  const isAuth = isAuthenticated();
+
+  // If allowMemberLogin is true, only members can access
+  if (eventData.allowMemberLogin) {
+    if (!isAuth) {
+      return {
+        canAccess: false,
+        requiresLogin: true,
+        requiresMembership: true,
+        message: "You must be logged in as a member to access this event."
+      };
+    }
+
+    return {
+      canAccess: true, // Will be verified with membership API call
+      requiresLogin: true,
+      requiresMembership: true
+    };
+  }
+
+  // If we reach here, login is required but membership is not
+  if (!isAuth) {
+    return {
+      canAccess: false,
+      requiresLogin: true,
+      requiresMembership: false,
+      message: "You must be logged in to access this event."
+    };
+  }
+
+  return {
+    canAccess: true,
+    requiresLogin: true,
+    requiresMembership: false
+  };
+}
+
 export async function updateEvent(data: any, headers?: HeadersInit) {
   try {
     return await putApi('/events/update', data, headers);
@@ -120,13 +259,13 @@ export async function updateEvent(data: any, headers?: HeadersInit) {
   }
 }
 
-export async function getRegisterEvent(registerId: any, headers?: HeadersInit) {
-  try {
-    return await fetchApi(`/events/${registerId}`, { headers });
-  } catch (error: any) {
-    throw new Error(error || 'Failed to fetch events');
-  }
-}
+// export async function getRegisterEvent(registerId: any, headers?: HeadersInit) {
+//   try {
+//     return await fetchApi(`/events/${registerId}`, { headers });
+//   } catch (error: any) {
+//     throw new Error(error || 'Failed to fetch events');
+//   }
+// }
 
 // Membership API functions
 export async function submitMembershipApplication(data: any, headers?: HeadersInit) {
@@ -173,5 +312,14 @@ export async function getMembershipByCustomerId(customerId: string, headers?: He
     return await fetchApi(`/members/customer/${customerId}`, { headers });
   } catch (error: any) {
     throw new Error(error || 'Failed to fetch membership data');
+  }
+}
+
+// Update member payment status
+export async function updateMemberPaymentStatus(memberId: string, data: any, headers?: HeadersInit) {
+  try {
+    return await patchApi(`/members/${memberId}/payment-status`, data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to update member payment status');
   }
 }
