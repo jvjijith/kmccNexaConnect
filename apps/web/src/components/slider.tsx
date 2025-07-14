@@ -12,6 +12,149 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { getCatalog, getPageById, getProduct, getEvent, addToCart, getProductPricing } from "../data/loader";
 import { useRouter } from "next/navigation";
 
+// Custom styles for hero carousel and navigation
+const heroCarouselStyles = `
+  .hero-swiper .swiper-pagination {
+    bottom: 20px !important;
+    z-index: 10;
+  }
+
+  .hero-swiper .swiper-pagination-bullet {
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 1;
+    margin: 0 6px;
+    transition: all 0.3s ease;
+  }
+
+  .hero-swiper .swiper-pagination-bullet-active {
+    background: white;
+    transform: scale(1.2);
+  }
+
+  .hero-swiper .swiper-button-next,
+  .hero-swiper .swiper-button-prev {
+    color: white;
+    background: rgba(0, 0, 0, 0.3);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-top: -25px;
+  }
+
+  .hero-swiper .swiper-button-next:hover,
+  .hero-swiper .swiper-button-prev:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .hero-swiper .swiper-button-next::after,
+  .hero-swiper .swiper-button-prev::after {
+    font-size: 20px;
+  }
+
+  /* Regular slider navigation - positioned outside cards */
+  .mySwiper {
+    padding: 0 60px !important; /* Add padding for navigation arrows */
+    overflow: visible !important; /* Allow navigation to be visible */
+  }
+
+  .mySwiper .swiper-wrapper {
+    align-items: stretch !important; /* Ensure consistent card heights */
+    display: flex !important;
+  }
+
+  .mySwiper .swiper-button-next,
+  .mySwiper .swiper-button-prev {
+    color: #333;
+    background: rgba(255, 255, 255, 0.9);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    margin-top: -22px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+
+  .mySwiper .swiper-button-next {
+    right: 10px; /* Position outside the cards */
+  }
+
+  .mySwiper .swiper-button-prev {
+    left: 10px; /* Position outside the cards */
+  }
+
+  .mySwiper .swiper-button-next:hover,
+  .mySwiper .swiper-button-prev:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .mySwiper .swiper-button-next::after,
+  .mySwiper .swiper-button-prev::after {
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  /* Hide navigation on mobile for regular sliders */
+  @media (max-width: 768px) {
+    .hero-swiper .swiper-button-next,
+    .hero-swiper .swiper-button-prev,
+    .mySwiper .swiper-button-next,
+    .mySwiper .swiper-button-prev {
+      display: none;
+    }
+
+    .mySwiper {
+      padding: 0 16px !important;
+    }
+  }
+
+  /* Ensure consistent card spacing and centering */
+  .mySwiper .swiper-slide {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: auto !important;
+    flex-shrink: 0 !important; /* Prevent cards from shrinking */
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure cards maintain their aspect ratio */
+  .mySwiper .swiper-slide > * {
+    width: 100% !important;
+    max-width: 320px !important;
+    margin: 0 auto !important;
+  }
+
+  /* Hide navigation buttons when disabled */
+  .mySwiper .swiper-button-disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+  }
+
+  /* Ensure navigation buttons don't interfere with slides */
+  .mySwiper .swiper-button-next,
+  .mySwiper .swiper-button-prev {
+    pointer-events: auto !important;
+  }
+
+  /* Prevent slides from disappearing during navigation */
+  .mySwiper .swiper-wrapper {
+    transition-timing-function: ease-out !important;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = heroCarouselStyles;
+  document.head.appendChild(styleSheet);
+}
+
 // Define types
 interface PageData {
   slug?: string;
@@ -212,76 +355,57 @@ const EventCardSkeleton = () => {
   );
 };
 
-// Create a skeleton loader component for page cards (image only)
-const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
-  const theme = useTheme();
-  
-  const getSkeletonDimensions = () => {
-    switch (swiperType) {
-      case 'portrait':
-        return { width: "100%", height: 300, maxWidth: "240px" };
-      case 'landscape':
-        return { width: "100%", height: 200, maxWidth: "350px" };
-      case 'hero':
-        return { width: "100%", height: 400, maxWidth: "600px" };
-      case 'circle':
-        return { width: 200, height: 200, maxWidth: "200px", borderRadius: "50%" };
-      case 'square':
-        return { width: 250, height: 250, maxWidth: "250px" };
-      default:
-        return { width: "100%", height: 250, maxWidth: "300px" };
-    }
-  };
-
-  const dimensions = getSkeletonDimensions();
-  
-  return (
-    <Box sx={{
-      width: dimensions.width,
-      maxWidth: dimensions.maxWidth,
-      height: dimensions.height,
-      borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
-      overflow: "hidden",
-      boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.palette.background.paper,
-    }}>
-      <Skeleton 
-        variant="rectangular" 
-        width="100%" 
-        height="100%"
-        sx={{ borderRadius: dimensions.borderRadius || 0 }}
-      />
-    </Box>
-  );
-};
-
 // Skeleton loader for the entire slider
 const SliderSkeleton = ({ slidesPerView, isEventType, swiperType }: { slidesPerView: number, isEventType: boolean, swiperType: string }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  
+
   const getSkeletonWidth = () => {
-    if (swiperType === 'hero') return "100%";
+    if (swiperType === 'hero') return "100vw";
     if (swiperType === 'circle') return "200px";
     if (swiperType === 'square') return "250px";
     return isMobile ? "280px" : isTablet ? "300px" : "320px";
   };
 
+  const getSkeletonHeight = () => {
+    if (swiperType === 'hero') return { xs: "50vh", sm: "60vh", md: "70vh" };
+    if (swiperType === 'circle') return "200px";
+    if (swiperType === 'square') return "250px";
+    return { xs: 200, sm: 220, md: 250 };
+  };
+
+  const getSkeletonCount = () => {
+    if (swiperType === 'hero') return 1;
+    return isMobile ? 1 : isTablet ? 2 : Math.min(slidesPerView, 4);
+  };
+
   return (
     <Box sx={{
       display: 'flex',
-      gap: { xs: 2, sm: 3, md: 4 },
-      justifyContent: "center"
+      gap: swiperType === 'hero' ? 0 : { xs: 2, sm: 3, md: 4 },
+      justifyContent: swiperType === 'hero' ? "stretch" : "center",
+      width: swiperType === 'hero' ? "100vw" : "100%",
+      height: swiperType === 'hero' ? getSkeletonHeight() : "auto"
     }}>
-      {[...Array(isMobile ? 1 : isTablet ? 2 : slidesPerView)].map((_, index) => (
-        <Box key={index} sx={{ 
-          width: getSkeletonWidth()
+      {[...Array(getSkeletonCount())].map((_, index) => (
+        <Box key={index} sx={{
+          width: getSkeletonWidth(),
+          height: getSkeletonHeight(),
+          borderRadius: swiperType === 'hero' ? 0 : (swiperType === 'circle' ? "50%" : 2)
         }}>
           {isEventType ? (
             <EventCardSkeleton />
-          ) : swiperType === 'page' ? (
-            <PageCardSkeleton swiperType={swiperType} />
+          ) : swiperType === 'page' || swiperType === 'hero' ? (
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height="100%"
+              sx={{
+                borderRadius: swiperType === 'hero' ? 0 : 2,
+                bgcolor: 'grey.300'
+              }}
+            />
           ) : (
             <ProductCardSkeleton />
           )}
@@ -315,9 +439,24 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     speed = 1,
   } = elementData?.swiperOptions || {};
 
+  // Calculate effective slides per view for current screen
+  const getEffectiveSlidesPerView = () => {
+    const config = getResponsiveConfig();
+    if (isMobile) {
+      return config[320]?.slidesPerView || 1;
+    }
+    return Math.min(slidesPerView, slides.length);
+  };
+
+  // Determine if loop should be enabled (only if we have more slides than visible)
+  const shouldEnableLoop = () => {
+    const effectiveSlides = getEffectiveSlidesPerView();
+    return loop && slides.length > effectiveSlides;
+  };
+
   // Get responsive breakpoints configuration
   const getResponsiveConfig = () => {
-    // For hero type, always show 1 slide
+    // For hero type, always show 1 slide with no spacing
     if (swiperType === 'hero') {
       return {
         320: { slidesPerView: 1, spaceBetween: 0 },
@@ -325,28 +464,40 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         1024: { slidesPerView: 1, spaceBetween: 0 }
       };
     }
-    
-    // For circle type, adjust based on screen size
+
+    // For circle type, adjust based on screen size with proper spacing
     if (swiperType === 'circle') {
       return {
-        320: { slidesPerView: 2, spaceBetween: 8 },
-        768: { slidesPerView: 3, spaceBetween: 12 },
-        1024: { slidesPerView: Math.min(slidesPerView, 5), spaceBetween: spaceBetween }
+        320: { slidesPerView: 2, spaceBetween: 12 },
+        768: { slidesPerView: 4, spaceBetween: 20 },
+        1024: { slidesPerView: Math.min(slidesPerView, 6), spaceBetween: spaceBetween || 24 }
       };
     }
-    
+
+    // For square type, similar to circle but with different breakpoints
+    if (swiperType === 'square') {
+      return {
+        320: { slidesPerView: 1, spaceBetween: 12 },
+        768: { slidesPerView: 3, spaceBetween: 20 },
+        1024: { slidesPerView: Math.min(slidesPerView, 4), spaceBetween: spaceBetween || 24 }
+      };
+    }
+
+    // For portrait, landscape, product and event cards - simple and reliable
+    const maxSlides = Math.min(slidesPerView, 4); // Max 4 cards for better spacing
+
     return {
       320: {  // for phones
         slidesPerView: 1,
-        spaceBetween: 8
+        spaceBetween: 16
       },
       768: {  // for tablets
-        slidesPerView: 2,
-        spaceBetween: 12
+        slidesPerView: Math.min(maxSlides, 2),
+        spaceBetween: 24
       },
       1024: { // for desktop
-        slidesPerView: slidesPerView,
-        spaceBetween: spaceBetween
+        slidesPerView: maxSlides,
+        spaceBetween: spaceBetween || 32
       }
     };
   };
@@ -520,15 +671,15 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         return;
       }
 
-      // For now, show a simple alert. In a real implementation, this would
+      // For now, show a simple alert with product ID. In a real implementation, this would
       // open a modal or navigate to an RFQ form
-      alert("RFQ functionality will be implemented soon. Please contact us directly for a quote.");
+      alert(`RFQ functionality will be implemented soon for product ${productId}. Please contact us directly for a quote.`);
 
       // TODO: Implement actual RFQ functionality
       // This could involve:
-      // - Opening an RFQ modal
-      // - Navigating to an RFQ form page
-      // - Sending an RFQ request to the backend
+      // - Opening an RFQ modal with productId
+      // - Navigating to an RFQ form page with productId
+      // - Sending an RFQ request to the backend with productId
 
     } catch (error: any) {
       console.error("RFQ request error:", error);
@@ -701,37 +852,38 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     const getCardDimensions = () => {
       switch (swiperType) {
         case 'portrait':
-          return { 
-            width: "100%", 
+          return {
+            width: "100%",
             maxWidth: { xs: "200px", sm: "220px", md: "240px" },
             height: { xs: 250, sm: 280, md: 300 }
           };
         case 'landscape':
-          return { 
-            width: "100%", 
+          return {
+            width: "100%",
             maxWidth: { xs: "280px", sm: "320px", md: "350px" },
             height: { xs: 160, sm: 180, md: 200 }
           };
         case 'hero':
-          return { 
-            width: "100%", 
-            maxWidth: { xs: "100%", sm: "100%", md: "600px" },
-            height: { xs: 300, sm: 350, md: 400 }
+          return {
+            width: "100vw",
+            height: { xs: "50vh", sm: "60vh", md: "70vh" },
+            maxHeight: "600px",
+            minHeight: "400px"
           };
         case 'circle':
-          return { 
-            width: { xs: 150, sm: 180, md: 200 }, 
+          return {
+            width: { xs: 150, sm: 180, md: 200 },
             height: { xs: 150, sm: 180, md: 200 },
             borderRadius: "50%"
           };
         case 'square':
-          return { 
-            width: { xs: 200, sm: 220, md: 250 }, 
+          return {
+            width: { xs: 200, sm: 220, md: 250 },
             height: { xs: 200, sm: 220, md: 250 }
           };
         default:
-          return { 
-            width: "100%", 
+          return {
+            width: "100%",
             maxWidth: { xs: "280px", sm: "300px", md: "320px" },
             height: { xs: 200, sm: 220, md: 250 }
           };
@@ -739,20 +891,28 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     };
 
     const dimensions = getCardDimensions();
+    const isHero = swiperType === 'hero';
 
     return (
-      <Box 
+      <Box
         onClick={() => handleCardClick(slide)}
         sx={{
           ...dimensions,
-          borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
+          borderRadius: isHero ? 0 : (dimensions.borderRadius || { xs: "16px", sm: "20px" }),
           overflow: 'hidden',
-          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+          boxShadow: isHero ? "none" : "0px 8px 32px rgba(0, 0, 0, 0.12)",
           backgroundColor: theme.palette.background.paper,
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
           cursor: 'pointer',
           position: 'relative',
-          "&:hover": {
+          // Hero carousel specific styles
+          ...(isHero && {
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }),
+          "&:hover": isHero ? {} : {
             transform: "translateY(-8px) scale(1.02)",
             boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
           },
@@ -763,8 +923,10 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
-            opacity: 0,
+            background: isHero
+              ? 'linear-gradient(45deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%)'
+              : 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
+            opacity: isHero ? 1 : 0,
             transition: 'opacity 0.3s ease',
             zIndex: 1
           },
@@ -782,6 +944,66 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             objectFit: 'cover'
           }}
         />
+
+        {/* Hero carousel overlay content */}
+        {isHero && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: { xs: 20, sm: 40, md: 60 },
+              left: { xs: 20, sm: 40, md: 60 },
+              right: { xs: 20, sm: 40, md: 60 },
+              zIndex: 2,
+              color: 'white',
+              textAlign: 'left'
+            }}
+          >
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
+                fontWeight: 'bold',
+                mb: 2,
+                textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+              }}
+            >
+              {slide.title}
+            </Typography>
+            {slide.description && (
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
+                  mb: 3,
+                  maxWidth: '600px',
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+                  opacity: 0.9
+                }}
+              >
+                {slide.description}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                px: 4,
+                py: 1.5,
+                fontSize: { xs: '0.9rem', sm: '1rem' },
+                fontWeight: 'bold',
+                borderRadius: '25px',
+                textTransform: 'none',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                }
+              }}
+            >
+              Learn More
+            </Button>
+          </Box>
+        )}
       </Box>
     );
   };
@@ -792,8 +1014,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       onClick={() => handleCardClick(slide)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "280px", sm: "300px", md: "320px" },
-        height: { xs: "420px", sm: "440px", md: "460px" },
+        maxWidth: { xs: "280px", sm: "300px", md: "350px" }, // Match event card width
+        height: { xs: "480px", sm: "500px", md: "520px" }, // Match event card height
         borderRadius: { xs: "16px", sm: "20px" },
         overflow: 'hidden',
         boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
@@ -803,6 +1025,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flexDirection: 'column',
         cursor: 'pointer',
         position: 'relative',
+        margin: '0 auto', // Center the card
         "&:hover": {
           transform: "translateY(-8px)",
           boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
@@ -1110,12 +1333,12 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
   // Render event card with enhanced styling and better information display
   const renderEventCard = (slide: SlideData) => (
-    <Box 
+    <Box
       onClick={() => handleCardClick(slide)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "280px", sm: "300px", md: "350px" },
-        height: { xs: "480px", sm: "500px", md: "520px" },
+        maxWidth: { xs: "280px", sm: "300px", md: "320px" }, // Same as product cards
+        height: { xs: "460px", sm: "480px", md: "500px" }, // Same as product cards
         borderRadius: { xs: "16px", sm: "20px" },
         overflow: 'hidden',
         boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
@@ -1125,6 +1348,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flexDirection: 'column',
         cursor: 'pointer',
         position: 'relative',
+        margin: '0 auto', // Center the card
         "&:hover": {
           transform: "translateY(-8px)",
           boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
@@ -1321,8 +1545,20 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
   // Show loading skeleton
   if (isLoading) {
-    return <SliderSkeleton slidesPerView={slidesPerView} isEventType={isEventType} swiperType={swiperType} />;
+    return <SliderSkeleton slidesPerView={getEffectiveSlidesPerView()} isEventType={isEventType} swiperType={swiperType} />;
   }
+
+  // Debug logging
+  console.log('Slider Debug:', {
+    swiperType,
+    slidesPerView: getEffectiveSlidesPerView(),
+    slidesCount: slides.length,
+    isMobile,
+    spaceBetween,
+    breakpoints: getResponsiveConfig(),
+    isLoading,
+    isEventType
+  });
 
   // Show message if no slides
   if (slides.length === 0) {
@@ -1339,50 +1575,68 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   }
 
   return (
-    <Swiper
-      breakpoints={getResponsiveConfig()}
-      loop={loop && slides.length > 1}
-      effect={effect !== "none" ? effect : undefined}
-      speed={speed * 1000}
-      autoplay={
-        autoplay && autoplay.delay !== undefined
-          ? {
-              delay: autoplay.delay * 1000,
-              disableOnInteraction: autoplay.disableOnInteraction,
-            }
-          : false
-      }
-      navigation={!isMobile}
-      pagination={isMobile}
-      modules={swiperModules}
-      className="mySwiper"
-      style={{ 
-        width: "100%",
-        justifyContent: "center",
-        padding: "0 8px"
-      }}
-    >
-      {slides.map((slide, index) => (
-        <SwiperSlide 
-          key={`${slide.type}-${slide.id}-${index}`}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "8px"
-          }}
-        >
-          {slide.type === 'event'
-            ? (slide.metadata?.name === 'donation'
-                ? renderDonationEventCard(slide)
-                : renderEventCard(slide))
-            : slide.type === 'page'
-            ? renderPageCard(slide)
-            : renderProductCard(slide)}
-        </SwiperSlide>
-      ))}
-    </Swiper>
+    <Box sx={{
+      position: 'relative',
+      width: '100%',
+      // Add extra padding for navigation arrows on non-hero sliders
+      px: swiperType === 'hero' ? 0 : { xs: 0, md: 7 },
+      // Allow navigation arrows to be visible
+      overflow: 'visible'
+    }}>
+      <Swiper
+        slidesPerView={slidesPerView}
+        spaceBetween={spaceBetween}
+        breakpoints={getResponsiveConfig()}
+        navigation={true}
+        pagination={{ clickable: true }}
+        loop={shouldEnableLoop()}
+        autoplay={autoplay && autoplay.delay !== undefined ? {
+          delay: autoplay.delay * 1000,
+          disableOnInteraction: autoplay.disableOnInteraction
+        } : false}
+        effect={effect}
+        speed={speed * 1000}
+        modules={swiperModules}
+        className={swiperType === 'hero' ? 'hero-swiper' : 'mySwiper'}
+        style={{
+          width: "100%",
+          padding: swiperType === 'hero' ? "0" : "0 60px",
+        }}
+        watchSlidesProgress={true}
+        watchOverflow={true}
+        onSlideChange={(swiper) => {
+          console.log('Slide changed:', {
+            activeIndex: swiper.activeIndex,
+            realIndex: swiper.realIndex,
+            slidesLength: slides.length,
+            isLoop: shouldEnableLoop()
+          });
+        }}
+        onNavigationNext={() => console.log('Navigation next clicked')}
+        onNavigationPrev={() => console.log('Navigation prev clicked')}
+      >
+        {slides.map((slide, index) => (
+          <SwiperSlide
+            key={`${slide.type}-${slide.id}-${index}-${slides.length}`}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "12px",
+              height: "auto",
+            }}
+          >
+            {slide.type === 'event'
+              ? (slide.metadata?.name === 'donation'
+                  ? renderDonationEventCard(slide)
+                  : renderEventCard(slide))
+              : slide.type === 'page'
+              ? renderPageCard(slide)
+              : renderProductCard(slide)}
+          </SwiperSlide>
+        ))}
+      </Swiper>
+    </Box>
   );
 };
 
@@ -1391,7 +1645,11 @@ const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, 
   // Create dynamic theme
   const theme = createDynamicTheme({themes});
   const [isEventType, setIsEventType] = useState(false);
-  
+
+  // Extract swiper type to determine layout
+  const swiperType = elementData?.swiperOptions?.swiperType || "portrait";
+  const isHeroType = swiperType === 'hero';
+
   useEffect(() => {
     const checkIfEventType = async () => {
       if (elementData?.items && elementData.items.length > 0) {
@@ -1410,35 +1668,38 @@ const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, 
         }
       }
     };
-    
+
     checkIfEventType();
   }, [elementData]);
-  
+
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ 
+      <Box sx={{
         width: "100%",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: { xs: 4, sm: 6, md: 8 },
-        marginBottom: { xs: 4, sm: 6, md: 8 },
-        px: { xs: 1, sm: 2, md: 3 },
-        backgroundColor: theme.palette.background.default
+        // Hero carousel should have no margins and take full width
+        marginTop: isHeroType ? 0 : { xs: 2, sm: 3, md: 4 },
+        marginBottom: isHeroType ? 0 : { xs: 2, sm: 3, md: 4 },
+        // Hero carousel should have no padding
+        px: isHeroType ? 0 : { xs: 1, sm: 2, md: 3 },
+        backgroundColor: isHeroType ? 'transparent' : theme.palette.background.default
       }}>
         <Box sx={{
-          width: { 
-            xs: "100%", 
-            sm: "95%", 
-            md: "100%", 
-            lg: "90%" 
-          },
-          overflow: "hidden",
+          width: isHeroType ? "100vw" : "100%",
+          maxWidth: isHeroType ? "none" : "1400px", // Max width for consistent spacing
+          // Hero carousel should not have overflow hidden to allow full width
+          overflow: isHeroType ? "visible" : "hidden",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          // Hero carousel positioning
+          position: isHeroType ? "relative" : "static",
+          left: isHeroType ? "50%" : "auto",
+          transform: isHeroType ? "translateX(-50%)" : "none",
         }}>
-          <Suspense fallback={<SliderSkeleton slidesPerView={elementData?.swiperOptions?.slidesPerView || 3} isEventType={isEventType} swiperType={elementData?.swiperOptions?.swiperType || "portrait"} />}>
+          <Suspense fallback={<SliderSkeleton slidesPerView={elementData?.swiperOptions?.slidesPerView || 3} isEventType={isEventType} swiperType={swiperType} />}>
             <SliderContent elementData={elementData} themes={themes} />
           </Suspense>
         </Box>
