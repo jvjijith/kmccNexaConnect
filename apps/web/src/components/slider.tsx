@@ -728,7 +728,6 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   lineHeight: 1.2,
                   textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                   color: 'white',
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
                 }}
               >
                 {slide.title}

@@ -35,7 +35,7 @@ function decodeJWT(token: string) {
 }
 
 function CartPageContent() {
-  const { data: session } = useSession()
+  const accessToken = localStorage.getItem("accessToken");
   const router = useRouter()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,13 +64,13 @@ function CartPageContent() {
   // Get cart items from API
   async function fetchCartItems(): Promise<CartItem[]> {
     try {
-      if (!session?.accessToken) {
+      if (!accessToken) {
         console.log("No access token available")
         return []
       }
 
       const headers = {
-        'Authorization': `Bearer ${session.accessToken}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
 
@@ -126,11 +126,11 @@ function CartPageContent() {
 
   // Update cart item quantity
   async function updateCartItemQuantity(productId: string, quantity: number): Promise<CartItem[]> {
-    if (!session?.accessToken || quantity < 1) return cartItems
+    if (!accessToken || quantity < 1) return cartItems
 
     try {
       const headers = {
-        Authorization: `Bearer ${session.accessToken}`
+        Authorization: `Bearer ${accessToken}`
       }
 
       const data = {
@@ -152,11 +152,11 @@ function CartPageContent() {
 
   // Remove item from cart
   async function removeFromCartById(productId: string): Promise<CartItem[]> {
-    if (!session?.accessToken) return cartItems
+    if (!accessToken) return cartItems
 
     try {
       const headers = {
-        Authorization: `Bearer ${session.accessToken}`
+        Authorization: `Bearer ${accessToken}`
       }
 
       const data = {
@@ -192,7 +192,7 @@ function CartPageContent() {
   useEffect(() => {
     async function loadData() {
       console.log("Loading cart data...")
-      console.log("Session:", session)
+      console.log("accessToken:", accessToken)
       setLoading(true)
       try {
         const items = await fetchCartItems()
@@ -205,13 +205,13 @@ function CartPageContent() {
       }
     }
 
-    if (session) {
+    if (accessToken) {
       loadData()
     } else {
-      console.log("No session, not loading cart")
+      console.log("No accessToken, not loading cart")
       setLoading(false)
     }
-  }, [session])
+  }, [accessToken])
 
   const handleUpdateQuantity = async (productId: string, quantity: number) => {
     const updatedItems = await updateCartItemQuantity(productId, quantity)
@@ -227,7 +227,7 @@ function CartPageContent() {
     try {
       setCheckoutLoading(true)
 
-      if (!session?.accessToken) {
+      if (!accessToken) {
         alert("Please log in to proceed with checkout")
         router.push("/auth/signin")
         return
@@ -242,7 +242,7 @@ function CartPageContent() {
       console.log("Cart items for checkout:", cartItems)
 
       const headers = {
-        'Authorization': `Bearer ${session.accessToken}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
 
@@ -364,7 +364,7 @@ function CartPageContent() {
     <ThemeProvider theme={createDynamicTheme(color || {})}>
       <CartPageUI
         cartItems={cartItems}
-        isLoggedIn={!!session}
+        isLoggedIn={!!accessToken}
         calculateTotal={() => calculateCartTotal(cartItems)}
         calculateTotalWithTax={() => calculateTotalWithTax(cartItems)}
         onUpdateQuantity={handleUpdateQuantity}
