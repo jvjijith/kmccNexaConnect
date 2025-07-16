@@ -5,8 +5,8 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { signIn, useSession, SessionProvider } from "next-auth/react"
 import LoginPageUI from "@repo/ui/login"
+import { loginUser } from "../../src/lib/auth" // Import your custom loginUser function
 
 // Constants for localStorage keys - matching auth.ts
 const STORAGE_KEYS = {
@@ -18,14 +18,13 @@ const STORAGE_KEYS = {
   LAST_LOGIN: "lastLogin"
 } as const
 
-function LoginForm() {
+export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const { data: session, status } = useSession()
 
   // Clear localStorage on component mount to ensure fresh login
   useEffect(() => {
@@ -35,73 +34,55 @@ function LoginForm() {
     })
   }, [])
 
-  // Handle session changes after successful authentication
-  useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      // Store session data in localStorage
-      const authObj = {
-        accessToken: session.accessToken || '',
-        refreshToken: session.refreshToken || '',
-        email: session.user.email || '',
-        uid: session.user.id || '',
-        id: session.user.id || '',
-        name: session.user.name || '',
-        lastLogin: new Date().toISOString()
-      }
-
-      // Store in localStorage
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(authObj))
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, session.accessToken || '')
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, session.refreshToken || '')
-      localStorage.setItem(STORAGE_KEYS.USER_ID, session.user.id || '')
-      localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, "true")
-      localStorage.setItem(STORAGE_KEYS.LAST_LOGIN, new Date().toISOString())
-
-      console.log("Login successful, tokens stored in localStorage")
-
-      // Trigger auth state change event for NavBar
-      window.dispatchEvent(new Event('authStateChanged'))
-
-      // Navigate to home page
-      router.push("/home")
+  const validateForm = () => {
+    if (!email.trim()) {
+      setError("Email is required")
+      return false
     }
-  }, [session, status, router])
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address")
+      return false
+    }
+    if (!password) {
+      setError("Password is required")
+      return false
+    }
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
-      // Clear localStorage before new login attempt
+      // Clear localStorage before login attempt
       Object.values(STORAGE_KEYS).forEach(key => {
         localStorage.removeItem(key)
       })
 
-      // Sign in using NextAuth
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false
-      })
+      console.log('Starting login process...')
+      await loginUser(email, password) // Use your custom loginUser function
+      console.log('Login successful, tokens should be stored in localStorage')
 
-      if (result?.error) {
-        throw new Error(result.error)
+      // Trigger auth state change event for NavBar
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('authStateChanged'))
       }
 
-      if (!result?.ok) {
-        throw new Error("Login failed")
-      }
-
-      // Session handling is done in useEffect above
-      console.log("SignIn successful, waiting for session...")
-
-    } catch (error: any) {
-      console.error("Login error:", error)
-      setError('Login failed. Please check your credentials.')
+      // Redirect to home on success
+      router.push("/home")
+    } catch (err: any) {
+      console.error("Login error in component:", err)
+      setError(err.message || "Login failed. Please try again.")
+    } finally {
       setLoading(false)
     }
-    // Don't set loading to false here - let the useEffect handle it when session is ready
   }
 
   const toggleShowPassword = () => {
@@ -120,13 +101,5 @@ function LoginForm() {
       error={error}
       handleSubmit={handleSubmit}
     />
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <SessionProvider>
-      <LoginForm />
-    </SessionProvider>
   )
 }
