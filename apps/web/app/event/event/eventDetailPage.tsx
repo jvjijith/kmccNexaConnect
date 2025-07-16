@@ -183,7 +183,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
   const DonorList = () => {
     // Helper function to get donor name with masking logic
     const getDonorName = (donor: Donor) => {
-      const showNameField = donor.eventData.find(field => field.fieldName === 'showName');
+      const showNameField = donor.eventData.find(field => field.fieldName === 'anonymous_donation');
       const nameField = donor.eventData.find(field => field.fieldName === 'name' || field.fieldName === 'fullName' || field.fieldName === 'firstName');
 
       // If showName field exists and is false, mask the name
