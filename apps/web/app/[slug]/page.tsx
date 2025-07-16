@@ -1,4 +1,4 @@
-import { Box, Skeleton } from "@mui/material";
+import { Box } from "@mui/material";
 import { getContainer, getPage } from "../../src/data/loader";
 import Page from "../../src/components/page";
 
@@ -29,7 +29,25 @@ export default async function DynamicPage({ params, searchParams }: PageProps) {
   try {
     // Fetch the page data
     const pageData: PageData = await getPage(slug);
-    
+
+    // Check if there's no data or if items array is empty
+    if (!pageData || !pageData.items || pageData.items.length === 0) {
+      return (
+        <Box
+          sx={{
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "white",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            fontSize: "4rem"
+          }}
+        >
+        </Box>
+      );
+    }
+
     // Fetch containers data if the page has items
     let containers: any[] = [];
     if (pageData?.items?.length) {
@@ -60,30 +78,19 @@ export default async function DynamicPage({ params, searchParams }: PageProps) {
   } catch (error) {
     console.error("Error fetching page:", error);
     
-    // Return a loading skeleton in case of error
+    // Return a blank white page with construction emoji in case of error
     return (
       <Box
         sx={{
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: "white",
           display: "flex",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          flexDirection: "column",
-          overflow: "hidden",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "4rem"
         }}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, marginTop: 8 }}>
-          <Skeleton variant="text" width={200} height={40} />
-          <Skeleton variant="rectangular" width="90%" height={400} />
-          <Skeleton variant="text" width="80%" height={20} />
-          <Skeleton variant="text" width="90%" height={20} />
-          <Skeleton variant="rectangular" width="90%" height={300} />
-          <Skeleton variant="text" width="70%" height={20} />
-          <Skeleton variant="text" width="85%" height={20} />
-          <Skeleton variant="text" width="75%" height={20} />
-          <Skeleton variant="rectangular" width="90%" height={700} />
-        </Box>
       </Box>
     );
   }

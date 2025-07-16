@@ -13,6 +13,19 @@ export const baseApiConfig = {
     "x-nexa-appsecret": process.env.NEXT_PUBLIC_API_SECRET || ""
   },
   fetchApi: (input: string | URL | Request, init?: RequestInit) => {
+    // If no API base URL is configured, return a mock response
+    if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+      console.warn('API base URL not configured, returning mock data');
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          title: 'Mock Page',
+          items: [],
+          message: 'API not configured'
+        })
+      } as Response);
+    }
+
     const filteredHeaders = Object.fromEntries(
       Object.entries(baseApiConfig.headers).filter(([_, value]) => value !== undefined)
     );
@@ -30,21 +43,20 @@ export const baseApiConfig = {
 export const getConfig = async (): Promise<Configuration> => {
   const basePath = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const apiKey = process.env.NEXT_PUBLIC_API_KEY || ""
-  
+
   console.log('API Configuration:', {
     basePath,
     apiKey: apiKey ? 'Set' : 'Not set',
     hasApiKey: !!apiKey
   })
 
+  // Don't throw errors if API is not configured, just warn
   if (!basePath) {
-    console.error('NEXT_PUBLIC_API_BASE_URL is not set')
-    throw new Error('API base URL is not configured')
+    console.warn('NEXT_PUBLIC_API_BASE_URL is not set - using fallback mode')
   }
 
   if (!apiKey) {
-    console.error('NEXT_PUBLIC_API_KEY is not set')
-    throw new Error('API key is not configured')
+    console.warn('NEXT_PUBLIC_API_KEY is not set - using fallback mode')
   }
 
   return {

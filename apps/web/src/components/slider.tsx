@@ -9,151 +9,8 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { createDynamicTheme } from "@repo/ui/theme";
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import { getCatalog, getPageById, getProduct, getEvent, addToCart, getProductPricing } from "../data/loader";
+import { getCatalog, getPageById, getProduct, getEvent, addToCart } from "../data/loader";
 import { useRouter } from "next/navigation";
-
-// Custom styles for hero carousel and navigation
-const heroCarouselStyles = `
-  .hero-swiper .swiper-pagination {
-    bottom: 20px !important;
-    z-index: 10;
-  }
-
-  .hero-swiper .swiper-pagination-bullet {
-    width: 12px;
-    height: 12px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 1;
-    margin: 0 6px;
-    transition: all 0.3s ease;
-  }
-
-  .hero-swiper .swiper-pagination-bullet-active {
-    background: white;
-    transform: scale(1.2);
-  }
-
-  .hero-swiper .swiper-button-next,
-  .hero-swiper .swiper-button-prev {
-    color: white;
-    background: rgba(0, 0, 0, 0.3);
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin-top: -25px;
-  }
-
-  .hero-swiper .swiper-button-next:hover,
-  .hero-swiper .swiper-button-prev:hover {
-    background: rgba(0, 0, 0, 0.5);
-  }
-
-  .hero-swiper .swiper-button-next::after,
-  .hero-swiper .swiper-button-prev::after {
-    font-size: 20px;
-  }
-
-  /* Regular slider navigation - positioned outside cards */
-  .mySwiper {
-    padding: 0 60px !important; /* Add padding for navigation arrows */
-    overflow: visible !important; /* Allow navigation to be visible */
-  }
-
-  .mySwiper .swiper-wrapper {
-    align-items: stretch !important; /* Ensure consistent card heights */
-    display: flex !important;
-  }
-
-  .mySwiper .swiper-button-next,
-  .mySwiper .swiper-button-prev {
-    color: #333;
-    background: rgba(255, 255, 255, 0.9);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    margin-top: -22px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    z-index: 10;
-  }
-
-  .mySwiper .swiper-button-next {
-    right: 10px; /* Position outside the cards */
-  }
-
-  .mySwiper .swiper-button-prev {
-    left: 10px; /* Position outside the cards */
-  }
-
-  .mySwiper .swiper-button-next:hover,
-  .mySwiper .swiper-button-prev:hover {
-    background: white;
-    transform: scale(1.1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  }
-
-  .mySwiper .swiper-button-next::after,
-  .mySwiper .swiper-button-prev::after {
-    font-size: 16px;
-    font-weight: bold;
-  }
-
-  /* Hide navigation on mobile for regular sliders */
-  @media (max-width: 768px) {
-    .hero-swiper .swiper-button-next,
-    .hero-swiper .swiper-button-prev,
-    .mySwiper .swiper-button-next,
-    .mySwiper .swiper-button-prev {
-      display: none;
-    }
-
-    .mySwiper {
-      padding: 0 16px !important;
-    }
-  }
-
-  /* Ensure consistent card spacing and centering */
-  .mySwiper .swiper-slide {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    height: auto !important;
-    flex-shrink: 0 !important; /* Prevent cards from shrinking */
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-
-  /* Ensure cards maintain their aspect ratio */
-  .mySwiper .swiper-slide > * {
-    width: 100% !important;
-    max-width: 320px !important;
-    margin: 0 auto !important;
-  }
-
-  /* Hide navigation buttons when disabled */
-  .mySwiper .swiper-button-disabled {
-    opacity: 0.3 !important;
-    cursor: not-allowed !important;
-  }
-
-  /* Ensure navigation buttons don't interfere with slides */
-  .mySwiper .swiper-button-next,
-  .mySwiper .swiper-button-prev {
-    pointer-events: auto !important;
-  }
-
-  /* Prevent slides from disappearing during navigation */
-  .mySwiper .swiper-wrapper {
-    transition-timing-function: ease-out !important;
-  }
-`;
-
-// Inject styles
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement("style");
-  styleSheet.innerText = heroCarouselStyles;
-  document.head.appendChild(styleSheet);
-}
 
 // Define types
 interface PageData {
@@ -172,58 +29,13 @@ interface PageData {
 
 interface ProductData {
   _id?: string;
-  active: boolean;
-  HSN: string;
-  RFQ: boolean;
-  brand: {
-    name: string;
-    category: string;
-    active: boolean;
-    __v: number;
-  };
-  category: {
-    categoryName: string;
-    categoryType: string;
-    __v: number;
-  };
-  description: string;
-  images: {
-    url: string;
-    _id: string;
-  }[];
-  model: string;
-  name: string;
-  notes: any[];
-  productCode: string;
-  stock: number;
-  subBrand: {
-    subBrandName: string;
-    brandId: string;
-    active: boolean;
-    __v: number;
-  };
-  subCategory: {
-    subCategoryName: string;
-    subCategoryType: string;
-    category: string;
-    __v: number;
-  };
-  variants: any[];
-  pricing?: {
-    productId: string;
-    variantId: string;
-    pricing: {
-      amount: number;
-      currency: string;
-      discount: number;
-      rules: any[];
-      _id: string;
-    }[];
-    active: boolean;
-    created_at: string;
-    updated_at: string;
-    __v: number;
-  }[];
+  name?: string;
+  description?: string;
+  images?: { url: string; _id: string }[];
+  price?: number;
+  rating?: number;
+  isBestseller?: boolean;
+  [key: string]: any;
 }
 
 interface EventData {
@@ -269,13 +81,10 @@ interface SlideData {
     actionButtonPosition: string;
   };
   withDescription?: boolean;
-  metadata?: {
-    name?: string;
-    title?: string;
-    description?: string;
-    imageUrl?: string;
-  };
-  isRFQ?: boolean; // Add RFQ flag to slide data
+  pageType?: string; // Add page type for details handling
+  productID?: string; // Add productID for details navigation
+  eventID?: string; // Add eventID for details navigation
+  isDonation?: boolean; // Add donation flag for events
 }
 
 // Format date for events
@@ -355,57 +164,76 @@ const EventCardSkeleton = () => {
   );
 };
 
+// Create a skeleton loader component for page cards (image only)
+const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
+  const theme = useTheme();
+  
+  const getSkeletonDimensions = () => {
+    switch (swiperType) {
+      case 'portrait':
+        return { width: "100%", height: 300, maxWidth: "240px" };
+      case 'landscape':
+        return { width: "100%", height: 200, maxWidth: "350px" };
+      case 'hero':
+        return { width: "100%", height: 400, maxWidth: "600px" };
+      case 'circle':
+        return { width: 200, height: 200, maxWidth: "200px", borderRadius: "50%" };
+      case 'square':
+        return { width: 250, height: 250, maxWidth: "250px" };
+      default:
+        return { width: "100%", height: 250, maxWidth: "300px" };
+    }
+  };
+
+  const dimensions = getSkeletonDimensions();
+  
+  return (
+    <Box sx={{
+      width: dimensions.width,
+      maxWidth: dimensions.maxWidth,
+      height: dimensions.height,
+      borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
+      overflow: "hidden",
+      boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+      backgroundColor: theme.palette.background.paper,
+    }}>
+      <Skeleton 
+        variant="rectangular" 
+        width="100%" 
+        height="100%"
+        sx={{ borderRadius: dimensions.borderRadius || 0 }}
+      />
+    </Box>
+  );
+};
+
 // Skeleton loader for the entire slider
 const SliderSkeleton = ({ slidesPerView, isEventType, swiperType }: { slidesPerView: number, isEventType: boolean, swiperType: string }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-
+  
   const getSkeletonWidth = () => {
-    if (swiperType === 'hero') return "100vw";
+    if (swiperType === 'hero') return "100%";
     if (swiperType === 'circle') return "200px";
     if (swiperType === 'square') return "250px";
     return isMobile ? "280px" : isTablet ? "300px" : "320px";
   };
 
-  const getSkeletonHeight = () => {
-    if (swiperType === 'hero') return { xs: "50vh", sm: "60vh", md: "70vh" };
-    if (swiperType === 'circle') return "200px";
-    if (swiperType === 'square') return "250px";
-    return { xs: 200, sm: 220, md: 250 };
-  };
-
-  const getSkeletonCount = () => {
-    if (swiperType === 'hero') return 1;
-    return isMobile ? 1 : isTablet ? 2 : Math.min(slidesPerView, 4);
-  };
-
   return (
     <Box sx={{
       display: 'flex',
-      gap: swiperType === 'hero' ? 0 : { xs: 2, sm: 3, md: 4 },
-      justifyContent: swiperType === 'hero' ? "stretch" : "center",
-      width: swiperType === 'hero' ? "100vw" : "100%",
-      height: swiperType === 'hero' ? getSkeletonHeight() : "auto"
+      gap: { xs: 2, sm: 3, md: 4 },
+      justifyContent: "center"
     }}>
-      {[...Array(getSkeletonCount())].map((_, index) => (
-        <Box key={index} sx={{
-          width: getSkeletonWidth(),
-          height: getSkeletonHeight(),
-          borderRadius: swiperType === 'hero' ? 0 : (swiperType === 'circle' ? "50%" : 2)
+      {[...Array(isMobile ? 1 : isTablet ? 2 : slidesPerView)].map((_, index) => (
+        <Box key={index} sx={{ 
+          width: getSkeletonWidth()
         }}>
           {isEventType ? (
             <EventCardSkeleton />
-          ) : swiperType === 'page' || swiperType === 'hero' ? (
-            <Skeleton
-              variant="rectangular"
-              width="100%"
-              height="100%"
-              sx={{
-                borderRadius: swiperType === 'hero' ? 0 : 2,
-                bgcolor: 'grey.300'
-              }}
-            />
+          ) : swiperType === 'page' ? (
+            <PageCardSkeleton swiperType={swiperType} />
           ) : (
             <ProductCardSkeleton />
           )}
@@ -432,31 +260,16 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   const {
     slidesPerView = 3,
     swiperType = "portrait",
-    spaceBetween = 16,
+    spaceBetween = 2, // Changed default from 16 to 2
     loop = true,
     autoplay = { delay: 3, disableOnInteraction: true },
     effect = "none",
     speed = 1,
   } = elementData?.swiperOptions || {};
 
-  // Calculate effective slides per view for current screen
-  const getEffectiveSlidesPerView = () => {
-    const config = getResponsiveConfig();
-    if (isMobile) {
-      return config[320]?.slidesPerView || 1;
-    }
-    return Math.min(slidesPerView, slides.length);
-  };
-
-  // Determine if loop should be enabled (only if we have more slides than visible)
-  const shouldEnableLoop = () => {
-    const effectiveSlides = getEffectiveSlidesPerView();
-    return loop && slides.length > effectiveSlides;
-  };
-
   // Get responsive breakpoints configuration
   const getResponsiveConfig = () => {
-    // For hero type, always show 1 slide with no spacing
+    // For hero type, always show 1 slide with full width
     if (swiperType === 'hero') {
       return {
         320: { slidesPerView: 1, spaceBetween: 0 },
@@ -465,39 +278,27 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       };
     }
 
-    // For circle type, adjust based on screen size with proper spacing
+    // For circle type, adjust based on screen size
     if (swiperType === 'circle') {
       return {
-        320: { slidesPerView: 2, spaceBetween: 12 },
-        768: { slidesPerView: 4, spaceBetween: 20 },
-        1024: { slidesPerView: Math.min(slidesPerView, 6), spaceBetween: spaceBetween || 24 }
+        320: { slidesPerView: 2, spaceBetween: spaceBetween },
+        768: { slidesPerView: 3, spaceBetween: spaceBetween },
+        1024: { slidesPerView: Math.min(slidesPerView, 5), spaceBetween: spaceBetween }
       };
     }
-
-    // For square type, similar to circle but with different breakpoints
-    if (swiperType === 'square') {
-      return {
-        320: { slidesPerView: 1, spaceBetween: 12 },
-        768: { slidesPerView: 3, spaceBetween: 20 },
-        1024: { slidesPerView: Math.min(slidesPerView, 4), spaceBetween: spaceBetween || 24 }
-      };
-    }
-
-    // For portrait, landscape, product and event cards - simple and reliable
-    const maxSlides = Math.min(slidesPerView, 4); // Max 4 cards for better spacing
 
     return {
       320: {  // for phones
         slidesPerView: 1,
-        spaceBetween: 16
+        spaceBetween: spaceBetween
       },
       768: {  // for tablets
-        slidesPerView: Math.min(maxSlides, 2),
-        spaceBetween: 24
+        slidesPerView: 2,
+        spaceBetween: spaceBetween
       },
       1024: { // for desktop
-        slidesPerView: maxSlides,
-        spaceBetween: spaceBetween || 32
+        slidesPerView: slidesPerView,
+        spaceBetween: spaceBetween
       }
     };
   };
@@ -541,38 +342,15 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       image: getPageImage(page),
       title: getPageTitle(page),
       description: getPageDescription(page),
-      link: page.slug ? `/${page.slug}` : '#'
+      link: page.slug ? `/${page.slug}` : '#',
+      pageType: page.type, // Add page type for details handling
+      productID: page.productID, // Add productID if present
+      eventID: page.eventID // Add eventID if present
     };
   };
 
-  // Get product info with pricing
+  // Get product info
   const getProductInfo = (product: ProductData, productId: string): SlideData => {
-    // Get price from pricing data
-    const getProductPrice = () => {
-      if (product.pricing && product.pricing.length > 0) {
-        const firstPricing = product.pricing[0]
-        if (firstPricing?.pricing && firstPricing.pricing.length > 0 && firstPricing.pricing[0]) {
-          return firstPricing.pricing[0].amount
-        }
-      }
-      return 0
-    }
-
-    // Get discount from pricing data
-    const getProductDiscount = () => {
-      if (product.pricing && product.pricing.length > 0) {
-        const firstPricing = product.pricing[0]
-        if (firstPricing?.pricing && firstPricing.pricing.length > 0 && firstPricing.pricing[0]) {
-          return firstPricing.pricing[0].discount
-        }
-      }
-      return 0
-    }
-
-    const price = getProductPrice()
-    const discount = getProductDiscount()
-    const discountedPrice = price > 0 ? price - (price * discount / 100) : 0
-
     return {
       id: productId,
       type: 'product',
@@ -580,10 +358,9 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       title: product.name || '',
       description: product.description || '',
       link: productId ? `/product/${productId}` : '#',
-      price: discountedPrice > 0 ? discountedPrice : (product.RFQ ? 0 : price),
-      rating: 4.5, // Default rating since it's not in the API
-      isBestseller: false, // Default since it's not in the API
-      isRFQ: product.RFQ || false // Add RFQ flag from product data
+      price: product.price || 199.99,
+      rating: product.rating || 4.5,
+      isBestseller: product.isBestseller || false
     };
   };
 
@@ -591,15 +368,15 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   const getEventInfo = (event: EventData, eventId: string): SlideData => {
     // Better title extraction with multiple fallbacks
     const getEventTitle = () => {
-      return event.metadata?.title || 
-             event.name || 
+      return event.name || 
              event.title || 
              'Event';
     };
 
     // Better description extraction
     const getEventDescription = () => {
-      return event.description || 
+      return event.metadata?.description || 
+             event.description || 
              'Join us for this exciting event!';
     };
 
@@ -610,6 +387,10 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
              (event.images && event.images.length > 0 ? event.images[0]?.url : '') ||
              '';
     };
+
+    // Check if this is a donation event
+    const isDonation = event.metadata?.name?.toLowerCase().includes('donation') ||
+                      event.name?.toLowerCase().includes('donation');
 
     return {
       id: eventId,
@@ -622,7 +403,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       date: event.startingDate ? formatDate(event.startingDate) : '',
       endDate: event.endingDate ? formatDate(event.endingDate) : '',
       price: event.priceConfig?.amount,
-      metadata: event.metadata
+      isDonation: isDonation // Add donation flag
     };
   };
 
@@ -645,48 +426,32 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   // Handle card click navigation
   const handleCardClick = (slide: SlideData) => {
     if (slide.type === 'product') {
-      // Navigate to product page using product ID
-      router.push(`/product/${slide.id}`);
-    } else if (slide.type === 'event') {
-      // Navigate to event page using event ID
-      router.push(`/event/${slide.id}`);
+      // Navigate to product page
+      router.push(slide.link);
     } else if (slide.type === 'page') {
-      // For pages, navigate to the page using the link
+      // Check if this is a details page
+      if (slide.pageType === 'details') {
+        if (slide.productID) {
+          // Navigate to product details page
+          router.push(`/product/${slide.productID}`);
+        } else if (slide.eventID) {
+          // Navigate to event details page
+          router.push(`/event/${slide.eventID}`);
+        } else {
+          // Fallback to regular page navigation
+          router.push(slide.link);
+        }
+      } else {
+        // For regular pages, navigate to the page
+        router.push(slide.link);
+      }
+    } else if (slide.type === 'event') {
+      // For events, navigate to event page
       router.push(slide.link);
     }
   };
 
   // Handle add to cart
-  // Handle RFQ request
-  const handleRFQRequest = async (productId: string, event: React.MouseEvent) => {
-    // Prevent card click when clicking RFQ button
-    event.stopPropagation();
-
-    try {
-      // Get access token from localStorage
-      const accessToken = localStorage.getItem("accessToken");
-
-      if (!accessToken) {
-        alert("Please login to request a quote");
-        return;
-      }
-
-      // For now, show a simple alert with product ID. In a real implementation, this would
-      // open a modal or navigate to an RFQ form
-      alert(`RFQ functionality will be implemented soon for product ${productId}. Please contact us directly for a quote.`);
-
-      // TODO: Implement actual RFQ functionality
-      // This could involve:
-      // - Opening an RFQ modal with productId
-      // - Navigating to an RFQ form page with productId
-      // - Sending an RFQ request to the backend with productId
-
-    } catch (error: any) {
-      console.error("RFQ request error:", error);
-      alert("Failed to process RFQ request");
-    }
-  };
-
   const handleAddToCart = async (productId: string, price: number, event: React.MouseEvent) => {
     // Prevent card click when clicking add to cart
     event.stopPropagation();
@@ -777,21 +542,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   try {
                     const productData = await getProduct(productId);
                     if (productData) {
-                      // Fetch pricing data
-                      try {
-                        const pricingData = await getProductPricing(productId);
-                        console.log("Pricing data for product", productId, pricingData);
-                        // Combine product and pricing data
-                        const productWithPricing = {
-                          ...productData,
-                          pricing: pricingData
-                        };
-                        fetchedSlides.push(getProductInfo(productWithPricing, productId));
-                      } catch (pricingError) {
-                        console.warn(`Could not fetch pricing for product ${productId}:`, pricingError);
-                        // Use product data without pricing
-                        fetchedSlides.push(getProductInfo(productData, productId));
-                      }
+                      fetchedSlides.push(getProductInfo(productData, productId));
                     }
                   } catch (error) {
                     console.error(`Error fetching product ${productId}:`, error);
@@ -852,38 +603,38 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     const getCardDimensions = () => {
       switch (swiperType) {
         case 'portrait':
-          return {
-            width: "100%",
+          return { 
+            width: "100%", 
             maxWidth: { xs: "200px", sm: "220px", md: "240px" },
             height: { xs: 250, sm: 280, md: 300 }
           };
         case 'landscape':
-          return {
-            width: "100%",
+          return { 
+            width: "100%", 
             maxWidth: { xs: "280px", sm: "320px", md: "350px" },
             height: { xs: 160, sm: 180, md: 200 }
           };
         case 'hero':
           return {
-            width: "100vw",
-            height: { xs: "50vh", sm: "60vh", md: "70vh" },
-            maxHeight: "600px",
-            minHeight: "400px"
+            width: "100vw", // Full viewport width
+            height: "100vh", // Full viewport height
+            maxWidth: "none",
+            borderRadius: 0 // No border radius for full screen
           };
         case 'circle':
-          return {
-            width: { xs: 150, sm: 180, md: 200 },
+          return { 
+            width: { xs: 150, sm: 180, md: 200 }, 
             height: { xs: 150, sm: 180, md: 200 },
             borderRadius: "50%"
           };
         case 'square':
-          return {
-            width: { xs: 200, sm: 220, md: 250 },
+          return { 
+            width: { xs: 200, sm: 220, md: 250 }, 
             height: { xs: 200, sm: 220, md: 250 }
           };
         default:
-          return {
-            width: "100%",
+          return { 
+            width: "100%", 
             maxWidth: { xs: "280px", sm: "300px", md: "320px" },
             height: { xs: 200, sm: 220, md: 250 }
           };
@@ -891,28 +642,20 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     };
 
     const dimensions = getCardDimensions();
-    const isHero = swiperType === 'hero';
 
     return (
-      <Box
+      <Box 
         onClick={() => handleCardClick(slide)}
         sx={{
           ...dimensions,
-          borderRadius: isHero ? 0 : (dimensions.borderRadius || { xs: "16px", sm: "20px" }),
+          borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
           overflow: 'hidden',
-          boxShadow: isHero ? "none" : "0px 8px 32px rgba(0, 0, 0, 0.12)",
+          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
           backgroundColor: theme.palette.background.paper,
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
           cursor: 'pointer',
           position: 'relative',
-          // Hero carousel specific styles
-          ...(isHero && {
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }),
-          "&:hover": isHero ? {} : {
+          "&:hover": {
             transform: "translateY(-8px) scale(1.02)",
             boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
           },
@@ -923,10 +666,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             left: 0,
             right: 0,
             bottom: 0,
-            background: isHero
-              ? 'linear-gradient(45deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%)'
-              : 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
-            opacity: isHero ? 1 : 0,
+            background: 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
+            opacity: 0,
             transition: 'opacity 0.3s ease',
             zIndex: 1
           },
@@ -944,66 +685,6 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             objectFit: 'cover'
           }}
         />
-
-        {/* Hero carousel overlay content */}
-        {isHero && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: { xs: 20, sm: 40, md: 60 },
-              left: { xs: 20, sm: 40, md: 60 },
-              right: { xs: 20, sm: 40, md: 60 },
-              zIndex: 2,
-              color: 'white',
-              textAlign: 'left'
-            }}
-          >
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
-                fontWeight: 'bold',
-                mb: 2,
-                textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
-              }}
-            >
-              {slide.title}
-            </Typography>
-            {slide.description && (
-              <Typography
-                variant="body1"
-                sx={{
-                  fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-                  mb: 3,
-                  maxWidth: '600px',
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                  opacity: 0.9
-                }}
-              >
-                {slide.description}
-              </Typography>
-            )}
-            <Button
-              variant="contained"
-              size="large"
-              sx={{
-                px: 4,
-                py: 1.5,
-                fontSize: { xs: '0.9rem', sm: '1rem' },
-                fontWeight: 'bold',
-                borderRadius: '25px',
-                textTransform: 'none',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
-                }
-              }}
-            >
-              Learn More
-            </Button>
-          </Box>
-        )}
       </Box>
     );
   };
@@ -1014,8 +695,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       onClick={() => handleCardClick(slide)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "280px", sm: "300px", md: "350px" }, // Match event card width
-        height: { xs: "480px", sm: "500px", md: "520px" }, // Match event card height
+        maxWidth: { xs: "280px", sm: "300px", md: "320px" },
+        height: { xs: "420px", sm: "440px", md: "460px" },
         borderRadius: { xs: "16px", sm: "20px" },
         overflow: 'hidden',
         boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
@@ -1025,7 +706,6 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flexDirection: 'column',
         cursor: 'pointer',
         position: 'relative',
-        margin: '0 auto', // Center the card
         "&:hover": {
           transform: "translateY(-8px)",
           boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
@@ -1147,57 +827,53 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          
-<Typography
-  variant="h5"
-  sx={{
-    color: 'text.primary',
-    fontWeight: "bold",
-    fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
-  }}
->
-  {slide.price && slide.price > 0 ? `$${slide.price.toFixed(2)}` : 'RFQ'}
-</Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: "bold",
+              fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
+            }}
+          >
+            ${slide.price?.toFixed(2)}
+          </Typography>
 
           <Button
             variant="contained"
-            onClick={(e) =>
-              slide.isRFQ ? handleRFQRequest(slide.id, e) : handleAddToCart(slide.id, slide.price || 0, e)
-            }
+            onClick={(e) => handleAddToCart(slide.id, slide.price || 0, e)}
             disabled={addingToCart[slide.id]}
             sx={{
-              minWidth: slide.isRFQ ? 'auto' : 'auto',
-              width: slide.isRFQ ? 'auto' : { xs: 44, sm: 46, md: 48 },
+              minWidth: 'auto',
+              width: { xs: 44, sm: 46, md: 48 },
               height: { xs: 44, sm: 46, md: 48 },
-              borderRadius: slide.isRFQ ? '8px' : '50%',
-              p: slide.isRFQ ? { xs: 1, sm: 1.2, md: 1.5 } : 0,
-              px: slide.isRFQ ? { xs: 2, sm: 2.5, md: 3 } : 0,
-              fontSize: slide.isRFQ ? { xs: '0.75rem', sm: '0.8rem', md: '0.85rem' } : 'inherit',
-              fontWeight: slide.isRFQ ? 'bold' : 'normal',
-              backgroundColor: slide.isRFQ ? 'primary.main' : 'primary.main',
-              '&:hover': {
-                backgroundColor: slide.isRFQ ? 'primary.dark' : 'primary.dark',
-                transform: slide.isRFQ ? 'none' : 'scale(1.05)',
+              borderRadius: '50%',
+              p: 0,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              transition: 'all 0.3s ease',
+              "&:hover": {
+                transform: 'scale(1.1)',
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
+                background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
               }
             }}
           >
             {addingToCart[slide.id] ? (
-              <Box
-                sx={{
-                  width: 20,
-                  height: 20,
-                  border: '2px solid white',
-                  borderTop: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  '@keyframes spin': {
-                    '0%': { transform: 'rotate(0deg)' },
-                    '100%': { transform: 'rotate(360deg)' }
-                  }
-                }}
-              />
-            ) : slide.isRFQ ? (
-              'Request Quote'
+              <Box sx={{ 
+                width: 20, 
+                height: 20,
+                border: '2px solid white',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }} />
             ) : (
               <ShoppingCartIcon sx={{ fontSize: 20 }} />
             )}
@@ -1207,64 +883,69 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     </Box>
   );
 
-  // Render minimal donation event card with only name and description
-  const renderDonationEventCard = (slide: SlideData) => (
+  // Render donation campaign card with minimal details
+  const renderDonationCard = (slide: SlideData) => (
     <Box
       onClick={() => handleCardClick(slide)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "280px", sm: "300px", md: "350px" },
-        height: { xs: "auto", sm: "auto", md: "auto" },
-        borderRadius: { xs: "16px", sm: "20px" },
+        maxWidth: { xs: "260px", sm: "280px", md: "320px" },
+        height: { xs: "420px", sm: "440px", md: "460px" },
+        borderRadius: { xs: "12px", sm: "16px" },
         overflow: 'hidden',
-        boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+        boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
         backgroundColor: theme.palette.background.paper,
-        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        transition: "all 0.3s ease",
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
         position: 'relative',
         "&:hover": {
-          transform: "translateY(-8px)",
-          boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+          transform: "translateY(-4px)",
+          boxShadow: "0px 8px 30px rgba(0, 0, 0, 0.15)"
         }
       }}
     >
-      {/* Image section with gradient overlay */}
+      {/* Image section */}
       <Box sx={{
         width: "100%",
+        height: { xs: 160, sm: 180, md: 250 },
         position: 'relative',
-        height: { xs: 180, sm: 200, md: 220 },
-        overflow: 'hidden',
-        "&::after": {
-          content: '""',
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '40%',
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
-          pointerEvents: 'none'
-        }
+        overflow: 'hidden'
       }}>
         <img
-          src={slide.image || '/api/placeholder/400/360'}
-          alt={slide.title || 'Donation Event'}
+          src={slide.image || '/api/placeholder/400/300'}
+          alt={slide.title || 'Donation Campaign'}
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 0.4s ease'
+            objectFit: 'cover'
           }}
         />
+
+        {/* Donation badge */}
+        <Box sx={{
+          position: 'absolute',
+          top: 8,
+          left: 8,
+          background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+          color: 'white',
+          borderRadius: '8px',
+          px: 1.5,
+          py: 0.5,
+          fontSize: '0.75rem',
+          fontWeight: 'bold'
+        }}>
+          💚 Donate
+        </Box>
       </Box>
 
-      {/* Content section - minimal for donations but same layout as regular cards */}
+      {/* Content section */}
       <Box sx={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        padding: { xs: "16px", sm: "18px", md: "20px" }
+        padding: { xs: "12px", sm: "14px", md: "16px" }
       }}>
         {/* Title */}
         <Typography
@@ -1272,9 +953,9 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           gutterBottom
           fontWeight="bold"
           sx={{
-            fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' },
-            mb: 1.5,
-            lineHeight: 1.3,
+            fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+            mb: 1,
+            lineHeight: 3,
             color: theme.palette.text.primary,
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -1285,43 +966,40 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           {slide.title}
         </Typography>
 
-        {/* Description - taking up more space since no other details */}
+        {/* Minimal description */}
         <Typography
           variant="body2"
           color="text.secondary"
           sx={{
             display: '-webkit-box',
-            WebkitLineClamp: 4,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             mb: 2,
-            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
-            lineHeight: 1.6,
-            flex: 1,
-            minHeight: { xs: '4.8rem', sm: '5.2rem', md: '5.6rem' }
+            fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
+            lineHeight: 1.4,
+            flex: 1
           }}
         >
           {slide.description}
         </Typography>
 
-        {/* Action button */}
+        {/* Donate button */}
         <Button
           variant="contained"
           fullWidth
           sx={{
             mt: 'auto',
-            py: 1.5,
-            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+            py: 1,
+            fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
             fontWeight: 'bold',
-            borderRadius: '12px',
-            // background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
-            // boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
-            transition: 'all 0.3s ease',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+            boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
             textTransform: 'none',
             "&:hover": {
-              transform: 'translateY(-2px)',
-              // boxShadow: '0 6px 20px rgba(255, 107, 107, 0.6)',
-              // background: 'linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%)'
+              background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)',
+              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)'
             }
           }}
         >
@@ -1333,12 +1011,12 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
   // Render event card with enhanced styling and better information display
   const renderEventCard = (slide: SlideData) => (
-    <Box
+    <Box 
       onClick={() => handleCardClick(slide)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "280px", sm: "300px", md: "320px" }, // Same as product cards
-        height: { xs: "460px", sm: "480px", md: "500px" }, // Same as product cards
+        maxWidth: { xs: "280px", sm: "300px", md: "350px" },
+        height: { xs: "480px", sm: "500px", md: "520px" },
         borderRadius: { xs: "16px", sm: "20px" },
         overflow: 'hidden',
         boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
@@ -1348,7 +1026,6 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         flexDirection: 'column',
         cursor: 'pointer',
         position: 'relative',
-        margin: '0 auto', // Center the card
         "&:hover": {
           transform: "translateY(-8px)",
           boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
@@ -1466,11 +1143,11 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             </Box>
           )}
 
-          {slide.price && slide.price > 0 ? (
+          {slide.price && (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <AttachMoney sx={{
-                fontSize: 18,
-                mr: 1,
+              <AttachMoney sx={{ 
+                fontSize: 18, 
+                mr: 1, 
                 color: 'success.main',
                 background: 'rgba(76, 175, 80, 0.1)',
                 borderRadius: '50%',
@@ -1478,20 +1155,6 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               }} />
               <Typography variant="body2" color="text.secondary" fontWeight="500">
                 From ${slide.price}
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <AttachMoney sx={{
-                fontSize: 18,
-                mr: 1,
-                color: 'warning.main',
-                background: 'rgba(255, 152, 0, 0.1)',
-                borderRadius: '50%',
-                p: 0.3
-              }} />
-              <Typography variant="body2" color="text.secondary" fontWeight="500">
-                Request for Quote
               </Typography>
             </Box>
           )}
@@ -1520,22 +1183,22 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         <Button
           variant="contained"
           fullWidth
-          // sx={{
-          //   mt: 'auto',
-          //   py: 1.5,
-          //   fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
-          //   fontWeight: 'bold',
-          //   borderRadius: '12px',
-          //   background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
-          //   boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
-          //   transition: 'all 0.3s ease',
-          //   textTransform: 'none',
-          //   "&:hover": {
-          //     transform: 'translateY(-2px)',
-          //     boxShadow: '0 6px 20px rgba(255, 107, 107, 0.6)',
-          //     background: 'linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%)'
-          //   }
-          // }}
+          sx={{
+            mt: 'auto',
+            py: 1.5,
+            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
+            fontWeight: 'bold',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+            boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
+            transition: 'all 0.3s ease',
+            textTransform: 'none',
+            "&:hover": {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(255, 107, 107, 0.6)',
+              background: 'linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%)'
+            }
+          }}
         >
           🎟️ View Event Details
         </Button>
@@ -1545,20 +1208,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
   // Show loading skeleton
   if (isLoading) {
-    return <SliderSkeleton slidesPerView={getEffectiveSlidesPerView()} isEventType={isEventType} swiperType={swiperType} />;
+    return <SliderSkeleton slidesPerView={slidesPerView} isEventType={isEventType} swiperType={swiperType} />;
   }
-
-  // Debug logging
-  console.log('Slider Debug:', {
-    swiperType,
-    slidesPerView: getEffectiveSlidesPerView(),
-    slidesCount: slides.length,
-    isMobile,
-    spaceBetween,
-    breakpoints: getResponsiveConfig(),
-    isLoading,
-    isEventType
-  });
 
   // Show message if no slides
   if (slides.length === 0) {
@@ -1575,68 +1226,49 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   }
 
   return (
-    <Box sx={{
-      position: 'relative',
-      width: '100%',
-      // Add extra padding for navigation arrows on non-hero sliders
-      px: swiperType === 'hero' ? 0 : { xs: 0, md: 7 },
-      // Allow navigation arrows to be visible
-      overflow: 'visible'
-    }}>
-      <Swiper
-        slidesPerView={slidesPerView}
-        spaceBetween={spaceBetween}
-        breakpoints={getResponsiveConfig()}
-        navigation={true}
-        pagination={{ clickable: true }}
-        loop={shouldEnableLoop()}
-        autoplay={autoplay && autoplay.delay !== undefined ? {
-          delay: autoplay.delay * 1000,
-          disableOnInteraction: autoplay.disableOnInteraction
-        } : false}
-        effect={effect}
-        speed={speed * 1000}
-        modules={swiperModules}
-        className={swiperType === 'hero' ? 'hero-swiper' : 'mySwiper'}
-        style={{
-          width: "100%",
-          padding: swiperType === 'hero' ? "0" : "0 60px",
-        }}
-        watchSlidesProgress={true}
-        watchOverflow={true}
-        onSlideChange={(swiper) => {
-          console.log('Slide changed:', {
-            activeIndex: swiper.activeIndex,
-            realIndex: swiper.realIndex,
-            slidesLength: slides.length,
-            isLoop: shouldEnableLoop()
-          });
-        }}
-        onNavigationNext={() => console.log('Navigation next clicked')}
-        onNavigationPrev={() => console.log('Navigation prev clicked')}
-      >
-        {slides.map((slide, index) => (
-          <SwiperSlide
-            key={`${slide.type}-${slide.id}-${index}-${slides.length}`}
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: "12px",
-              height: "auto",
-            }}
-          >
-            {slide.type === 'event'
-              ? (slide.metadata?.name === 'donation'
-                  ? renderDonationEventCard(slide)
-                  : renderEventCard(slide))
-              : slide.type === 'page'
-              ? renderPageCard(slide)
-              : renderProductCard(slide)}
-          </SwiperSlide>
-        ))}
-      </Swiper>
-    </Box>
+    <Swiper
+      breakpoints={getResponsiveConfig()}
+      loop={loop && slides.length > 1}
+      effect={effect !== "none" ? effect : undefined}
+      speed={speed * 1000}
+      autoplay={
+        autoplay && autoplay.delay !== undefined
+          ? {
+              delay: autoplay.delay * 1000,
+              disableOnInteraction: autoplay.disableOnInteraction,
+            }
+          : false
+      }
+      navigation={!isMobile}
+      pagination={isMobile}
+      modules={swiperModules}
+      className="mySwiper"
+      spaceBetween={spaceBetween}
+      style={{
+        width: swiperType === 'hero' ? "100vw" : "100%",
+        justifyContent: "center",
+        padding: swiperType === 'hero' ? "0" : "0 8px"
+      }}
+    >
+      {slides.map((slide, index) => (
+        <SwiperSlide 
+          key={`${slide.type}-${slide.id}-${index}`}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: swiperType === 'hero' ? "0" : "2px"
+          }}
+        >
+          {slide.type === 'event'
+            ? (slide.isDonation ? renderDonationCard(slide) : renderEventCard(slide))
+            : slide.type === 'page'
+            ? renderPageCard(slide)
+            : renderProductCard(slide)}
+        </SwiperSlide>
+      ))}
+    </Swiper>
   );
 };
 
@@ -1645,11 +1277,7 @@ const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, 
   // Create dynamic theme
   const theme = createDynamicTheme({themes});
   const [isEventType, setIsEventType] = useState(false);
-
-  // Extract swiper type to determine layout
-  const swiperType = elementData?.swiperOptions?.swiperType || "portrait";
-  const isHeroType = swiperType === 'hero';
-
+  
   useEffect(() => {
     const checkIfEventType = async () => {
       if (elementData?.items && elementData.items.length > 0) {
@@ -1668,10 +1296,10 @@ const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, 
         }
       }
     };
-
+    
     checkIfEventType();
   }, [elementData]);
-
+  
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{
@@ -1679,27 +1307,24 @@ const SliderPage: React.FC<{ elementData: any; themes: any }> = ({ elementData, 
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        // Hero carousel should have no margins and take full width
-        marginTop: isHeroType ? 0 : { xs: 2, sm: 3, md: 4 },
-        marginBottom: isHeroType ? 0 : { xs: 2, sm: 3, md: 4 },
-        // Hero carousel should have no padding
-        px: isHeroType ? 0 : { xs: 1, sm: 2, md: 3 },
-        backgroundColor: isHeroType ? 'transparent' : theme.palette.background.default
+        marginTop: elementData?.swiperOptions?.swiperType === 'hero' ? 0 : { xs: 4, sm: 6, md: 8 },
+        marginBottom: elementData?.swiperOptions?.swiperType === 'hero' ? 0 : { xs: 4, sm: 6, md: 8 },
+        px: elementData?.swiperOptions?.swiperType === 'hero' ? 0 : { xs: 1, sm: 2, md: 3 },
+        backgroundColor: theme.palette.background.default
       }}>
         <Box sx={{
-          width: isHeroType ? "100vw" : "100%",
-          maxWidth: isHeroType ? "none" : "1400px", // Max width for consistent spacing
-          // Hero carousel should not have overflow hidden to allow full width
-          overflow: isHeroType ? "visible" : "hidden",
+          width: elementData?.swiperOptions?.swiperType === 'hero' ? "100vw" : {
+            xs: "100%",
+            sm: "95%",
+            md: "80%",
+            lg: "90%"
+          },
+          overflow: "hidden",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          // Hero carousel positioning
-          position: isHeroType ? "relative" : "static",
-          left: isHeroType ? "50%" : "auto",
-          transform: isHeroType ? "translateX(-50%)" : "none",
         }}>
-          <Suspense fallback={<SliderSkeleton slidesPerView={elementData?.swiperOptions?.slidesPerView || 3} isEventType={isEventType} swiperType={swiperType} />}>
+          <Suspense fallback={<SliderSkeleton slidesPerView={elementData?.swiperOptions?.slidesPerView || 3} isEventType={isEventType} swiperType={elementData?.swiperOptions?.swiperType || "portrait"} />}>
             <SliderContent elementData={elementData} themes={themes} />
           </Suspense>
         </Box>

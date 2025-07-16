@@ -4,6 +4,7 @@ import { getColor, getMenu } from "../src/data/loader";
 import NextTopLoader from "nextjs-toploader";
 import Navbar from "./components/navbar/NavBar";
 import ClientLayout from "./components/ClientLayout";
+import PageLayout from "./components/PageLayout";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let menuData = null;
@@ -23,14 +24,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-      <NextTopLoader
+        <NextTopLoader
           color="#16a249"
           showSpinner={false}
           height={3}
         />
         <ClientLayout>
           <Navbar menuData={menuData} themes={colors} />
-          <main>{children}</main>
+          <PageLayout>
+            {children}
+          </PageLayout>
           <Footer />
         </ClientLayout>
       </body>
