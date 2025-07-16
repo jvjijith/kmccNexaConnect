@@ -9,7 +9,7 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { createDynamicTheme } from "@repo/ui/theme";
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import { getCatalog, getPageById, getProduct, getEvent, addToCart } from "../data/loader";
+import { getCatalog, getPageById, getProduct, getEvent, addToCart, getProductPricing } from "../data/loader";
 import { useRouter } from "next/navigation";
 
 // Define types
@@ -35,6 +35,7 @@ interface ProductData {
   price?: number;
   rating?: number;
   isBestseller?: boolean;
+  RFQ?: boolean; // Add RFQ field from product data
   [key: string]: any;
 }
 
@@ -85,6 +86,7 @@ interface SlideData {
   productID?: string; // Add productID for details navigation
   eventID?: string; // Add eventID for details navigation
   isDonation?: boolean; // Add donation flag for events
+  isRFQ?: boolean; // Add RFQ flag for products
 }
 
 // Format date for events
@@ -350,7 +352,36 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   };
 
   // Get product info
-  const getProductInfo = (product: ProductData, productId: string): SlideData => {
+  const getProductInfo = async (product: ProductData, productId: string): Promise<SlideData> => {
+    let price: number | undefined = product.price;
+    let isRFQ = product.RFQ || false; // Get RFQ from product data
+
+    // If RFQ is true, don't fetch or show price
+    if (!isRFQ) {
+      try {
+        // Fetch pricing data
+        const pricingData = await getProductPricing(productId);
+        if (pricingData && Array.isArray(pricingData) && pricingData.length > 0) {
+          const firstPricing = pricingData[0];
+          if (firstPricing.pricing && firstPricing.pricing.length > 0) {
+            const priceInfo = firstPricing.pricing[0];
+            if (priceInfo.amount && priceInfo.amount > 0) {
+              price = priceInfo.amount;
+            }
+          }
+        }
+
+        // Fallback to a default price if no price is found and not RFQ
+        if (!price || price <= 0) {
+          price = 199.99;
+        }
+      } catch (error) {
+        console.error(`Error fetching pricing for product ${productId}:`, error);
+        // Fallback to product price or default if pricing fetch fails
+        price = product.price || 199.99;
+      }
+    }
+
     return {
       id: productId,
       type: 'product',
@@ -358,9 +389,10 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
       title: product.name || '',
       description: product.description || '',
       link: productId ? `/product/${productId}` : '#',
-      price: product.price || 199.99,
+      price: isRFQ ? undefined : price,
       rating: product.rating || 4.5,
-      isBestseller: product.isBestseller || false
+      isBestseller: product.isBestseller || false,
+      isRFQ: isRFQ
     };
   };
 
@@ -426,27 +458,13 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   // Handle card click navigation
   const handleCardClick = (slide: SlideData) => {
     if (slide.type === 'product') {
-      // Navigate to product page
+      // For product cards, navigate to product page
       router.push(slide.link);
     } else if (slide.type === 'page') {
-      // Check if this is a details page
-      if (slide.pageType === 'details') {
-        if (slide.productID) {
-          // Navigate to product details page
-          router.push(`/product/${slide.productID}`);
-        } else if (slide.eventID) {
-          // Navigate to event details page
-          router.push(`/event/${slide.eventID}`);
-        } else {
-          // Fallback to regular page navigation
-          router.push(slide.link);
-        }
-      } else {
-        // For regular pages, navigate to the page
-        router.push(slide.link);
-      }
+      // For page cards (including hero), navigate to the page
+      router.push(slide.link);
     } else if (slide.type === 'event') {
-      // For events, navigate to event page
+      // For event cards, navigate to page (not event details)
       router.push(slide.link);
     }
   };
@@ -542,7 +560,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   try {
                     const productData = await getProduct(productId);
                     if (productData) {
-                      fetchedSlides.push(getProductInfo(productData, productId));
+                      fetchedSlides.push(await getProductInfo(productData, productId));
                     }
                   } catch (error) {
                     console.error(`Error fetching product ${productId}:`, error);
@@ -603,14 +621,14 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     const getCardDimensions = () => {
       switch (swiperType) {
         case 'portrait':
-          return { 
-            width: "100%", 
+          return {
+            width: "100%",
             maxWidth: { xs: "200px", sm: "220px", md: "240px" },
             height: { xs: 250, sm: 280, md: 300 }
           };
         case 'landscape':
-          return { 
-            width: "100%", 
+          return {
+            width: "100%",
             maxWidth: { xs: "280px", sm: "320px", md: "350px" },
             height: { xs: 160, sm: 180, md: 200 }
           };
@@ -622,19 +640,19 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             borderRadius: 0 // No border radius for full screen
           };
         case 'circle':
-          return { 
-            width: { xs: 150, sm: 180, md: 200 }, 
+          return {
+            width: { xs: 150, sm: 180, md: 200 },
             height: { xs: 150, sm: 180, md: 200 },
             borderRadius: "50%"
           };
         case 'square':
-          return { 
-            width: { xs: 200, sm: 220, md: 250 }, 
+          return {
+            width: { xs: 200, sm: 220, md: 250 },
             height: { xs: 200, sm: 220, md: 250 }
           };
         default:
-          return { 
-            width: "100%", 
+          return {
+            width: "100%",
             maxWidth: { xs: "280px", sm: "300px", md: "320px" },
             height: { xs: 200, sm: 220, md: 250 }
           };
@@ -644,7 +662,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     const dimensions = getCardDimensions();
 
     return (
-      <Box 
+      <Box
         onClick={() => handleCardClick(slide)}
         sx={{
           ...dimensions,
@@ -656,7 +674,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           cursor: 'pointer',
           position: 'relative',
           "&:hover": {
-            transform: "translateY(-8px) scale(1.02)",
+            transform: swiperType === 'hero' ? "scale(1.02)" : "translateY(-8px) scale(1.02)",
             boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
           },
           "&::before": {
@@ -666,8 +684,10 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
-            opacity: 0,
+            background: swiperType === 'hero'
+              ? 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%)'
+              : 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
+            opacity: swiperType === 'hero' ? 1 : 0,
             transition: 'opacity 0.3s ease',
             zIndex: 1
           },
@@ -685,6 +705,56 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             objectFit: 'cover'
           }}
         />
+
+        {/* Hero overlay with title and description */}
+        {swiperType === 'hero' && (slide.title || slide.description) && (
+          <Box sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+            padding: { xs: 3, sm: 4, md: 6 },
+            color: 'white',
+            zIndex: 2
+          }}>
+            {slide.title && (
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3.5rem', lg: '4rem' },
+                  fontWeight: 'bold',
+                  mb: { xs: 1, sm: 2, md: 3 },
+                  lineHeight: 1.2,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                  color: 'white',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+                }}
+              >
+                {slide.title}
+              </Typography>
+            )}
+
+            {slide.description && (
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' },
+                  lineHeight: 1.6,
+                  maxWidth: { xs: '100%', sm: '80%', md: '70%' },
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
+                  opacity: 0.95,
+                  display: '-webkit-box',
+                  WebkitLineClamp: { xs: 3, sm: 4, md: 5 },
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}
+              >
+                {slide.description}
+              </Typography>
+            )}
+          </Box>
+        )}
       </Box>
     );
   };
@@ -827,23 +897,42 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <Typography
-            variant="h5"
-            sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: "bold",
-              fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
-            }}
-          >
-            ${slide.price?.toFixed(2)}
-          </Typography>
+          {slide.isRFQ ? (
+            <Typography
+              variant="h5"
+              sx={{
+                color: theme.palette.primary.main,
+                fontWeight: "bold",
+                fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
+              }}
+            >
+              Request Quote
+            </Typography>
+          ) : (
+            <Typography
+              variant="h5"
+              sx={{
+                color: theme.palette.primary.main,
+                fontWeight: "bold",
+                fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
+              }}
+            >
+              ₹{slide.price?.toFixed(2) || '0.00'}
+            </Typography>
+          )}
 
           <Button
             variant="contained"
-            onClick={(e) => handleAddToCart(slide.id, slide.price || 0, e)}
+            onClick={(e) => {
+              if (slide.isRFQ) {
+                // For RFQ products, prevent card click and navigate to product page for quote
+                e.stopPropagation();
+                router.push(slide.link);
+              } else {
+                // For regular products, add to cart
+                handleAddToCart(slide.id, slide.price || 0, e);
+              }
+            }}
             disabled={addingToCart[slide.id]}
             sx={{
               minWidth: 'auto',
@@ -851,19 +940,25 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               height: { xs: 44, sm: 46, md: 48 },
               borderRadius: '50%',
               p: 0,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: slide.isRFQ
+                ? '0 4px 15px rgba(255, 152, 0, 0.4)'
+                : '0 4px 15px rgba(102, 126, 234, 0.4)',
               transition: 'all 0.3s ease',
               "&:hover": {
                 transform: 'scale(1.1)',
-                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
-                background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
+                boxShadow: slide.isRFQ
+                  ? '0 6px 20px rgba(255, 152, 0, 0.6)'
+                  : '0 6px 20px rgba(102, 126, 234, 0.6)',
+                background: slide.isRFQ
+                  ? 'linear-gradient(135deg, #FF5722 0%, #FF9800 100%)'
+                  : 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
               }
             }}
           >
             {addingToCart[slide.id] ? (
-              <Box sx={{ 
-                width: 20, 
+              <Box sx={{
+                width: 20,
                 height: 20,
                 border: '2px solid white',
                 borderTop: '2px solid transparent',
@@ -874,6 +969,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   '100%': { transform: 'rotate(360deg)' }
                 }
               }} />
+            ) : slide.isRFQ ? (
+              <Typography sx={{ fontSize: 16, fontWeight: 'bold' }}>RFQ</Typography>
             ) : (
               <ShoppingCartIcon sx={{ fontSize: 20 }} />
             )}
@@ -988,6 +1085,12 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         <Button
           variant="contained"
           fullWidth
+          onClick={(e) => {
+            // Prevent card click when clicking button
+            e.stopPropagation();
+            // For now, just navigate to event page - can be customized later
+            router.push(slide.link);
+          }}
           sx={{
             mt: 'auto',
             py: 1,
@@ -998,7 +1101,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
             textTransform: 'none',
             "&:hover": {
-              background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)',
+              background: 'primary.main',
               boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)'
             }
           }}
@@ -1183,20 +1286,26 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         <Button
           variant="contained"
           fullWidth
+          onClick={(e) => {
+            // Prevent card click when clicking button
+            e.stopPropagation();
+            // For now, just navigate to event details - can be customized later
+            router.push(slide.link);
+          }}
           sx={{
             mt: 'auto',
             py: 1.5,
             fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
             fontWeight: 'bold',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+            // background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
             boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
             transition: 'all 0.3s ease',
             textTransform: 'none',
             "&:hover": {
               transform: 'translateY(-2px)',
               boxShadow: '0 6px 20px rgba(255, 107, 107, 0.6)',
-              background: 'linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%)'
+              background: 'primary.main'
             }
           }}
         >
