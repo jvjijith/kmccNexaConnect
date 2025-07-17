@@ -122,7 +122,7 @@ export async function registerEventAuthenticated(data: any, headers?: HeadersIni
 
 export async function getRegisterEvent(registerId: any, headers?: HeadersInit) {
   try {
-    return await fetchApi(`/events/register/${registerId}`, { headers });
+    return await fetchApi(`/events/${registerId}`, { headers });
   } catch (error: any) {
     throw new Error(error || 'Failed to fetch event registration');
   }

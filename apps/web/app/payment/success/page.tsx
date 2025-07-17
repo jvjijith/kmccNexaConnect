@@ -55,7 +55,7 @@ function decodeJWT(token: string) {
 }
 
 function PaymentSuccessContent() {
-  const { data: session } = useSession()
+  const accessToken = localStorage.getItem("accessToken");
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -99,25 +99,25 @@ function PaymentSuccessContent() {
     }
 console.log("Starting payment processing...")
     processPayment()
-  }, [sessionId, type, session])
+  }, [sessionId, type, accessToken])
 
   const processPayment = async () => {
     try {
       setProcessing(true)
       setError(null)
 
-      if (!session?.accessToken) {
+      if (!accessToken) {
         setError("Authentication required")
         return
       }
 
       const headers = {
-        'Authorization': `Bearer ${session.accessToken}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
 
       // Decode JWT to get user ID
-      const decodedToken = decodeJWT(session.accessToken)
+      const decodedToken = decodeJWT(accessToken)
       if (!decodedToken || !decodedToken.id) {
         setError('Authentication error. Please log in again.')
         return
@@ -229,7 +229,7 @@ if(registrationId){await handleEventPayment(headers, userId)}
       throw new Error("Registration ID or Event ID is required for event payments")
     }
 
-    if (!session?.accessToken) {
+    if (!accessToken) {
       throw new Error("Authentication required")
     }
 
@@ -253,7 +253,8 @@ if(registrationId){await handleEventPayment(headers, userId)}
         stripeId: sessionId || registrationDetails.stripeId,
         currency: registrationDetails.currency || "USD",
         status: "completed", // Update status to completed after successful payment
-        paymentStatus: "paid" // Update payment status to paid
+        paymentStatus: "paid", // Update payment status to paid
+        id: regId,
       }
 
       console.log("Updating event registration with payment success:", eventUpdateData)
@@ -497,7 +498,7 @@ if(registrationId){await handleEventPayment(headers, userId)}
                 )}
 
                 {/* Event Registration Details */}
-                {type === 'event' && orderDetails && (
+                {(type === 'event' || registrationId) && orderDetails && (
                   <Card sx={{ mb: 3, border: `1px solid ${primaryColor}20` }}>
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2, color: primaryColor }}>
@@ -614,7 +615,7 @@ if(registrationId){await handleEventPayment(headers, userId)}
                       </>
                     )}
                     
-                    {type === 'event' && (
+                    {type === 'event' || registrationId && (
                       <>
                         <Typography variant="body1" sx={{ mb: 1 }}>
                           • Your event registration has been confirmed
