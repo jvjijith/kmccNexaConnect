@@ -55,10 +55,9 @@ function decodeJWT(token: string) {
 }
 
 function PaymentSuccessContent() {
-  const accessToken = localStorage.getItem("accessToken");
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,12 +65,21 @@ function PaymentSuccessContent() {
   const [color, setColor] = useState<any>(null)
   const [colorLoading, setColorLoading] = useState(true)
   const [orderDetails, setOrderDetails] = useState<any>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
 
   const sessionId = searchParams.get('session_id')
   const type = searchParams.get('type')
   const eventId = searchParams.get('id') // For event payments (legacy)
   const registrationId = searchParams.get('registration_id') // For event registration payments
   const memberId = searchParams.get('memberId') // For member payments
+
+  // Initialize access token from localStorage on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem("accessToken");
+      setAccessToken(token);
+    }
+  }, []);
 
   // Color system integration
   useEffect(() => {

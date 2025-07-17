@@ -35,13 +35,21 @@ function decodeJWT(token: string) {
 }
 
 function CartPageContent() {
-  const accessToken = localStorage.getItem("accessToken");
   const router = useRouter()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [color, setColor] = useState<any>(null)
   const [colorLoading, setColorLoading] = useState(true)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+
+  // Initialize access token from localStorage on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem("accessToken");
+      setAccessToken(token);
+    }
+  }, [])
 
   // Color system integration - fetch colors on component mount
   useEffect(() => {
