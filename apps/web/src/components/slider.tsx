@@ -24,6 +24,8 @@ interface PageData {
   title?: any[];
   metaDescription?: any[];
   referenceName?: string;
+  publish: boolean,
+  draft: boolean,
   [key: string]: any;
 }
 
@@ -36,6 +38,7 @@ interface ProductData {
   rating?: number;
   isBestseller?: boolean;
   RFQ?: boolean; // Add RFQ field from product data
+  active?: boolean;
   [key: string]: any;
 }
 
@@ -60,6 +63,7 @@ interface EventData {
   };
   images?: { url: string; _id: string }[];
   image?: string;
+  eventStatus?: string;
   [key: string]: any;
 }
 
@@ -167,9 +171,10 @@ const EventCardSkeleton = () => {
 };
 
 // Create a skeleton loader component for page cards (image only)
+// Update PageCardSkeleton for hero type to full viewport with proper styling
 const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
   const theme = useTheme();
-  
+
   const getSkeletonDimensions = () => {
     switch (swiperType) {
       case 'portrait':
@@ -177,7 +182,7 @@ const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
       case 'landscape':
         return { width: "100%", height: 200, maxWidth: "350px" };
       case 'hero':
-        return { width: "100%", height: 400, maxWidth: "600px" };
+        return { width: "100vw", height: "100vh", maxWidth: "100vw", borderRadius: 0 };
       case 'circle':
         return { width: 200, height: 200, maxWidth: "200px", borderRadius: "50%" };
       case 'square':
@@ -188,7 +193,7 @@ const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
   };
 
   const dimensions = getSkeletonDimensions();
-  
+
   return (
     <Box sx={{
       width: dimensions.width,
@@ -196,27 +201,58 @@ const PageCardSkeleton = ({ swiperType }: { swiperType: string }) => {
       height: dimensions.height,
       borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
       overflow: "hidden",
-      boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+      boxShadow: swiperType === 'hero' ? 'none' : "0px 8px 32px rgba(0, 0, 0, 0.12)",
       backgroundColor: theme.palette.background.paper,
+      position: swiperType === 'hero' ? 'relative' : 'static',
     }}>
-      <Skeleton 
-        variant="rectangular" 
-        width="100%" 
+      <Skeleton
+        variant="rectangular"
+        width="100%"
         height="100%"
         sx={{ borderRadius: dimensions.borderRadius || 0 }}
       />
+      {/* Optional: Add a gradient overlay skeleton for hero */}
+      {swiperType === 'hero' && (
+        <Box sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '30%',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
+          pointerEvents: 'none',
+        }} />
+      )}
     </Box>
   );
 };
 
-// Skeleton loader for the entire slider
+// Update SliderSkeleton to render hero skeleton properly
 const SliderSkeleton = ({ slidesPerView, isEventType, swiperType }: { slidesPerView: number, isEventType: boolean, swiperType: string }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  
+
+  if (swiperType === 'hero') {
+    // For hero, show a single full viewport skeleton
+    return (
+      <Box sx={{
+        width: "100vw",
+        height: "100vh",
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: theme.palette.background.paper,
+        boxShadow: "none"
+      }}>
+        <PageCardSkeleton swiperType="hero" />
+      </Box>
+    );
+  }
+
   const getSkeletonWidth = () => {
-    if (swiperType === 'hero') return "100%";
     if (swiperType === 'circle') return "200px";
     if (swiperType === 'square') return "250px";
     return isMobile ? "280px" : isTablet ? "300px" : "320px";
@@ -229,7 +265,7 @@ const SliderSkeleton = ({ slidesPerView, isEventType, swiperType }: { slidesPerV
       justifyContent: "center"
     }}>
       {[...Array(isMobile ? 1 : isTablet ? 2 : slidesPerView)].map((_, index) => (
-        <Box key={index} sx={{ 
+        <Box key={index} sx={{
           width: getSkeletonWidth()
         }}>
           {isEventType ? (
@@ -517,17 +553,18 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     }
   };
 
-  // Use useEffect to fetch data only once
+  // Use useEffect to fetch data only once with published/active filtering
   useEffect(() => {
     const fetchData = async () => {
       const fetchedSlides: SlideData[] = [];
-      
+
       if (elementData?.items && elementData.items.length > 0) {
         for (const item of elementData.items) {
           if (item.itemType === "Page") {
             try {
               const pageData = await getPageById(item.itemId);
-              if (pageData) {
+              // Only show page if publish is true and draft is false
+              if (pageData && pageData.publish === true && pageData.draft === false) {
                 fetchedSlides.push(getPageInfo(pageData));
               }
             } catch (error) {
@@ -536,8 +573,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           } else if (item.itemType === "Catalogue") {
             try {
               const catalogData = await getCatalog(item.itemId);
-              console.log("catalogData", catalogData);
-              
+
               // Check if the catalog is an event type
               if (catalogData && catalogData.dataType === "event") {
                 setIsEventType(true);
@@ -546,7 +582,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                   for (const eventId of catalogData.eventIds) {
                     try {
                       const eventData = await getEvent(eventId);
-                      if (eventData) {
+                      // Only show event if eventStatus is not draft
+                      if (eventData && eventData.eventStatus !== "draft") {
                         fetchedSlides.push(getEventInfo(eventData, eventId));
                       }
                     } catch (error) {
@@ -559,7 +596,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
                 for (const productId of catalogData.productIds) {
                   try {
                     const productData = await getProduct(productId);
-                    if (productData) {
+                    // Only show product if active is true
+                    if (productData && productData.active === true) {
                       fetchedSlides.push(await getProductInfo(productData, productId));
                     }
                   } catch (error) {
@@ -573,7 +611,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           }
         }
       }
-      
+
       setSlides(fetchedSlides);
       setIsLoading(false);
     };
@@ -637,7 +675,8 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             width: "100vw", // Full viewport width
             height: "100vh", // Full viewport height
             maxWidth: "none",
-            borderRadius: 0 // No border radius for full screen
+            borderRadius: 0, // No border radius for full screen
+            position: 'relative'
           };
         case 'circle':
           return {
@@ -668,14 +707,14 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
           ...dimensions,
           borderRadius: dimensions.borderRadius || { xs: "16px", sm: "20px" },
           overflow: 'hidden',
-          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+          boxShadow: swiperType === 'hero' ? "none" : "0px 8px 32px rgba(0, 0, 0, 0.12)",
           backgroundColor: theme.palette.background.paper,
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
           cursor: 'pointer',
           position: 'relative',
           "&:hover": {
             transform: swiperType === 'hero' ? "scale(1.02)" : "translateY(-8px) scale(1.02)",
-            boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+            boxShadow: swiperType === 'hero' ? "none" : "0px 16px 48px rgba(0, 0, 0, 0.2)"
           },
           "&::before": {
             content: '""',
@@ -685,7 +724,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             right: 0,
             bottom: 0,
             background: swiperType === 'hero'
-              ? 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%)'
+              ? 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%)'
               : 'linear-gradient(45deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
             opacity: swiperType === 'hero' ? 1 : 0,
             transition: 'opacity 0.3s ease',
@@ -697,37 +736,46 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         }}
       >
         <img
-          src={slide.image || '/api/placeholder/400/300'}
+          src={slide.image || '/api/placeholder/1920/1080'}
           alt={slide.title || 'Page Image'}
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover'
+            objectFit: 'cover',
+            objectPosition: 'center',
+            transition: swiperType === 'hero' ? 'transform 0.6s ease' : 'none'
           }}
         />
 
-        {/* Hero overlay with title and description */}
+        {/* Enhanced Hero overlay with title and description */}
         {swiperType === 'hero' && (slide.title || slide.description) && (
           <Box sx={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
-            background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-            padding: { xs: 3, sm: 4, md: 6 },
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+            padding: { xs: 4, sm: 6, md: 8, lg: 10 },
             color: 'white',
-            zIndex: 2
+            zIndex: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            maxWidth: '100%'
           }}>
             {slide.title && (
               <Typography
-                variant="h2"
+                variant="h1"
                 sx={{
-                  fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3.5rem', lg: '4rem' },
+                  fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem', lg: '5.5rem', xl: '6rem' },
                   fontWeight: 'bold',
-                  mb: { xs: 1, sm: 2, md: 3 },
-                  lineHeight: 1.2,
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                  mb: { xs: 2, sm: 3, md: 4 },
+                  lineHeight: 1.1,
+                  textShadow: '3px 3px 6px rgba(0,0,0,0.7)',
                   color: 'white',
+                  maxWidth: { xs: '100%', sm: '90%', md: '80%', lg: '70%' },
+                  letterSpacing: '-0.02em',
+                  fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif'
                 }}
               >
                 {slide.title}
@@ -738,20 +786,52 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               <Typography
                 variant="body1"
                 sx={{
-                  fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' },
+                  fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem', lg: '1.7rem' },
                   lineHeight: 1.6,
-                  maxWidth: { xs: '100%', sm: '80%', md: '70%' },
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
+                  maxWidth: { xs: '100%', sm: '85%', md: '75%', lg: '65%' },
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
                   opacity: 0.95,
                   display: '-webkit-box',
-                  WebkitLineClamp: { xs: 3, sm: 4, md: 5 },
+                  WebkitLineClamp: { xs: 3, sm: 4, md: 5, lg: 6 },
                   WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  mb: { xs: 3, sm: 4, md: 5 },
+                  fontWeight: 400,
+                  color: 'rgba(255, 255, 255, 0.95)'
                 }}
               >
                 {slide.description}
               </Typography>
             )}
+
+            {/* Call to action button for hero */}
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                mt: { xs: 2, sm: 3, md: 4 },
+                px: { xs: 3, sm: 4, md: 6 },
+                py: { xs: 1.5, sm: 2, md: 2.5 },
+                fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                fontWeight: 'bold',
+                borderRadius: '50px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)',
+                textTransform: 'none',
+                transition: 'all 0.3s ease',
+                "&:hover": {
+                  background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                  boxShadow: '0 12px 40px rgba(102, 126, 234, 0.6)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick(slide);
+              }}
+            >
+              Explore Now
+            </Button>
           </Box>
         )}
       </Box>
@@ -759,225 +839,390 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   };
 
   // Render product card with enhanced styling
-  const renderProductCard = (slide: SlideData) => (
-    <Box
-      onClick={() => handleCardClick(slide)}
-      sx={{
-        width: "100%",
-        maxWidth: { xs: "280px", sm: "300px", md: "320px" },
-        height: { xs: "420px", sm: "440px", md: "460px" },
-        borderRadius: { xs: "16px", sm: "20px" },
-        overflow: 'hidden',
-        boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
-        backgroundColor: theme.palette.background.paper,
-        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-        display: 'flex',
-        flexDirection: 'column',
-        cursor: 'pointer',
-        position: 'relative',
-        "&:hover": {
-          transform: "translateY(-8px)",
-          boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
-        }
-      }}
-    >
-      {/* Bestseller badge */}
-      {slide.isBestseller && (
-        <Box sx={{
-          position: "absolute",
-          top: { xs: 12, sm: 14, md: 16 },
-          left: { xs: 12, sm: 14, md: 16 },
-          background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
-          color: 'white',
-          fontWeight: "bold",
-          px: { xs: 1.5, sm: 2, md: 2.5 },
-          py: { xs: 0.5, sm: 0.7, md: 0.8 },
-          borderRadius: "20px",
-          fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
-          zIndex: 2,
-          boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          ✨ Bestseller
-        </Box>
-      )}
-
-      {/* Image section */}
-      <Box sx={{ 
-        width: "100%",
-        position: 'relative',
-        height: { xs: 180, sm: 200, md: 220 },
-        overflow: 'hidden',
-        "&::after": {
-          content: '""',
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '30%',
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.1))',
-          pointerEvents: 'none'
-        }
-      }}>
-        <img
-          src={slide.image || '/api/placeholder/400/300'}
-          alt={slide.title}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 0.4s ease'
-          }}
-        />
-      </Box>
-
-      {/* Content section */}
-      <Box sx={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: { xs: "16px", sm: "18px", md: "20px" }
-      }}>
-        {/* Title */}
-        <Typography
-          variant="h6"
-          gutterBottom
-          fontWeight="bold"
+  const renderProductCard = (slide: SlideData) => {
+    // For hero type products, render as full-size hero
+    if (swiperType === 'hero') {
+      return (
+        <Box
+          onClick={() => handleCardClick(slide)}
           sx={{
-            fontSize: { xs: '1.1rem', sm: '1.2rem', md: '1.3rem' },
-            mb: 1.5,
-            lineHeight: 1.3,
-            color: theme.palette.text.primary,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden'
-          }}
-        >
-          {slide.title}
-        </Typography>
-
-        {/* Rating */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          mb: 1.5
-        }}>
-          {renderRating(slide.rating)}
-        </Box>
-
-        {/* Description */}
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            display: '-webkit-box',
-            WebkitLineClamp: 1,
-            WebkitBoxOrient: 'vertical',
+            width: "100vw",
+            height: "100vh",
+            borderRadius: 0,
             overflow: 'hidden',
-            mb: 2,
-            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
-            lineHeight: 1.6,
-            flex: 1,
-            minHeight: { xs: '1.4rem', sm: '1.5rem', md: '1.6rem' }
+            backgroundColor: theme.palette.background.paper,
+            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+            cursor: 'pointer',
+            position: 'relative',
+            "&:hover": {
+              transform: "scale(1.02)"
+            },
+            "&::before": {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%)',
+              zIndex: 1
+            }
           }}
         >
-          {slide.description}
-        </Typography>
+          <img
+            src={slide.image || '/api/placeholder/400/300'}
+            alt={slide.title || 'Product Image'}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.6s ease'
+            }}
+          />
 
-        {/* Price and Cart Button */}
-        <Box sx={{
-          mt: 'auto',
-          pt: 2,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          {slide.isRFQ ? (
-            <Typography
-              variant="h5"
-              sx={{
-                color: theme.palette.primary.main,
+          {/* Hero product overlay */}
+          <Box sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+            padding: { xs: 4, sm: 6, md: 8, lg: 10 },
+            color: 'white',
+            zIndex: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start'
+          }}>
+            {/* Bestseller badge for hero */}
+            {slide.isBestseller && (
+              <Box sx={{
+                background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                color: 'white',
                 fontWeight: "bold",
-                fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
+                px: { xs: 2, sm: 3, md: 4 },
+                py: { xs: 1, sm: 1.5, md: 2 },
+                borderRadius: "50px",
+                fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
+                mb: { xs: 2, sm: 3, md: 4 },
+                boxShadow: '0 4px 20px rgba(255, 107, 107, 0.4)'
+              }}>
+                🏆 Bestseller
+              </Box>
+            )}
+
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem', lg: '5.5rem' },
+                fontWeight: 'bold',
+                mb: { xs: 2, sm: 3, md: 4 },
+                lineHeight: 1.1,
+                textShadow: '3px 3px 6px rgba(0,0,0,0.7)',
+                color: 'white',
+                maxWidth: { xs: '100%', sm: '90%', md: '80%' },
+                letterSpacing: '-0.02em'
               }}
             >
-              Request Quote
+              {slide.title}
             </Typography>
-          ) : (
+
+            {slide.description && (
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' },
+                  lineHeight: 1.6,
+                  maxWidth: { xs: '100%', sm: '85%', md: '75%' },
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                  opacity: 0.95,
+                  display: '-webkit-box',
+                  WebkitLineClamp: { xs: 3, sm: 4, md: 5 },
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  mb: { xs: 3, sm: 4, md: 5 },
+                  color: 'rgba(255, 255, 255, 0.95)'
+                }}
+              >
+                {slide.description}
+              </Typography>
+            )}
+
+            {/* Rating for hero */}
+            {slide.rating && (
+              <Box sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+                {renderRating(slide.rating)}
+              </Box>
+            )}
+
+            {/* Price and actions for hero */}
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 2, sm: 3, md: 4 },
+              flexWrap: 'wrap'
+            }}>
+              {!slide.isRFQ && slide.price && (
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.6rem' },
+                    fontWeight: 'bold',
+                    color: '#4CAF50',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
+                  }}
+                >
+                  ${slide.price}
+                </Typography>
+              )}
+
+              {slide.isRFQ ? (
+                <Button
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    px: { xs: 3, sm: 4, md: 6 },
+                    py: { xs: 1.5, sm: 2, md: 2.5 },
+                    fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                    fontWeight: 'bold',
+                    borderRadius: '50px',
+                    background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+                    boxShadow: '0 8px 32px rgba(255, 152, 0, 0.4)',
+                    textTransform: 'none',
+                    "&:hover": {
+                      background: 'linear-gradient(135deg, #F57C00 0%, #FF9800 100%)',
+                      boxShadow: '0 12px 40px rgba(255, 152, 0, 0.6)',
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCardClick(slide);
+                  }}
+                >
+                  Request Quote
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  size="large"
+                  disabled={addingToCart[slide.id]}
+                  startIcon={<ShoppingCartIcon />}
+                  sx={{
+                    px: { xs: 3, sm: 4, md: 6 },
+                    py: { xs: 1.5, sm: 2, md: 2.5 },
+                    fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                    fontWeight: 'bold',
+                    borderRadius: '50px',
+                    background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                    boxShadow: '0 8px 32px rgba(76, 175, 80, 0.4)',
+                    textTransform: 'none',
+                    "&:hover": {
+                      background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)',
+                      boxShadow: '0 12px 40px rgba(76, 175, 80, 0.6)',
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                  onClick={(e) => handleAddToCart(slide.id, slide.price || 0, e)}
+                >
+                  {addingToCart[slide.id] ? 'Adding...' : 'Add to Cart'}
+                </Button>
+              )}
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
+
+    // Regular product card for non-hero types
+    return (
+      <Box
+        onClick={() => handleCardClick(slide)}
+        sx={{
+          width: "100%",
+          maxWidth: { xs: "280px", sm: "300px", md: "320px" },
+          height: { xs: "420px", sm: "440px", md: "460px" },
+          borderRadius: { xs: "16px", sm: "20px" },
+          overflow: 'hidden',
+          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.12)",
+          backgroundColor: theme.palette.background.paper,
+          transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          display: 'flex',
+          flexDirection: 'column',
+          cursor: 'pointer',
+          position: 'relative',
+          "&:hover": {
+            transform: "translateY(-8px)",
+            boxShadow: "0px 16px 48px rgba(0, 0, 0, 0.2)"
+          }
+        }}
+      >
+        {/* Bestseller badge */}
+        {slide.isBestseller && (
+          <Box sx={{
+            position: "absolute",
+            top: { xs: 12, sm: 14, md: 16 },
+            left: { xs: 12, sm: 14, md: 16 },
+            background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+            color: 'white',
+            fontWeight: "bold",
+            px: { xs: 1.5, sm: 2, md: 2.5 },
+            py: { xs: 0.5, sm: 0.7, md: 0.8 },
+            borderRadius: "20px",
+            fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+            zIndex: 2,
+            boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
+          }}>
+            🏆 Bestseller
+          </Box>
+        )}
+
+        {/* Image section */}
+        <Box sx={{
+          width: "100%",
+          height: { xs: 200, sm: 220, md: 240 },
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <img
+            src={slide.image || '/api/placeholder/400/300'}
+            alt={slide.title || 'Product Image'}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.4s ease'
+            }}
+          />
+        </Box>
+
+        {/* Content section */}
+        <Box sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: { xs: "16px", sm: "18px", md: "20px" }
+        }}>
+          {/* Title */}
+          <Typography
+            variant="h6"
+            sx={{
+              fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+              fontWeight: 'bold',
+              mb: { xs: 1, sm: 1.5, md: 2 },
+              lineHeight: 1.3,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              color: theme.palette.text.primary
+            }}
+          >
+            {slide.title}
+          </Typography>
+
+          {/* Description */}
+          {slide.description && (
             <Typography
-              variant="h5"
+              variant="body2"
               sx={{
-                color: theme.palette.primary.main,
-                fontWeight: "bold",
-                fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' }
+                color: theme.palette.text.secondary,
+                mb: { xs: 1.5, sm: 2, md: 2.5 },
+                lineHeight: 1.5,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' }
               }}
             >
-              ₹{slide.price?.toFixed(2) || '0.00'}
+              {slide.description}
             </Typography>
           )}
 
-          <Button
-            variant="contained"
-            onClick={(e) => {
-              if (slide.isRFQ) {
-                // For RFQ products, prevent card click and navigate to product page for quote
-                e.stopPropagation();
-                router.push(slide.link);
-              } else {
-                // For regular products, add to cart
-                handleAddToCart(slide.id, slide.price || 0, e);
-              }
-            }}
-            disabled={addingToCart[slide.id]}
-            sx={{
-              minWidth: 'auto',
-              width: { xs: 44, sm: 46, md: 48 },
-              height: { xs: 44, sm: 46, md: 48 },
-              borderRadius: '50%',
-              p: 0,
-              // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: slide.isRFQ
-                ? '0 4px 15px rgba(255, 152, 0, 0.4)'
-                : '0 4px 15px rgba(102, 126, 234, 0.4)',
-              transition: 'all 0.3s ease',
-              "&:hover": {
-                transform: 'scale(1.1)',
-                boxShadow: slide.isRFQ
-                  ? '0 6px 20px rgba(255, 152, 0, 0.6)'
-                  : '0 6px 20px rgba(102, 126, 234, 0.6)',
-                background: slide.isRFQ
-                  ? 'linear-gradient(135deg, #FF5722 0%, #FF9800 100%)'
-                  : 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
-              }
-            }}
-          >
-            {addingToCart[slide.id] ? (
-              <Box sx={{
-                width: 20,
-                height: 20,
-                border: '2px solid white',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                '@keyframes spin': {
-                  '0%': { transform: 'rotate(0deg)' },
-                  '100%': { transform: 'rotate(360deg)' }
-                }
-              }} />
-            ) : slide.isRFQ ? (
-              <Typography sx={{ fontSize: 16, fontWeight: 'bold' }}>RFQ</Typography>
-            ) : (
-              <ShoppingCartIcon sx={{ fontSize: 20 }} />
+          {/* Rating */}
+          {slide.rating && (
+            <Box sx={{ mb: { xs: 1.5, sm: 2, md: 2.5 } }}>
+              {renderRating(slide.rating)}
+            </Box>
+          )}
+
+          {/* Price and Add to Cart */}
+          <Box sx={{
+            mt: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2
+          }}>
+            {!slide.isRFQ && slide.price && (
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: { xs: '1.2rem', sm: '1.3rem', md: '1.4rem' },
+                  fontWeight: 'bold',
+                  color: theme.palette.primary.main
+                }}
+              >
+                ${slide.price}
+              </Typography>
             )}
-          </Button>
+
+            {slide.isRFQ ? (
+              <Button
+                variant="contained"
+                size="small"
+                fullWidth
+                sx={{
+                  py: { xs: 1, sm: 1.2, md: 1.4 },
+                  fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
+                  fontWeight: 'bold',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+                  boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)',
+                  textTransform: 'none',
+                  "&:hover": {
+                    background: 'linear-gradient(135deg, #F57C00 0%, #FF9800 100%)',
+                    boxShadow: '0 4px 12px rgba(255, 152, 0, 0.4)'
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick(slide);
+                }}
+              >
+                Request Quote
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                size="small"
+                disabled={addingToCart[slide.id]}
+                startIcon={<ShoppingCartIcon />}
+                sx={{
+                  py: { xs: 1, sm: 1.2, md: 1.4 },
+                  px: { xs: 2, sm: 2.5, md: 3 },
+                  fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
+                  fontWeight: 'bold',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                  boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                  textTransform: 'none',
+                  "&:hover": {
+                    background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)',
+                    boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)'
+                  }
+                }}
+                onClick={(e) => handleAddToCart(slide.id, slide.price || 0, e)}
+              >
+                {addingToCart[slide.id] ? 'Adding...' : 'Add to Cart'}
+              </Button>
+            )}
+          </Box>
         </Box>
       </Box>
-    </Box>
-  );
+    );
+  };
 
   // Render donation campaign card with minimal details
   const renderDonationCard = (slide: SlideData) => (
@@ -1112,7 +1357,215 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   );
 
   // Render event card with enhanced styling and better information display
-  const renderEventCard = (slide: SlideData) => (
+  const renderEventCard = (slide: SlideData) => {
+    // For hero type events, render as full-size hero
+    if (swiperType === 'hero') {
+      return (
+        <Box
+          onClick={() => handleCardClick(slide)}
+          sx={{
+            width: "100vw",
+            height: "100vh",
+            borderRadius: 0,
+            overflow: 'hidden',
+            backgroundColor: theme.palette.background.paper,
+            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+            cursor: 'pointer',
+            position: 'relative',
+            "&:hover": {
+              transform: "scale(1.02)"
+            },
+            "&::before": {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%)',
+              zIndex: 1
+            }
+          }}
+        >
+          <img
+            src={slide.image || '/api/placeholder/400/360'}
+            alt={slide.title || 'Event Image'}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.6s ease'
+            }}
+          />
+
+          {/* Hero event overlay */}
+          <Box sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+            padding: { xs: 4, sm: 6, md: 8, lg: 10 },
+            color: 'white',
+            zIndex: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start'
+          }}>
+            {/* Date badge for hero */}
+            {slide.date && (
+              <Box sx={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px',
+                px: { xs: 2, sm: 3, md: 4 },
+                py: { xs: 1, sm: 1.5, md: 2 },
+                display: 'flex',
+                alignItems: 'center',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                mb: { xs: 3, sm: 4, md: 5 }
+              }}>
+                <CalendarToday sx={{ fontSize: { xs: 20, sm: 24, md: 28 }, mr: 1, color: 'primary.main' }} />
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' } }}
+                >
+                  {slide.date}
+                </Typography>
+              </Box>
+            )}
+
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem', lg: '5.5rem' },
+                fontWeight: 'bold',
+                mb: { xs: 2, sm: 3, md: 4 },
+                lineHeight: 1.1,
+                textShadow: '3px 3px 6px rgba(0,0,0,0.7)',
+                color: 'white',
+                maxWidth: { xs: '100%', sm: '90%', md: '80%' },
+                letterSpacing: '-0.02em'
+              }}
+            >
+              {slide.title}
+            </Typography>
+
+            {slide.description && (
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' },
+                  lineHeight: 1.6,
+                  maxWidth: { xs: '100%', sm: '85%', md: '75%' },
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                  opacity: 0.95,
+                  display: '-webkit-box',
+                  WebkitLineClamp: { xs: 3, sm: 4, md: 5 },
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  mb: { xs: 3, sm: 4, md: 5 },
+                  color: 'rgba(255, 255, 255, 0.95)'
+                }}
+              >
+                {slide.description}
+              </Typography>
+            )}
+
+            {/* Event details for hero */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 2, sm: 3, md: 4 },
+              mb: { xs: 3, sm: 4, md: 5 },
+              flexWrap: 'wrap'
+            }}>
+              {slide.location && (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <LocationOn sx={{
+                    fontSize: { xs: 20, sm: 24, md: 28 },
+                    mr: 1,
+                    color: '#FF6B6B'
+                  }} />
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' },
+                      fontWeight: 500,
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.7)'
+                    }}
+                  >
+                    {slide.location}
+                  </Typography>
+                </Box>
+              )}
+
+              {slide.price && (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <AttachMoney sx={{
+                    fontSize: { xs: 20, sm: 24, md: 28 },
+                    mr: 1,
+                    color: '#4CAF50'
+                  }} />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontSize: { xs: '1.2rem', sm: '1.4rem', md: '1.6rem' },
+                      fontWeight: 'bold',
+                      color: '#4CAF50',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.7)'
+                    }}
+                  >
+                    ${slide.price}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Action button for hero event */}
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                px: { xs: 3, sm: 4, md: 6 },
+                py: { xs: 1.5, sm: 2, md: 2.5 },
+                fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                fontWeight: 'bold',
+                borderRadius: '50px',
+                background: slide.isDonation
+                  ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+                  : 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+                boxShadow: slide.isDonation
+                  ? '0 8px 32px rgba(76, 175, 80, 0.4)'
+                  : '0 8px 32px rgba(33, 150, 243, 0.4)',
+                textTransform: 'none',
+                transition: 'all 0.3s ease',
+                "&:hover": {
+                  background: slide.isDonation
+                    ? 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)'
+                    : 'linear-gradient(135deg, #1976D2 0%, #2196F3 100%)',
+                  boxShadow: slide.isDonation
+                    ? '0 12px 40px rgba(76, 175, 80, 0.6)'
+                    : '0 12px 40px rgba(33, 150, 243, 0.6)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick(slide);
+              }}
+            >
+              {slide.isDonation ? '💝 Support This Cause' : '🎟️ Get Tickets'}
+            </Button>
+          </Box>
+        </Box>
+      );
+    }
+
+    // Regular event card for non-hero types
+    return (
     <Box 
       onClick={() => handleCardClick(slide)}
       sx={{
@@ -1312,7 +1765,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
         </Button>
       </Box>
     </Box>
-  );
+  );};
 
   // Show loading skeleton
   if (isLoading) {
@@ -1334,49 +1787,122 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
   }
 
   return (
-    <Swiper
-      breakpoints={getResponsiveConfig()}
-      loop={loop && slides.length > 1}
-      effect={effect !== "none" ? effect : undefined}
-      speed={speed * 1000}
-      autoplay={
-        autoplay && autoplay.delay !== undefined
-          ? {
-              delay: autoplay.delay * 1000,
-              disableOnInteraction: autoplay.disableOnInteraction,
-            }
-          : false
-      }
-      navigation={!isMobile}
-      pagination={isMobile}
-      modules={swiperModules}
-      className="mySwiper"
-      spaceBetween={spaceBetween}
-      style={{
-        width: swiperType === 'hero' ? "100vw" : "100%",
-        justifyContent: "center",
-        padding: swiperType === 'hero' ? "0" : "0 8px"
-      }}
-    >
-      {slides.map((slide, index) => (
-        <SwiperSlide 
-          key={`${slide.type}-${slide.id}-${index}`}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: swiperType === 'hero' ? "0" : "2px"
-          }}
-        >
-          {slide.type === 'event'
-            ? (slide.isDonation ? renderDonationCard(slide) : renderEventCard(slide))
-            : slide.type === 'page'
-            ? renderPageCard(slide)
-            : renderProductCard(slide)}
-        </SwiperSlide>
-      ))}
-    </Swiper>
+    <Box sx={{
+      width: swiperType === 'hero' ? "100vw" : "100%",
+      height: swiperType === 'hero' ? "100vh" : "auto",
+      position: swiperType === 'hero' ? "relative" : "static",
+      overflow: swiperType === 'hero' ? "hidden" : "visible"
+    }}>
+      <Swiper
+        breakpoints={getResponsiveConfig()}
+        loop={loop && slides.length > 1}
+        effect={swiperType === 'hero' ? "fade" : (effect !== "none" ? effect : undefined)}
+        speed={swiperType === 'hero' ? 800 : speed * 1000}
+        autoplay={
+          autoplay && autoplay.delay !== undefined
+            ? {
+                delay: swiperType === 'hero' ? 5000 : autoplay.delay * 1000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true
+              }
+            : false
+        }
+        navigation={swiperType === 'hero' ? {
+          nextEl: '.hero-swiper-button-next',
+          prevEl: '.hero-swiper-button-prev',
+        } : !isMobile}
+        pagination={swiperType === 'hero' ? {
+          clickable: true,
+          dynamicBullets: true,
+          el: '.hero-swiper-pagination',
+          renderBullet: function (index, className) {
+            return '<span class="' + className + '" style="background: rgba(255,255,255,0.8); width: 12px; height: 12px; margin: 0 4px;"></span>';
+          }
+        } : isMobile}
+        modules={swiperModules}
+        className={swiperType === 'hero' ? "heroSwiper" : "mySwiper"}
+        spaceBetween={swiperType === 'hero' ? 0 : spaceBetween}
+        allowTouchMove={true}
+        touchRatio={1}
+        touchAngle={45}
+        grabCursor={true}
+        style={{
+          width: "100%",
+          height: swiperType === 'hero' ? "100%" : "auto",
+          justifyContent: "center",
+          padding: swiperType === 'hero' ? "0" : "0 8px"
+        }}
+      >
+        {slides.map((slide, index) => (
+          <SwiperSlide
+            key={`${slide.type}-${slide.id}-${index}`}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: swiperType === 'hero' ? "center" : "center",
+              alignItems: swiperType === 'hero' ? "center" : "center",
+              padding: swiperType === 'hero' ? "0" : "2px",
+              width: swiperType === 'hero' ? "100%" : "auto",
+              height: swiperType === 'hero' ? "100%" : "auto"
+            }}
+          >
+            {slide.type === 'event'
+              ? (slide.isDonation ? swiperType === 'hero' ? renderEventCard(slide) : renderDonationCard(slide) : renderEventCard(slide))
+              : slide.type === 'page'
+              ? renderPageCard(slide)
+              : renderProductCard(slide)}
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
+      {/* Custom navigation for hero */}
+      {swiperType === 'hero' && (
+        <style>{`
+          .heroSwiper .swiper-button-next,
+          .heroSwiper .swiper-button-prev {
+            color: rgba(255, 255, 255, 0.8) !important;
+            background: rgba(0, 0, 0, 0.3) !important;
+            border-radius: 50% !important;
+            width: 50px !important;
+            height: 50px !important;
+            margin-top: -25px !important;
+            backdrop-filter: blur(10px) !important;
+            transition: all 0.3s ease !important;
+          }
+
+          .heroSwiper .swiper-button-next:hover,
+          .heroSwiper .swiper-button-prev:hover {
+            background: rgba(0, 0, 0, 0.5) !important;
+            color: white !important;
+            transform: scale(1.1) !important;
+          }
+
+          .heroSwiper .swiper-button-next:after,
+          .heroSwiper .swiper-button-prev:after {
+            font-size: 20px !important;
+            font-weight: bold !important;
+          }
+
+          .heroSwiper .swiper-pagination {
+            bottom: 30px !important;
+          }
+
+          .heroSwiper .swiper-pagination-bullet {
+            background: rgba(255, 255, 255, 0.6) !important;
+            width: 12px !important;
+            height: 12px !important;
+            margin: 0 6px !important;
+            transition: all 0.3s ease !important;
+          }
+
+          .heroSwiper .swiper-pagination-bullet-active {
+            background: white !important;
+            transform: scale(1.2) !important;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5) !important;
+          }
+        `}</style>
+      )}
+    </Box>
   );
 };
 
