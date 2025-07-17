@@ -1504,11 +1504,11 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
 
               {slide.price && (
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AttachMoney sx={{
+                  {/* <AttachMoney sx={{
                     fontSize: { xs: 20, sm: 24, md: 28 },
                     mr: 1,
                     color: '#4CAF50'
-                  }} />
+                  }} /> */}
                   <Typography
                     variant="h5"
                     sx={{
