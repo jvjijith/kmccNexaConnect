@@ -1,20 +1,43 @@
 // src/components/EventMap.tsx
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useState } from "react"
 import { Box, Typography, Paper, Chip } from "@mui/material"
-import { LocationOn, Public } from "@mui/icons-material"
+import { LocationOn, Public, Warning } from "@mui/icons-material"
+import dynamic from "next/dynamic"
 
 interface EventMapProps {
   location: string
   coordinates: [number, number] // [longitude, latitude]
 }
 
+// Dynamically import the map component to avoid SSR issues
+const DynamicMap = dynamic(() => import('./MapComponent'), {
+  ssr: false,
+  loading: () => (
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#f5f5f5"
+      }}
+    >
+      <Typography>Loading map...</Typography>
+    </Box>
+  )
+})
+
 export default function EventMap({ 
   location = "Location not available", 
   coordinates 
 }: EventMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const isValidCoordinates = (coords: any): coords is [number, number] => {
     return Array.isArray(coords) && 
@@ -27,163 +50,62 @@ export default function EventMap({
            Math.abs(coords[1]) <= 90
   }
 
-  useEffect(() => {
-    if (!mapRef.current) return
-
-    const canvas = document.createElement("canvas")
-    canvas.width = mapRef.current.clientWidth
-    canvas.height = mapRef.current.clientHeight
-    mapRef.current.appendChild(canvas)
-
-    const ctx = canvas.getContext("2d")
-    if (ctx) {
-      // Create gradient background
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-      gradient.addColorStop(0, "#e3f2fd")
-      gradient.addColorStop(1, "#bbdefb")
-      ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Draw grid lines for map-like appearance
-      ctx.strokeStyle = "#90caf9"
-      ctx.lineWidth = 1
-      ctx.setLineDash([5, 5])
-      
-      // Vertical lines
-      for (let x = 0; x < canvas.width; x += 40) {
-        ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, canvas.height)
-        ctx.stroke()
-      }
-      
-      // Horizontal lines
-      for (let y = 0; y < canvas.height; y += 40) {
-        ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(canvas.width, y)
-        ctx.stroke()
-      }
-
-      // Reset line dash
-      ctx.setLineDash([])
-
-      // Draw some geographic features
-      ctx.fillStyle = "#81c784"
-      ctx.globalAlpha = 0.6
-      
-      // Draw some "land masses"
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath()
-        const x = (i * canvas.width / 5) + Math.random() * 50
-        const y = Math.random() * canvas.height
-        const width = 60 + Math.random() * 80
-        const height = 30 + Math.random() * 40
-        
-        ctx.ellipse(x, y, width, height, Math.random() * Math.PI, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      ctx.globalAlpha = 1
-
-      // Calculate pin position based on coordinates if valid
-      let pinX = canvas.width / 2
-      let pinY = canvas.height / 2
-
-      if (isValidCoordinates(coordinates)) {
-        // Simple projection (not geographically accurate, but visually appealing)
-        pinX = ((coordinates[0] + 180) / 360) * canvas.width
-        pinY = ((90 - coordinates[1]) / 180) * canvas.height
-        
-        // Keep pin within canvas bounds with some margin
-        pinX = Math.max(30, Math.min(canvas.width - 30, pinX))
-        pinY = Math.max(30, Math.min(canvas.height - 30, pinY))
-      }
-
-      // Draw pin shadow
-      ctx.fillStyle = "rgba(0, 0, 0, 0.2)"
-      ctx.beginPath()
-      ctx.ellipse(pinX + 2, pinY + 25, 12, 4, 0, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Draw pin base (teardrop shape)
-      ctx.fillStyle = "#f44336"
-      ctx.beginPath()
-      ctx.arc(pinX, pinY, 18, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Pin point
-      ctx.beginPath()
-      ctx.moveTo(pinX, pinY + 18)
-      ctx.lineTo(pinX - 8, pinY + 30)
-      ctx.lineTo(pinX + 8, pinY + 30)
-      ctx.closePath()
-      ctx.fill()
-
-      // Pin center dot
-      ctx.fillStyle = "#ffffff"
-      ctx.beginPath()
-      ctx.arc(pinX, pinY, 6, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Add location label with background
-      if (location && location !== "Location not available") {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)"
-        ctx.strokeStyle = "#e0e0e0"
-        ctx.lineWidth = 1
-        
-        const textWidth = ctx.measureText(location).width
-        const labelX = pinX - textWidth / 2 - 10
-        const labelY = pinY - 40
-        const labelWidth = textWidth + 20
-        const labelHeight = 25
-        
-        // Draw label background
-        ctx.beginPath()
-        ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 5)
-        ctx.fill()
-        ctx.stroke()
-        
-        // Draw label text
-        ctx.fillStyle = "#333333"
-        ctx.font = "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-        ctx.textAlign = "center"
-        ctx.fillText(location, pinX, labelY + 16)
-      }
-
-      // Add coordinates text if valid
-      if (isValidCoordinates(coordinates)) {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)"
-        ctx.strokeStyle = "#e0e0e0"
-        ctx.lineWidth = 1
-        
-        const coordText = `${coordinates[1].toFixed(4)}°N, ${coordinates[0].toFixed(4)}°E`
-        const textWidth = ctx.measureText(coordText).width
-        const labelX = pinX - textWidth / 2 - 8
-        const labelY = pinY + 45
-        const labelWidth = textWidth + 16
-        const labelHeight = 20
-        
-        // Draw coordinates background
-        ctx.beginPath()
-        ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 3)
-        ctx.fill()
-        ctx.stroke()
-        
-        // Draw coordinates text
-        ctx.fillStyle = "#666666"
-        ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-        ctx.textAlign = "center"
-        ctx.fillText(coordText, pinX, labelY + 13)
-      }
-    }
-
-    return () => {
-      if (mapRef.current && mapRef.current.contains(canvas)) {
-        mapRef.current.removeChild(canvas)
-      }
-    }
-  }, [location, coordinates])
+  // Fallback component when coordinates are invalid
+  const FallbackMap = () => (
+    <Box
+      sx={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#f5f5f5",
+        position: "relative"
+      }}
+    >
+      <Box
+        sx={{
+          textAlign: "center",
+          padding: 3,
+          maxWidth: 400
+        }}
+      >
+        <Warning sx={{ fontSize: 48, color: "#ff9800", mb: 2 }} />
+        <Typography variant="h6" gutterBottom>
+          Map Not Available
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Invalid coordinates provided for the map location.
+        </Typography>
+        <Box sx={{ mt: 2, p: 2, backgroundColor: "white", borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Event Location Details:
+          </Typography>
+          <Typography variant="body2">
+            <strong>Location:</strong> {location}
+          </Typography>
+          {isValidCoordinates(coordinates) && (
+            <>
+              <Typography variant="body2">
+                <strong>Coordinates:</strong> {coordinates[1].toFixed(6)}°N, {coordinates[0].toFixed(6)}°E
+              </Typography>
+              <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                <a 
+                  href={`https://www.openstreetmap.org/?mlat=${coordinates[1]}&mlon=${coordinates[0]}&zoom=15`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1976d2", textDecoration: "none" }}
+                >
+                  Open in OpenStreetMap →
+                </a>
+              </Typography>
+            </>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  )
 
   return (
     <Paper
@@ -197,52 +119,76 @@ export default function EventMap({
         border: "1px solid #e0e0e0",
       }}
     >
+      {/* Header with location info */}
       <Box
-        ref={mapRef}
+        sx={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          right: 12,
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          flexWrap: "wrap"
+        }}
+      >
+        <Chip
+          icon={<LocationOn />}
+          label="Event Location"
+          size="small"
+          sx={{
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(4px)",
+            fontWeight: 500,
+          }}
+        />
+        {isValidCoordinates(coordinates) && (
+          <Chip
+            icon={<Public />}
+            label="Interactive Map"
+            size="small"
+            color="success"
+            sx={{
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(4px)",
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Map container */}
+      <Box
         sx={{
           height: "100%",
           width: "100%",
           position: "relative",
         }}
       >
-        {/* Header with location info */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            right: 12,
-            zIndex: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-          }}
-        >
-          <Chip
-            icon={<LocationOn />}
-            label="Event Location"
-            size="small"
+        {!isClient ? (
+          <Box
             sx={{
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(4px)",
-              fontWeight: 500,
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#f5f5f5"
             }}
+          >
+            <Typography>Loading map...</Typography>
+          </Box>
+        ) : !isValidCoordinates(coordinates) ? (
+          <FallbackMap />
+        ) : (
+          <DynamicMap 
+            coordinates={coordinates} 
+            location={location}
           />
-          {isValidCoordinates(coordinates) && (
-            <Chip
-              icon={<Public />}
-              label="GPS Coordinates Available"
-              size="small"
-              color="success"
-              sx={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(4px)",
-              }}
-            />
-          )}
-        </Box>
+        )}
+      </Box>
 
-        {/* Footer with location name */}
+      {/* Footer with location name */}
+      {isValidCoordinates(coordinates) && (
         <Box
           sx={{
             position: "absolute",
@@ -251,7 +197,7 @@ export default function EventMap({
             right: 0,
             padding: 2,
             background: "linear-gradient(transparent, rgba(0, 0, 0, 0.7))",
-            zIndex: 2,
+            zIndex: 1000,
           }}
         >
           <Typography 
@@ -264,19 +210,17 @@ export default function EventMap({
           >
             {location || "Location not available"}
           </Typography>
-          {isValidCoordinates(coordinates) && (
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: "rgba(255, 255, 255, 0.8)",
-                textShadow: "0 1px 2px rgba(0, 0, 0, 0.5)",
-              }}
-            >
-              Latitude: {coordinates[1].toFixed(6)}°, Longitude: {coordinates[0].toFixed(6)}°
-            </Typography>
-          )}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: "rgba(255, 255, 255, 0.8)",
+              textShadow: "0 1px 2px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            Latitude: {coordinates[1].toFixed(6)}°, Longitude: {coordinates[0].toFixed(6)}°
+          </Typography>
         </Box>
-      </Box>
+      )}
     </Paper>
   )
 }

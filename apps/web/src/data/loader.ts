@@ -318,8 +318,30 @@ export async function getMembershipByCustomerId(customerId: string, headers?: He
 // Update member payment status
 export async function updateMemberPaymentStatus(memberId: string, data: any, headers?: HeadersInit) {
   try {
-    return await patchApi(`/members/${memberId}/payment-status`, data, headers);
-  } catch (error: any) {
-    throw new Error(error || 'Failed to update member payment status');
+    const result = await patchApi(`/membership/${memberId}/payment-status`, data, headers);
+    return result;
+  } catch (error) {
+    console.error('Error updating member payment status:', error);
+    throw new Error('Failed to update member payment status');
+  }
+}
+
+// Get sales invoices for a customer
+export async function getSalesInvoices(customerId: string, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/sales-invoices?customerId=${customerId}`, { headers });
+  } catch (error) {
+    console.error('Error fetching sales invoices:', error);
+    throw new Error('Failed to fetch sales invoices');
+  }
+}
+
+// Get user event registrations
+export async function getUserEventRegistrations(userId: string, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/users/${userId}/event-registrations`, { headers });
+  } catch (error) {
+    console.error('Error fetching user event registrations:', error);
+    throw new Error('Failed to fetch user event registrations');
   }
 }

@@ -53,11 +53,68 @@ import EventMap from "./eventMap"
 import EventRegistrationForm from "./registrationForm"
 import { createDynamicTheme } from "@repo/ui/theme"
 import { getEventDonors } from "../../../lib/api"
+import { getMembershipByCustomerId } from "../../../src/data/loader"
+import { useClientSide } from "../../../src/hooks/useClientSide"
 
 interface TabPanelProps {
   children?: React.ReactNode
   index: number
   value: number
+}
+
+interface MembershipData {
+  supportKMCC: boolean;
+  readBylaw: boolean;
+  byLaw: string;
+  applicationFor: string;
+  amountTobePaid: number;
+  firstName: string;
+  lastName: string;
+  partnerFirstName?: string;
+  partnerLastName?: string;
+  partnerEmail?: string;
+  partnerDob?: string;
+  partnerMobileNumber?: string;
+  partnerWhatsappNumber?: string;
+  dob: string;
+  email: string;
+  address: string;
+  rejectionNotes?: string;
+  mobileNumber: string;
+  whatsappNumber: string;
+  visaStatus: string;
+  emergencyContactName: string;
+  emergencyContactMobile: string;
+  addressInKerala: string;
+  assemblyName: string;
+  district: string;
+  emergencyContactNameKerala: string;
+  emergencyContactNumberKerala: string;
+  IUMLContact: string;
+  queryType: string;
+  supportDocuments: Array<{
+    docuName: string;
+    docuUrl: string;
+  }>;
+  query: string;
+  queryFullName: string;
+  queryEmail: string;
+  queryAddress: string;
+  queryMobileNumber: string;
+  customer: string;
+  iuMLContactName: string;
+  iuMLContactPosition: string;
+  iuMLContactNumber: string;
+  iuMLLocation: string;
+  photoURL: string;
+  acceptKmcc: boolean;
+  shareInfoNorka: boolean;
+  signatureURL: string;
+  paymentStatus: string;
+  memberStatus: string;
+  stripeId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 function TabPanel(props: TabPanelProps) {
@@ -84,14 +141,67 @@ interface EventDetailPageProps {
 
 export default function EventDetailPage({ event, themes, id }: EventDetailPageProps) {
   const theme = createDynamicTheme({themes});
+  const isClient = useClientSide();
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [tabValue, setTabValue] = useState(0)
   const [showRegistration, setShowRegistration] = useState(false)
   const [donors, setDonors] = useState<Donor[]>([])
+    const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
+    const [loadingMembership, setLoadingMembership] = useState<boolean>(false);
 
   // Check if this is a donation event
   const isDonationEvent = event.metadata?.name === "donation"
+
+    // Function to decode JWT token and extract customer ID
+    const decodeToken = (token: string) => {
+      try {
+        const base64Url = token.split('.')[1];
+        if (!base64Url) return null;
+        
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        return null;
+      }
+    };
+  
+    // Function to fetch membership data
+    const fetchMembershipData = async () => {
+      if (!isClient) return;
+      
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+  
+      try {
+        setLoadingMembership(true);
+        const decodedToken = decodeToken(token);
+        
+        if (!decodedToken || !decodedToken.id) {
+          console.error('No customer ID found in token');
+          return;
+        }
+  
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+  
+        const membershipResponse = await getMembershipByCustomerId(decodedToken.id, headers);
+        
+        if (membershipResponse && membershipResponse.length > 0) {
+          setMembershipData(membershipResponse[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching membership data:', error);
+      } finally {
+        setLoadingMembership(false);
+      }
+    };
 
   // Fetch donors for donation events
   useEffect(() => {
@@ -176,6 +286,9 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
   const defaultCoordinates: [number, number] = [37.7749, -122.4194]
 
   const mapCoordinates = event.GeoAllow?.coordinates || defaultCoordinates
+
+  const memberStatus = membershipData?.memberStatus?.toLowerCase() || '';
+  const paymentStatus = membershipData?.paymentStatus?.toLowerCase() || '';
 
   console.log("event",event);
 
@@ -331,16 +444,16 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                     <LocationOn sx={{ mr: 1, color: "primary.main" }} />
                     <Typography variant="body1">{event.location}</Typography>
                   </Box>}
-                  {(!isDonationEvent) && <Box sx={{ display: "flex", alignItems: "center" }}>
+                  {/* {(!isDonationEvent) && <Box sx={{ display: "flex", alignItems: "center" }}>
                     <People sx={{ mr: 1, color: "primary.main" }} />
                     <Typography variant="body1">
                       {event.totalregisteredSeats} / {event.seatsAvailable} registered
                     </Typography>
-                  </Box>}
+                  </Box>} */}
                 </Box>
               </Grid>
-              <Grid item xs={12} md={4} sx={{mb: 5}}>
-                <Paper elevation={3} sx={{ p: 3, height: (!isDonationEvent) ? "100%" : "auto" }}>
+              <Grid item xs={12} md={4} sx={{mb: 5, mt: 3}}>
+                <Paper elevation={3} sx={{ p: 1, height: (!isDonationEvent) ? "100%" : "auto" }}>
                   <Typography variant="h6" gutterBottom>
                     {(!isDonationEvent)?"Registration" : "Donation"}
                   </Typography>
@@ -364,7 +477,7 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                         : "Variable pricing"}
                     </Typography>
                   </Box>}
-                  {(!isDonationEvent) && <Box sx={{ mb: 2 }}>
+                  {/* {(!isDonationEvent) && <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Available seats:
                     </Typography>
@@ -376,18 +489,31 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
                     <Typography variant="body2">
                       {event.seatsAvailable - event.totalregisteredSeats} seats left
                     </Typography>
-                  </Box>}
+                  </Box>} */}
                   <Button
                     variant="contained"
                     color="primary"
                     fullWidth
                     onClick={() => {
-                      if (event.allowMemberLogin) {
+                      if (event.allowLogin) {
                         const accessToken = localStorage.getItem('accessToken');
                         if (!accessToken) {
                           alert("Please login to your account first to register for this event.");
                           return;
                         }
+                      }
+                      if (event.allowMemberLogin) {
+                        const accessToken = localStorage.getItem('accessToken');
+                        if (!accessToken) {
+                          alert("Please login to your account first to register for this event.");
+                          return;
+                        } else {
+                        fetchMembershipData()
+                        if (!(memberStatus === 'accepted' && paymentStatus === 'paid')) {
+                          alert("Please login to your account first to register for this event.");
+                          return;
+                        }
+                      }
                       }
                       setShowRegistration(true);
                     }}

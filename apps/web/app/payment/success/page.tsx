@@ -186,7 +186,6 @@ if(registrationId){await handleEventPayment(headers, userId)}
       // Prepare products array for sales invoice
       const products = cartResponse.items.map((item: any) => ({
         productId: item.product._id,
-        variantId: "",
         quantity: item.quantity,
         unitPrice: item.price,
         discount: 0,
@@ -196,8 +195,6 @@ if(registrationId){await handleEventPayment(headers, userId)}
       const salesInvoiceData = {
         invoiceTemplate: process.env.NEXT_PUBLIC_INVOICE_TEMPLATE || "default-template",
         invoiceStatus: "Draft",
-        quoteId: "",
-        salesman: "",
         customer: userId,
         invoiceNotes: `Cart payment completed on ${new Date().toISOString()}. Session ID: ${sessionId}`,
         products: products,
@@ -213,6 +210,8 @@ if(registrationId){await handleEventPayment(headers, userId)}
           stripeSessionId: sessionId
         }],
         paymentStatus: "paid",
+        createdBy: process.env.NEXT_PUBLIC_EMPLOYEE_ID,
+        editedBy: process.env.NEXT_PUBLIC_EMPLOYEE_ID,
         termsAndConditions: []
       }
 
