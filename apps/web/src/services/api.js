@@ -127,7 +127,7 @@ export const uploadFileWithSignedUrl = async (file, mediaType = 'doc', onProgres
 };
 
 // Upload multiple files using signed URL approach
-export const uploadMultipleFilesWithSignedUrl = async (files, mediaType = 'document', onProgress = null) => {
+export const uploadMultipleFilesWithSignedUrl = async (files, mediaType = 'doc', onProgress = null) => {
   const results = [];
   const fileArray = Array.from(files);
   
