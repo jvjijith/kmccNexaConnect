@@ -75,7 +75,7 @@ export const updateMediaStatus = async (mediaId, payload, headers = {}) => {
 };
 
 // Upload file using signed URL approach
-export const uploadFileWithSignedUrl = async (file, mediaType = 'document', onProgress = null) => {
+export const uploadFileWithSignedUrl = async (file, mediaType = 'doc', onProgress = null) => {
   try {
     // Step 1: Generate signed URL
     const signedUrlPayload = {
