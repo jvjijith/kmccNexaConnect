@@ -822,9 +822,9 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 const boolValue = e.target.value === "true"
                 handleInputChange("readBylaw", boolValue)
                 setShowBylaw(boolValue)
-                if (boolValue) {
+                // if (boolValue) {
                   handleInputChange("byLaw", bylawText)
-                }
+                // }
               }}
             >
               <FormControlLabel value="true" control={<Radio />} label="Yes, show me the bylaw overview" />
@@ -1703,65 +1703,6 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             </Grid>
           </Box>
 
-          {/* Contact Form Evidence Upload */}
-          <Box>
-            <Typography variant="h6" gutterBottom color="primary">
-              Further Evidence for Queries
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Providing the correct evidence of your enquires ensures a speedy application processing time. Use the
-              evidence upload guide to assist you with the requirements of each documents. (JPEG, JPG, PNG, PDF, files
-              accepted). No larger than 2MB per file. You can add multiple files if scanned individual pages.
-            </Typography>
-            <Paper
-              sx={{
-                p: 4,
-                textAlign: "center",
-                border: "2px dashed",
-                borderColor: "secondary.main",
-                borderRadius: 2,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  borderColor: "secondary.dark",
-                  bgcolor: "secondary.light",
-                  color: "white",
-                },
-              }}
-            >
-              {/* SignatureDialog removed and integrated into form */}
-              {/* Removed the entire SignatureDialog component usage */}
-            </Paper>
-            {formData.supportDocuments.length > 0 && (
-              <List dense sx={{ mt: 2 }}>
-                {formData.supportDocuments.map((doc, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      bgcolor: "grey.50",
-                      borderRadius: 1,
-                      mb: 1,
-                      border: "1px solid",
-                      borderColor: "grey.200",
-                    }}
-                  >
-                    <ListItemIcon>
-                      <AttachFile color="primary" />
-                    </ListItemIcon>
-                    <ListItemText primary={doc.docuName || `Document ${index + 1}`} />
-                    <IconButton
-                      edge="end"
-                      onClick={() => removeDocument(index)}
-                      size="small"
-                      color="error"
-                    >
-                      <Delete color="error" />
-                    </IconButton>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Box>
 
           <Paper elevation={2} sx={{ p: 3, bgcolor: "info.light", borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom color="info.contrastText">
