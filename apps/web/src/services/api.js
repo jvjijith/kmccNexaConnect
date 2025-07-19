@@ -37,11 +37,12 @@ export const generateSignedUrl = async (payload, headers = {}) => {
   const requestPayload = {
     title: payload.title || payload.fileName,
     mediaType: payload.mediaType,
+    ext: payload.title.split('.').pop() || payload.fileName.split('.').pop(),
     active: true,
     uploadStatus: "progressing",
     uploadProgress: 0
   };
-
+console.log('Generating signed URL with payload:', requestPayload);
   return apiRequest(`${API_BASE_URL}/media/generateSignedUrl`, {
     method: 'POST',
     headers: {
@@ -56,6 +57,7 @@ export const generateSignedUrl = async (payload, headers = {}) => {
 export const updateMediaStatus = async (mediaId, payload, headers = {}) => {
   const requestPayload = {
     mediaType: payload.mediaType || "image",
+    ext: payload.title.split('.').pop() || payload.fileName.split('.').pop(),
     title: payload.title || "Sample Image",
     active: true,
     uploadStatus: "completed",
@@ -114,7 +116,7 @@ export const uploadFileWithSignedUrl = async (file, mediaType = 'document', onPr
     }
 
     return {
-      url: `${process.env.NEXT_PUBLIC_MEDIA_BASE_URL || process.env.MEDIA_BASE_URL || ''}${mediaId}.${file.name.split('.').pop()}`,
+      url: `${process.env.NEXT_PUBLIC_MEDIA_BASE_URL}${mediaId}.${file.name.split('.').pop()}`,
       mediaId: mediaId,
       fileName: file.name,
     };

@@ -86,6 +86,7 @@ interface MembershipData {
   createdAt: string;
   updatedAt: string;
   customer: string;
+  memberNumber: string;
 }
 
 interface SalesInvoice {
@@ -151,6 +152,12 @@ interface EventRegistration {
   updatedAt: string;
   _id: string;
   __v: number;
+}
+interface user {
+  email: string;
+  firstName: string;
+  lastName: string;
+  lastLogin: string;
 }
 
 interface EventDetails {
@@ -221,13 +228,16 @@ const ProfilePage: React.FC = () => {
   const [eventDetails, setEventDetails] = useState<{[key: string]: EventDetails}>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userData, setUserData] = useState<user | null>(null);
 
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('accessToken');
-        
+        const userString = localStorage.getItem('userData');
+        const parsedUser: user | null = userString ? JSON.parse(userString) : null;
+        setUserData(parsedUser);
         if (!token) {
           setError('No authentication token found');
           return;
@@ -381,15 +391,15 @@ const ProfilePage: React.FC = () => {
             </Avatar>
             <Box flex={1}>
               <Typography variant="h3" component="h1" gutterBottom>
-                {membershipData ? `${membershipData.firstName} ${membershipData.lastName}` : 'User Profile'}
+                {membershipData ? `${membershipData.firstName} ${membershipData.lastName}` : userData ?`${userData.firstName} ${userData.lastName}` : "User"}
               </Typography>
               <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
-                Member ID: {membershipData?.customer || userId}
+                Member ID: {membershipData?.memberNumber || userId}
               </Typography>
               {membershipData && (
                 <Box display="flex" gap={1.5} flexWrap="wrap">
                   <Chip
-                    label={membershipData.memberStatus?.toUpperCase() || 'PENDING'}
+                    label={membershipData.memberStatus?.toUpperCase()}
                     sx={{
                       backgroundColor: membershipData.memberStatus === 'accepted' ? '#4caf50' : '#ff9800',
                       color: 'white',

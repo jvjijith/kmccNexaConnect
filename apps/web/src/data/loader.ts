@@ -280,6 +280,14 @@ export async function createMemberPayment(memberId: string, headers?: HeadersIni
   return await postApi(`/membership/${memberId}/payment`, {}, headers);
 }
 
+export async function updateMembershipApplication(data: any, headers?: HeadersInit) {
+  try {
+    return await putApi('/members/update', data, headers);
+  } catch (error: any) {
+    throw new Error(error || 'Failed to update register');
+  }
+}
+
 export async function createSalesInvoice(data: any, headers?: HeadersInit) {
   try {
     console.log('Creating sales invoice with data:', JSON.stringify(data, null, 2))
@@ -310,6 +318,15 @@ export async function getEventRegistrationsByPaymentStatus(eventId: string, paym
 export async function getMembershipByCustomerId(customerId: string, headers?: HeadersInit) {
   try {
     return await fetchApi(`/members/customer/${customerId}`, { headers });
+  } catch (error: any) {
+    throw new Error(error || 'Failed to fetch membership data');
+  }
+}
+
+// Get membership by Member ID
+export async function getMembershipByMemberId(memberId: string, headers?: HeadersInit) {
+  try {
+    return await fetchApi(`/members/${memberId}`, { headers });
   } catch (error: any) {
     throw new Error(error || 'Failed to fetch membership data');
   }

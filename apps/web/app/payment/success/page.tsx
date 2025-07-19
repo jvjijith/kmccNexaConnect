@@ -30,7 +30,9 @@ import {
   updateMemberPaymentStatus,
   getColor,
   getCart,
-  getRegisterEvent
+  getRegisterEvent,
+  getMembershipByMemberId,
+  updateMembershipApplication
 } from "../../../src/data/loader"
 import { createDynamicTheme } from "@repo/ui/theme"
 
@@ -71,7 +73,7 @@ function PaymentSuccessContent() {
   const type = searchParams.get('type')
   const eventId = searchParams.get('id') // For event payments (legacy)
   const registrationId = searchParams.get('registration_id') // For event registration payments
-  const memberId = searchParams.get('memberId') // For member payments
+  const memberId = searchParams.get('member_id') // For member payments
 
   // Initialize access token from localStorage on client side
   useEffect(() => {
@@ -210,8 +212,8 @@ if(registrationId){await handleEventPayment(headers, userId)}
           stripeSessionId: sessionId
         }],
         paymentStatus: "paid",
-        createdBy: process.env.NEXT_PUBLIC_EMPLOYEE_ID,
-        editedBy: process.env.NEXT_PUBLIC_EMPLOYEE_ID,
+        // createdBy: process.env.NEXT_PUBLIC_EMPLOYEE_ID,
+        // editedBy: process.env.NEXT_PUBLIC_EMPLOYEE_ID,
         termsAndConditions: []
       }
 
@@ -290,18 +292,94 @@ if(registrationId){await handleEventPayment(headers, userId)}
   }
 
   const handleMemberPayment = async (headers: any, userId: string) => {
+    const today = new Date();
+  const nextYear = new Date(today);
+  nextYear.setFullYear(today.getFullYear() + 1);
+  
     if (!memberId) {
-      throw new Error("Member ID is required for member payments")
+      throw new Error("Member ID is required for member payments");
     }
-
-    const memberUpdateData = {
-      paymentStatus: "paid",
-      stripeId: sessionId
+  
+    try {
+      console.log("Fetching event Member details for ID:", memberId);
+      const memberDetails = await getMembershipByMemberId(memberId, headers);
+      console.log("Registration details:", memberDetails);
+  
+      if (!memberDetails) {
+        throw new Error("Member registration not found");
+      }
+  
+      // ✅ Make sure we include the required `id`
+      const memberUpdateData = {
+        id: memberId, // required for update
+  
+        supportKMCC: memberDetails.supportKMCC,
+        readBylaw: memberDetails.readBylaw,
+        byLaw: memberDetails.byLaw,
+        applicationFor: memberDetails.applicationFor,
+        amountTobePaid: memberDetails.amountTobePaid,
+        firstName: memberDetails.firstName,
+        lastName: memberDetails.lastName,
+        partnerFirstName: memberDetails.partnerFirstName,
+        partnerLastName: memberDetails.partnerLastName,
+        partnerEmail: memberDetails.partnerEmail,
+        partnerDob: memberDetails.partnerDob,
+        partnerMobileNumber: memberDetails.partnerMobileNumber,
+        partnerWhatsappNumber: memberDetails.partnerWhatsappNumber,
+        dob: memberDetails.dob,
+        email: memberDetails.email,
+        address: memberDetails.address,
+        rejectionNotes: memberDetails.rejectionNotes,
+        mobileNumber: memberDetails.mobileNumber,
+        whatsappNumber: memberDetails.whatsappNumber,
+        visaStatus: memberDetails.visaStatus,
+        emergencyContactName: memberDetails.emergencyContactName,
+        emergencyContactMobile: memberDetails.emergencyContactMobile,
+        addressInKerala: memberDetails.addressInKerala,
+        assemblyName: memberDetails.assemblyName,
+        district: memberDetails.district,
+        emergencyContactNameKerala: memberDetails.emergencyContactNameKerala,
+        emergencyContactNumberKerala: memberDetails.emergencyContactNumberKerala,
+        IUMLContact: memberDetails.IUMLContact,
+        queryType: memberDetails.queryType,
+        supportDocuments: memberDetails.supportDocuments,
+        query: memberDetails.query,
+        queryFullName: memberDetails.queryFullName,
+        queryEmail: memberDetails.queryEmail,
+        queryAddress: memberDetails.queryAddress,
+        queryMobileNumber: memberDetails.queryMobileNumber,
+        customer: memberDetails.customer,
+        iuMLContactName: memberDetails.iuMLContactName,
+        iuMLContactPosition: memberDetails.iuMLContactPosition,
+        iuMLContactNumber: memberDetails.iuMLContactNumber,
+        iuMLLocation: memberDetails.iuMLLocation,
+        photoURL: memberDetails.photoURL,
+        acceptKmcc: memberDetails.acceptKmcc,
+        shareInfoNorka: memberDetails.shareInfoNorka,
+        signatureURL: memberDetails.signatureURL,
+  
+        paymentStatus: "paid",
+        memberStatus: memberDetails.memberStatus,
+  
+        // ✅ Pass actual Date objects, NOT strings
+        validTill: nextYear.toISOString().split("T")[0],
+        validOn: today.toISOString().split("T")[0],
+  
+        stripeId: sessionId
+      };
+  
+      console.log("Updating event registration with payment success:", memberUpdateData);
+  
+      const updateResult = await updateMembershipApplication(memberUpdateData, headers);
+      console.log("Event registration updated successfully:", updateResult);
+  
+      return updateResult;
+    } catch (error) {
+      console.error("Error in handleMemberPayment:", error);
+      throw error;
     }
-
-    console.log("Updating member payment status:", memberUpdateData)
-    await updateMemberPaymentStatus(memberId, memberUpdateData, headers)
-  }
+  };
+  
 
   const getPaymentTypeInfo = () => {
     switch (type) {
