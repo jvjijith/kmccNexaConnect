@@ -763,7 +763,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
             alignItems: 'flex-start',
             maxWidth: '100%'
           }}>
-            {slide.title && (
+            {/* {slide.title && (
               <Typography
                 variant="h1"
                 sx={{
@@ -780,9 +780,9 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               >
                 {slide.title}
               </Typography>
-            )}
+            )} */}
 
-            {slide.description && (
+            {/* {slide.description && (
               <Typography
                 variant="body1"
                 sx={{
@@ -802,10 +802,10 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               >
                 {slide.description}
               </Typography>
-            )}
+            )} */}
 
             {/* Call to action button for hero */}
-            <Button
+            {/* <Button
               variant="contained"
               size="large"
               sx={{
@@ -831,7 +831,7 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
               }}
             >
               Explore Now
-            </Button>
+            </Button> */}
           </Box>
         )}
       </Box>
