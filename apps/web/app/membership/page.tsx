@@ -215,7 +215,7 @@ const initialFormData: FormData = {
   stripeId: "",
 }
 
-export default function MembershipApplication({ members }: { members?: FormData }) {
+export default function MembershipApplication() {
   const router = useRouter()
   const [activeStep, setActiveStep] = useState(0)
   const [showBylaw, setShowBylaw] = useState(false)
@@ -237,13 +237,6 @@ export default function MembershipApplication({ members }: { members?: FormData 
     severity: "success" as "success" | "error" | "warning" | "info"
   })
   const [submissionStep, setSubmissionStep] = useState<"idle" | "submitting" | "payment" | "success">("idle")
-
-  // Initialize form data with members prop if provided
-  useEffect(() => {
-    if (members) {
-      setFormData(members)
-    }
-  }, [members])
 
   // Color system integration - fetch colors on component mount (exactly like product page)
   useEffect(() => {
@@ -793,7 +786,6 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     try {
       // Prepare the data according to the API format
       const membershipData = {
-        ...(members?.id && { id: members.id }), // Include ID if updating existing member
         supportKMCC: formData.supportKMCC,
         readBylaw: formData.readBylaw,
         byLaw: formData.byLaw,
@@ -864,14 +856,8 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         }
       }
 
-      // Submit membership application or update existing member
-      const membershipResponse = members?.id
-        ? accessToken
-          ? await updateMembershipApplication(membershipData, {
-              "Authorization": `Bearer ${accessToken}`
-            })
-          : await updateMembershipApplication(membershipData)
-        : accessToken
+      // Submit membership application
+      const membershipResponse = accessToken
         ? await submitMembershipApplication(membershipData, {
             "Authorization": `Bearer ${accessToken}`
           })
@@ -879,9 +865,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
       setSnackbar({
         open: true,
-        message: members?.id
-          ? "Membership information updated successfully!"
-          : "Membership application submitted successfully!",
+        message: "Membership application submitted successfully!",
         severity: "success"
       })
 
