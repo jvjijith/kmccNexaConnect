@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LoginPageUI from "@repo/ui/login"
-import { loginUser } from "../../src/lib/auth" // Import your custom loginUser function
+import { loginUser, sendPasswordReset } from "../../src/lib/auth" // Import sendPasswordReset function
 
 // Constants for localStorage keys - matching auth.ts
 const STORAGE_KEYS = {
@@ -89,6 +89,14 @@ export default function LoginPage() {
     setShowPassword(!showPassword)
   }
 
+  const handleForgotPassword = async (email: string) => {
+    try {
+      await sendPasswordReset(email)
+    } catch (error) {
+      throw error // Re-throw to let the UI component handle the error display
+    }
+  }
+
   return (
     <LoginPageUI
       email={email}
@@ -100,6 +108,7 @@ export default function LoginPage() {
       loading={loading}
       error={error}
       handleSubmit={handleSubmit}
+      onForgotPassword={handleForgotPassword}
     />
   )
 }

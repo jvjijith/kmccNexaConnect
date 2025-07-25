@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "firebase/auth"
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth"
 import { auth } from "./firebase"
 import { getAuth, login } from "../data/loader"
 import React from "react"
@@ -546,6 +546,28 @@ export function initializeTokenMonitoring(): void {
 
     if (isLoggedIn && accessToken) {
       startTokenMonitoring();
+    }
+  }
+}
+
+// Forgot Password function
+export async function sendPasswordReset(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    console.log('Password reset email sent successfully');
+  } catch (error: any) {
+    console.error('Error sending password reset email:', error);
+
+    // Handle specific Firebase errors
+    switch (error.code) {
+      case 'auth/user-not-found':
+        throw new Error('No account found with this email address');
+      case 'auth/invalid-email':
+        throw new Error('Invalid email address');
+      case 'auth/too-many-requests':
+        throw new Error('Too many requests. Please try again later');
+      default:
+        throw new Error('Failed to send password reset email. Please try again');
     }
   }
 }

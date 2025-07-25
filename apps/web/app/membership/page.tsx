@@ -65,7 +65,7 @@ import {
   Clear,
 } from "@mui/icons-material"
 import { createDynamicTheme } from "@repo/ui/theme"
-import { getColor, submitMembershipApplication, createMemberPayment } from "../../src/data/loader"
+import { getColor, submitMembershipApplication, createMemberPayment, updateMembershipApplication } from "../../src/data/loader"
 import {
   uploadFileWithSignedUrl,
   uploadMultipleFilesWithSignedUrl,
@@ -105,6 +105,7 @@ function decodeJWT(token: string) {
 }
 
 interface FormData {
+  id?: string
   supportKMCC: boolean | null
   readBylaw: boolean | null
   byLaw: string
@@ -132,6 +133,8 @@ interface FormData {
   district: string
   emergencyContactNameKerala: string
   emergencyContactNumberKerala: string
+  validTill?: string
+  validOn?: string
   IUMLContact: string
   queryType: string
   supportDocuments: Array<{ docuName: string; docuUrl: string }>
@@ -160,21 +163,14 @@ interface FormErrors {
   [key: string]: string
 }
 
-const steps = [
-  "Initial Questions",
-  "Personal Information",
-  "Partner Details",
-  "Emergency Contacts",
-  "IUML References",
-  "Documents & Final",
-]
+
 
 const initialFormData: FormData = {
   supportKMCC: null,
   readBylaw: null,
   byLaw: "",
   applicationFor: "",
-  amountTobePaid: 25,
+  amountTobePaid: 25, // Default to single membership amount
   firstName: "",
   lastName: "",
   partnerFirstName: "",
@@ -219,11 +215,12 @@ const initialFormData: FormData = {
   stripeId: "",
 }
 
-export default function MembershipApplication() {
+export default function MembershipApplication({ members }: { members?: FormData }) {
   const router = useRouter()
   const [activeStep, setActiveStep] = useState(0)
   const [showBylaw, setShowBylaw] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showQueryDialog, setShowQueryDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [formData, setFormData] = useState<FormData>(initialFormData)
@@ -240,6 +237,13 @@ export default function MembershipApplication() {
     severity: "success" as "success" | "error" | "warning" | "info"
   })
   const [submissionStep, setSubmissionStep] = useState<"idle" | "submitting" | "payment" | "success">("idle")
+
+  // Initialize form data with members prop if provided
+  useEffect(() => {
+    if (members) {
+      setFormData(members)
+    }
+  }, [members])
 
   // Color system integration - fetch colors on component mount (exactly like product page)
   useEffect(() => {
@@ -281,6 +285,27 @@ export default function MembershipApplication() {
     }
   }, []);
 
+    // Create dynamic steps array based on application type
+    const getSteps = () => {
+      const allSteps = [
+        "Initial Questions",
+        "Personal Information",
+        "Partner Details",
+        "Emergency Contacts",
+        "IUML References",
+        "Documents & Final",
+      ]
+  
+      // Remove "Partner Details" step for single membership
+      if (formData.applicationFor === "single") {
+        return allSteps.filter(step => step !== "Partner Details")
+      }
+  
+      return allSteps
+    }
+  
+    const currentSteps = getSteps()
+
   const bylawText = `Objectives: Melbourne KMCC aims to foster unity among its members, support charitable activities, promote cultural heritage, and assist in the welfare and development of the community. The association organizes social, cultural, and educational events to enrich the lives of its members.
 
 Membership: Open to individuals of Kerala origin, aged 18 and above, residing in Melbourne. Members are categorized as Ordinary, Life, or Honorary. Life Members have permanent status, while membership fees and renewal procedures are clearly defined.
@@ -293,7 +318,24 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
   const handleInputChange = useCallback(
     (field: string, value: any) => {
-      setFormData((prev) => ({ ...prev, [field]: value }))
+      setFormData((prev) => {
+        const newData = { ...prev, [field]: value }
+
+        // Update amount based on application type
+        if (field === "applicationFor") {
+          newData.amountTobePaid = value === "couple" ? 50 : 25
+        }
+
+        return newData
+      })
+
+      // Show query dialog immediately when user selects "No" for supportKMCC
+      if (field === "supportKMCC" && value === false) {
+        setTimeout(() => {
+          setShowQueryDialog(true)
+        }, 100) // Small delay to ensure state is updated
+      }
+
       // Clear error when user starts typing
       if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: "" }))
@@ -336,7 +378,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         }
 
         try {
-          const uploadResult = await uploadFileWithSignedUrl(file, 'document', onProgress as any)
+          const uploadResult = await uploadFileWithSignedUrl(file, 'doc', onProgress as any)
 
           // Clean up progress tracking
           setUploadProgress(prev => {
@@ -602,14 +644,16 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
   const validateStep = (step: number): boolean => {
     const newErrors: FormErrors = {}
+    const currentSteps = getSteps()
+    const stepName = currentSteps[step]
 
-    switch (step) {
-      case 0:
+    switch (stepName) {
+      case "Initial Questions":
         if (formData.supportKMCC === null) newErrors.supportKMCC = "This field is required"
         if (formData.readBylaw === null) newErrors.readBylaw = "This field is required"
         if (!formData.applicationFor) newErrors.applicationFor = "This field is required"
         break
-      case 1:
+      case "Personal Information":
         if (!formData.firstName) newErrors.firstName = "First name is required"
         if (!formData.lastName) newErrors.lastName = "Last name is required"
         if (!formData.dob) newErrors.dob = "Date of birth is required"
@@ -619,18 +663,16 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         if (!formData.whatsappNumber) newErrors.whatsappNumber = "WhatsApp number is required"
         if (!formData.visaStatus) newErrors.visaStatus = "Visa status is required"
         break
-      case 2:
-        // Partner details validation - required only for couple membership
-        if (formData.applicationFor === "couple") {
-          if (!formData.partnerFirstName) newErrors.partnerFirstName = "Partner first name is required"
-          if (!formData.partnerLastName) newErrors.partnerLastName = "Partner last name is required"
-          if (!formData.partnerDob) newErrors.partnerDob = "Partner date of birth is required"
-          if (!formData.partnerEmail) newErrors.partnerEmail = "Partner email is required"
-          if (!formData.partnerMobileNumber) newErrors.partnerMobileNumber = "Partner mobile number is required"
-          if (!formData.partnerWhatsappNumber) newErrors.partnerWhatsappNumber = "Partner WhatsApp number is required"
-        }
+      case "Partner Details":
+        // Partner details validation - only appears for couple membership
+        if (!formData.partnerFirstName) newErrors.partnerFirstName = "Partner first name is required"
+        if (!formData.partnerLastName) newErrors.partnerLastName = "Partner last name is required"
+        if (!formData.partnerDob) newErrors.partnerDob = "Partner date of birth is required"
+        if (!formData.partnerEmail) newErrors.partnerEmail = "Partner email is required"
+        if (!formData.partnerMobileNumber) newErrors.partnerMobileNumber = "Partner mobile number is required"
+        if (!formData.partnerWhatsappNumber) newErrors.partnerWhatsappNumber = "Partner WhatsApp number is required"
         break
-      case 3:
+      case "Emergency Contacts":
         if (!formData.emergencyContactName) newErrors.emergencyContactName = "Emergency contact name is required"
         if (!formData.emergencyContactMobile) newErrors.emergencyContactMobile = "Emergency contact mobile is required"
         if (!formData.addressInKerala) newErrors.addressInKerala = "Kerala address is required"
@@ -641,7 +683,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         if (!formData.emergencyContactNumberKerala)
           newErrors.emergencyContactNumberKerala = "Kerala emergency contact mobile is required"
         break
-      case 4:
+      case "IUML References":
         if (!formData.IUMLContact) newErrors.IUMLContact = "IUML contact selection is required"
         if (formData.IUMLContact && formData.IUMLContact !== "Not able to provide any") {
           if (!formData.iuMLContactName) newErrors.iuMLContactName = "Contact name is required"
@@ -650,7 +692,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
           if (!formData.iuMLContactNumber) newErrors.iuMLContactNumber = "Contact phone number is required"
         }
         break
-      case 5:
+      case "Documents & Final":
         if (!formData.acceptKmcc) newErrors.acceptKmcc = "You must accept the terms"
         if (formData.shareInfoNorka === null) newErrors.shareInfoNorka = "This field is required"
         if (!formData.signatureURL) newErrors.signatureURL = "Digital signature is required"
@@ -662,22 +704,96 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
   }
 
   const handleNext = () => {
+    // If we're on step 0 and supportKMCC is false, show query dialog instead of proceeding
+    if (activeStep === 0 && formData.supportKMCC === false) {
+      setShowQueryDialog(true)
+      return
+    }
+
     if (validateStep(activeStep)) {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1)
+      const currentSteps = getSteps()
+      const nextStep = activeStep + 1
+
+      // Check if we have a next step
+      if (nextStep < currentSteps.length) {
+        setActiveStep(nextStep)
+      }
     }
   }
 
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1)
+    const prevStep = activeStep - 1
+
+    if (prevStep >= 0) {
+      setActiveStep(prevStep)
+    }
+  }
+
+  // Handle query submission when supportKMCC is false
+  const handleQuerySubmit = async () => {
+    setLoading(true)
+
+    try {
+      // Prepare query data
+      const queryData = {
+        queryType: formData.queryType,
+        query: formData.query,
+        queryFullName: formData.queryFullName,
+        queryEmail: formData.queryEmail,
+        queryAddress: formData.queryAddress,
+        queryMobileNumber: formData.queryMobileNumber,
+        customer: formData.customer
+      }
+
+      // Get access token from localStorage
+      const accessToken = localStorage.getItem("accessToken");
+
+      // Submit query (using the same API endpoint but with query-only data)
+      const queryResponse = accessToken
+        ? await submitMembershipApplication(queryData, {
+            "Authorization": `Bearer ${accessToken}`
+          })
+        : await submitMembershipApplication(queryData)
+
+      setSnackbar({
+        open: true,
+        message: "Your query has been received and KMCC will contact you!",
+        severity: "success"
+      })
+
+      setShowQueryDialog(false)
+
+      // Redirect to home page after successful query submission
+      setTimeout(() => {
+        router.push("/home")
+      }, 2000)
+
+    } catch (error) {
+      console.error("Query submission error:", error)
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : "Error submitting query. Please try again.",
+        severity: "error"
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async () => {
+    // Check if supportKMCC is false, show query dialog instead
+    if (formData.supportKMCC === false) {
+      setShowQueryDialog(true)
+      return
+    }
+
     setLoading(true)
     setSubmissionStep("submitting")
 
     try {
       // Prepare the data according to the API format
       const membershipData = {
+        ...(members?.id && { id: members.id }), // Include ID if updating existing member
         supportKMCC: formData.supportKMCC,
         readBylaw: formData.readBylaw,
         byLaw: formData.byLaw,
@@ -724,7 +840,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         signatureURL: formData.signatureURL,
         paymentStatus: formData.paymentStatus,
         memberStatus: formData.memberStatus,
-        stripeId: ""
+        stripeId: formData.stripeId || ""
       }
 
       console.log("membershipData", membershipData);
@@ -748,8 +864,14 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         }
       }
 
-      // Submit membership application with Bearer token if available
-      const membershipResponse = accessToken
+      // Submit membership application or update existing member
+      const membershipResponse = members?.id
+        ? accessToken
+          ? await updateMembershipApplication(membershipData, {
+              "Authorization": `Bearer ${accessToken}`
+            })
+          : await updateMembershipApplication(membershipData)
+        : accessToken
         ? await submitMembershipApplication(membershipData, {
             "Authorization": `Bearer ${accessToken}`
           })
@@ -757,7 +879,9 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
       setSnackbar({
         open: true,
-        message: "Membership application submitted successfully!",
+        message: members?.id
+          ? "Membership information updated successfully!"
+          : "Membership application submitted successfully!",
         severity: "success"
       })
 
@@ -786,16 +910,20 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
 
   const renderStep1 = () => (
-    <Card elevation={3}>
+    <Card elevation={3} sx={{ mb: { xs: 2, sm: 4 } }}>
       <CardHeader
         title={
-          <Typography variant="h5" component="h2" color="primary">
+          <Typography variant="h5" component="h2" sx={{
+            fontSize: { xs: '1.25rem', sm: '1.5rem' },
+            fontWeight: 600
+          }}>
             Initial Questions
           </Typography>
         }
         subheader="Please answer these preliminary questions to begin your application"
+        sx={{ pb: { xs: 1, sm: 2 } }}
       />
-      <CardContent>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <FormControl component="fieldset" error={!!errors.supportKMCC}>
             <FormLabel component="legend" required sx={{ mb: 2, fontWeight: 500 }}>
@@ -881,9 +1009,15 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
                 </Typography>
                 <Typography variant="body2">
                   The amount to be paid is for a two-year period upon approval of your application
+                  {formData.applicationFor === "couple" ? " (Couple Membership)" : formData.applicationFor === "single" ? " (Single Membership)" : ""}
                 </Typography>
               </Box>
-              <Chip label="$25 AUD" color="success" size="medium" sx={{ fontSize: "1.1rem", fontWeight: "bold" }} />
+              <Chip
+                label={`$${formData.amountTobePaid} AUD`}
+                color="success"
+                size="medium"
+                sx={{ fontSize: "1.1rem", fontWeight: "bold" }}
+              />
             </Box>
           </Alert>
         </Box>
@@ -1612,96 +1746,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             )}
           </Box>
 
-          {/* Contact Form Integration */}
-          <Box>
-            <Typography variant="h6" gutterBottom color="primary">
-              Contact Information for Queries
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Please provide your contact details for any follow-up queries regarding your membership application
-            </Typography>
-
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Full Name"
-                  value={formData.queryFullName}
-                  onChange={(e) => handleInputChange("queryFullName", e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                type="email"
-                label="Email Address"
-                value={formData.queryEmail}
-                onChange={(e) => handleInputChange("queryEmail", e.target.value)}
-                InputProps={{
-                  startAdornment: <Email sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
-                }}
-              />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Mobile Number"
-                value={formData.queryMobileNumber}
-                onChange={(e) => handleInputChange("queryMobileNumber", e.target.value)}
-                InputProps={{
-                  startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
-                }}
-              />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={formData.queryAddress}
-                onChange={(e) => handleInputChange("queryAddress", e.target.value)}
-                InputProps={{
-                  startAdornment: <LocationOn sx={{ mr: 1, color: "primary.main" }} />, // Changed from "action.active"
-                }}
-              />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Query Type</InputLabel>
-                  <Select
-                    value={formData.queryType}
-                    label="Query Type"
-                    onChange={(e) => handleInputChange("queryType", e.target.value)}
-                  >
-                    <MenuItem value="Accomodation">Accommodation</MenuItem>
-                    <MenuItem value="Airport Pickup">Airport Pickup</MenuItem>
-                    <MenuItem value="Carrer Guide">Career Guide</MenuItem>
-                    <MenuItem value="funeral Service">Funeral Service</MenuItem>
-                    <MenuItem value="ISlamic Schools">Islamic Schools</MenuItem>
-                    <MenuItem value="Membership">Membership</MenuItem>
-                    <MenuItem value="Mosque or Musallahs">Mosque or Musallahs</MenuItem>
-                    <MenuItem value="Visa">Visa</MenuItem>
-                    <MenuItem value="Others">Others</MenuItem>
-                  </Select>
-                </FormControl>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Choosing the right query type would direct to the right person
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label="Query Details"
-                  value={formData.query}
-                  onChange={(e) => handleInputChange("query", e.target.value)}
-                  placeholder="Please provide details about your query..."
-                />
-              </Grid>
-            </Grid>
-          </Box>
+         
 
 
           <Paper elevation={2} sx={{ p: 3, bgcolor: "info.light", borderRadius: 2 }}>
@@ -1733,7 +1778,7 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
   )
 
   const renderPreview = () => (
-    <Card elevation={3}>
+    <Card elevation={3} sx={{ mt: { xs: 2, sm: 4 } }}> 
       <CardHeader
         title={
           <Typography
@@ -2154,8 +2199,18 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
           )}
         </Grid>
 
-        <Box sx={{ display: "flex", gap: 2, mt: 4, justifyContent: "center" }}>
-          <Button variant="outlined" onClick={() => setShowPreview(false)} size="large" startIcon={<NavigateBefore color="primary" />}>
+        <Box sx={{ display: "flex", gap: 2, mt: 4, justifyContent: "center", flexDirection: { xs: 'column', sm: 'row' } }}>
+          <Button
+            variant="outlined"
+            onClick={() => setShowPreview(false)}
+            size="large"
+            startIcon={<NavigateBefore color="primary" />}
+            sx={{
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              padding: { xs: '8px 16px', sm: '10px 22px' },
+              minWidth: { xs: '100%', sm: 'auto' }
+            }}
+          >
             Edit Application
           </Button>
           <Button
@@ -2168,7 +2223,9 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
             size="large"
             disabled={loading}
             sx={{
-              minWidth: 200,
+              minWidth: { xs: '100%', sm: 200 },
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              padding: { xs: '8px 16px', sm: '10px 22px' },
               '& .MuiCircularProgress-root': {
                 marginRight: 1
               }
@@ -2302,22 +2359,43 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
     )
   }
 
+  console.log("formData", formData);
+
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <ThemeProvider theme={createDynamicTheme(color || {})}>
-      <Container maxWidth="lg" sx={{ py: 4, bgcolor: "background.default", minHeight: "100vh" }}>
-        <Paper elevation={1} sx={{ p: 4, mb: 4, textAlign: "center", borderRadius: 3 }}>
-          <Typography variant="h3" component="h1" gutterBottom>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 }, bgcolor: "background.default", minHeight: "100vh" }}>
+        <Paper elevation={1} sx={{
+          p: { xs: 2, sm: 3, md: 4 },
+          mb: { xs: 2, sm: 4 },
+          mt: { xs: 4, sm: 6, md: 8 },
+          textAlign: "center",
+          borderRadius: 3
+        }}>
+          <Typography variant="h3" component="h1" gutterBottom sx={{
+            fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' },
+            mb: { xs: 1, sm: 2 }
+          }}>
             Melbourne KMCC Membership Application
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color="text.secondary" sx={{
+            fontSize: { xs: '1rem', sm: '1.25rem' }
+          }}>
             Join our community and be part of something meaningful
           </Typography>
         </Paper>
 
-        <Box sx={{ mb: 4 }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {steps.map((label, index) => (
+        <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{
+            '& .MuiStepLabel-label': {
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              display: { xs: 'none', sm: 'block' }
+            },
+            '& .MuiStepLabel-iconContainer': {
+              padding: { xs: '4px', sm: '8px' }
+            }
+          }}>
+            {currentSteps.map((label, index) => (
               <Step key={label} completed={index < activeStep}>
                 <StepLabel>{label}</StepLabel>
               </Step>
@@ -2326,36 +2404,91 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
         </Box>
 
         <Box sx={{ mb: 4 }}>
-          {activeStep === 0 && renderStep1()}
-          {activeStep === 1 && renderStep2()}
-          {activeStep === 2 && renderStep3()}
-          {activeStep === 3 && renderStep4()}
-          {activeStep === 4 && renderStep5()}
-          {activeStep === 5 && renderStep6()}
+          {(() => {
+            const currentSteps = getSteps()
+            const stepIndex = activeStep
+
+            // Map step names to render functions
+            const stepRenderers: { [key: string]: () => JSX.Element } = {
+              "Initial Questions": renderStep1,
+              "Personal Information": renderStep2,
+              "Partner Details": renderStep3,
+              "Emergency Contacts": renderStep4,
+              "IUML References": renderStep5,
+              "Documents & Final": renderStep6
+            }
+
+            const currentStepName = currentSteps[stepIndex]
+            if (!currentStepName) return null
+
+            const renderFunction = stepRenderers[currentStepName]
+
+            return renderFunction ? renderFunction() : null
+          })()}
         </Box>
 
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <Box sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 2, sm: 0 }
+          }}>
             <Button
               disabled={activeStep === 0}
               onClick={handleBack}
               variant="outlined"
-              startIcon={<NavigateBefore color="primary" />}
-              size="large"
+              startIcon={<NavigateBefore  />}
+              sx={{
+                order: { xs: 2, sm: 1 },
+                minWidth: { xs: '120px', sm: 'auto' },
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                padding: { xs: '8px 16px', sm: '10px 22px' }
+              }}
             >
               Previous
             </Button>
 
-            <Typography variant="body2" color="text.secondary">
-              Step {activeStep + 1} of {steps.length}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                order: { xs: 1, sm: 2 },
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}
+            >
+              Step {activeStep + 1} of {currentSteps.length}
             </Typography>
 
-            {activeStep < steps.length - 1 ? (
-              <Button onClick={handleNext} variant="contained" endIcon={<NavigateNext color="primary" />} size="large">
+            {activeStep < currentSteps.length - 1 ? (
+              <Button
+                onClick={handleNext}
+                variant="contained"
+                endIcon={<NavigateNext />}
+                size="large"
+                sx={{
+                  order: { xs: 3, sm: 3 },
+                  minWidth: { xs: '120px', sm: 'auto' },
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  padding: { xs: '8px 16px', sm: '10px 22px' }
+                }}
+              >
                 Next
               </Button>
             ) : (
-              <Button onClick={() => setShowPreview(true)} variant="contained" startIcon={<Visibility color="primary" />} size="large">
+              <Button
+                onClick={() => setShowPreview(true)}
+                variant="contained"
+                startIcon={<Visibility color="primary" />}
+                size="large"
+                sx={{
+                  order: { xs: 3, sm: 3 },
+                  minWidth: { xs: '140px', sm: 'auto' },
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  padding: { xs: '8px 16px', sm: '10px 22px' }
+                }}
+              >
                 Preview & Submit
               </Button>
             )}
@@ -2364,6 +2497,168 @@ Note: Once your application is final, we will provide you detailed bylaw via dig
 
         {/* ContactDialog removed - now integrated into step 6 */}
         <SignatureDialog />
+
+        {/* Query Dialog */}
+        <Dialog
+          open={showQueryDialog}
+          onClose={() => setShowQueryDialog(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: { xs: 0, sm: 2 },
+              margin: { xs: 0, sm: 2 },
+              maxHeight: { xs: '100vh', sm: '90vh' }
+            },
+          }}
+        >
+          <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                Submit Your Query
+              </Typography>
+              <IconButton onClick={() => setShowQueryDialog(false)} size="small">
+                <Close color="primary" />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+
+          <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" color="text.secondary" sx={{
+              mb: 3,
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}>
+              Since you don't wish to support KMCC at this time, please provide your query details and we'll get back to you.
+            </Typography>
+
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Full Name"
+                  value={formData.queryFullName}
+                  onChange={(e) => handleInputChange("queryFullName", e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  type="email"
+                  label="Email Address"
+                  value={formData.queryEmail}
+                  onChange={(e) => handleInputChange("queryEmail", e.target.value)}
+                  InputProps={{
+                    startAdornment: <Email sx={{ mr: 1, color: "primary.main" }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Mobile Number"
+                  value={formData.queryMobileNumber}
+                  onChange={(e) => handleInputChange("queryMobileNumber", e.target.value)}
+                  InputProps={{
+                    startAdornment: <Phone sx={{ mr: 1, color: "primary.main" }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Address"
+                  value={formData.queryAddress}
+                  onChange={(e) => handleInputChange("queryAddress", e.target.value)}
+                  InputProps={{
+                    startAdornment: <LocationOn sx={{ mr: 1, color: "primary.main" }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Query Type</InputLabel>
+                  <Select
+                    value={formData.queryType}
+                    label="Query Type"
+                    onChange={(e) => handleInputChange("queryType", e.target.value)}
+                  >
+                    <MenuItem value="Accomodation">Accommodation</MenuItem>
+                    <MenuItem value="Airport Pickup">Airport Pickup</MenuItem>
+                    <MenuItem value="Carrer Guide">Career Guide</MenuItem>
+                    <MenuItem value="funeral Service">Funeral Service</MenuItem>
+                    <MenuItem value="ISlamic Schools">Islamic Schools</MenuItem>
+                    <MenuItem value="Membership">Membership</MenuItem>
+                    <MenuItem value="Mosque or Musallahs">Mosque or Musallahs</MenuItem>
+                    <MenuItem value="Visa">Visa</MenuItem>
+                    <MenuItem value="Others">Others</MenuItem>
+                  </Select>
+                </FormControl>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Choosing the right query type would direct to the right person
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Query Details"
+                  value={formData.query}
+                  onChange={(e) => handleInputChange("query", e.target.value)}
+                  placeholder="Please provide details about your query..."
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+
+          {/* <DialogActions sx={{ p: 3, gap: 1 }}>
+            <Button
+              onClick={() => setShowQueryDialog(false)}
+              variant="outlined"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleQuerySubmit}
+              variant="contained"
+              startIcon={<Send />}
+              disabled={loading || !formData.queryFullName || !formData.queryEmail || !formData.query}
+            >
+              {loading ? <CircularProgress size={20} /> : "Submit Query"}
+            </Button> */}
+          <DialogActions sx={{
+            p: { xs: 2, sm: 3 },
+            gap: 1,
+            flexDirection: { xs: 'column', sm: 'row' }
+          }}>
+            <Button
+              onClick={() => setShowQueryDialog(false)}
+              variant="outlined"
+              sx={{
+                width: { xs: '100%', sm: 'auto' },
+                order: { xs: 2, sm: 1 }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleQuerySubmit}
+              variant="contained"
+              startIcon={<Send />}
+              disabled={loading || !formData.queryFullName || !formData.queryEmail || !formData.query}
+              sx={{
+                width: { xs: '100%', sm: 'auto' },
+                order: { xs: 1, sm: 2 }
+              }}
+            >
+              {loading ? <CircularProgress size={20} /> : "Submit Query"}
+            </Button>
+          {/* </DialogActions> */}
+          </DialogActions>
+        </Dialog>
 
         {/* Snackbar for user feedback */}
         <Snackbar
