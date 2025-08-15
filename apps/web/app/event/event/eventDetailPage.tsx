@@ -150,8 +150,8 @@ export default function EventDetailPage({ event, themes, id }: EventDetailPagePr
     const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
     const [loadingMembership, setLoadingMembership] = useState<boolean>(false);
 
-  // Check if this is a donation event
-  const isDonationEvent = event.metadata?.name === "donation"
+  // Check if this is a donation or fundraiser event
+  const isDonationEvent = event.eventType === "donation" || event.eventType === "fundraiser"
 
     // Function to decode JWT token and extract customer ID
     const decodeToken = (token: string) => {

@@ -457,7 +457,9 @@ const SliderContent: React.FC<{ elementData: any; themes: any }> = ({ elementDat
     };
 
     // Check if this is a donation event
-    const isDonation = event.metadata?.name?.toLowerCase().includes('donation') ||
+    const isDonation = event.eventType === "donation" ||
+                      event.eventType === "fundraiser" ||
+                      event.metadata?.name?.toLowerCase().includes('donation') ||
                       event.name?.toLowerCase().includes('donation');
 
     return {

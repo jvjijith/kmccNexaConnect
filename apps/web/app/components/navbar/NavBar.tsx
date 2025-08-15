@@ -48,22 +48,48 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  ContactSupport as ContactIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
 import { logoutUser } from '../../../src/lib/auth';
 import { getMembershipByCustomerId, getPage } from '../../../src/data/loader';
 
+interface MultiItemType {
+  menuName: string;
+  menuType: string;
+  menuPage?: string;
+  menuSlug?: string;
+  imageUrl?: string;
+  allowImage?: boolean;
+  active?: boolean;
+}
+
 interface MenuItemType {
   menuName: string;
   menuType: string;
-  multiItems?: { menuName: string }[];
+  multiItems?: MultiItemType[];
+  menuPage?: string;
+  menuSlug?: string;
+  imageUrl?: string;
+  allowImage?: boolean;
+  active?: boolean;
 }
 
 interface MenuDataType {
+  _id: string;
+  appId: string;
   menuName: string;
+  menuType: string;
+  menuSlug?: string;
+  layoutType: string;
+  menuPage?: string;
+  imageUrl?: string;
+  allowImage?: boolean;
   items: MenuItemType[];
-  imageUrl: string;
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface NavbarProps {
@@ -145,9 +171,6 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
   const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
   const [loadingMembership, setLoadingMembership] = useState<boolean>(false);
 
-  // State for menu display names
-  const [menuDisplayNames, setMenuDisplayNames] = useState<{[key: string]: string}>({});
-
   const isMobile = useMediaQuery('(max-width:900px)');
   const isTablet = useMediaQuery('(max-width:1200px)');
 
@@ -201,50 +224,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     }
   };
 
-  // Function to fetch menu page data
-  const fetchMenuPageData = async () => {
-    if (!menuData?.items) return;
 
-    const displayNames: {[key: string]: string} = {};
-
-    try {
-      // Fetch page data for each menu item
-      for (const item of menuData.items) {
-        try {
-          const pageData = await getPage(item.menuName);
-          if (pageData && pageData.referenceName) {
-            displayNames[item.menuName] = pageData.referenceName;
-          } else {
-            displayNames[item.menuName] = item.menuName; // fallback to original name
-          }
-        } catch (error) {
-          console.error(`Error fetching page data for ${item.menuName}:`, error);
-          displayNames[item.menuName] = item.menuName; // fallback to original name
-        }
-
-        // Also fetch for sub-items if they exist
-        if (item.multiItems) {
-          for (const subItem of item.multiItems) {
-            try {
-              const subPageData = await getPage(subItem.menuName);
-              if (subPageData && subPageData.referenceName) {
-                displayNames[subItem.menuName] = subPageData.referenceName;
-              } else {
-                displayNames[subItem.menuName] = subItem.menuName;
-              }
-            } catch (error) {
-              console.error(`Error fetching page data for ${subItem.menuName}:`, error);
-              displayNames[subItem.menuName] = subItem.menuName;
-            }
-          }
-        }
-      }
-
-      setMenuDisplayNames(displayNames);
-    } catch (error) {
-      console.error('Error fetching menu page data:', error);
-    }
-  };
 
   // Check login status function
   const checkLoginStatus = useCallback(() => {
@@ -290,9 +270,6 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     if (isLoggedIn) {
       fetchMembershipData();
     }
-
-    // Fetch menu page data
-    fetchMenuPageData();
 
     // Listen for custom auth state changes
     const handleAuthStateChange = () => {
@@ -359,6 +336,12 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
     } catch (error) {
       console.error('Error decoding token for profile redirect:', error);
     }
+  };
+
+  // Handle contact click - redirect to contact page
+  const handleContactClick = () => {
+    handleCloseUserMenu();
+    router.push('/contact');
   };
 
 
@@ -502,8 +485,8 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
               }}>
                 {(menuData?.items || []).map((item, index) => {
                   const hasSubItems = item.multiItems && item.multiItems.length > 0;
-                  const itemIsActive = isActive(`/${item.menuName.toLowerCase()}`);
-                  
+                  const itemIsActive = isActive(`/${item.menuSlug || item.menuName.toLowerCase()}`);
+
                   return (
                     <React.Fragment key={index}>
                       {hasSubItems ? (
@@ -525,7 +508,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                               },
                             }}
                           >
-                            {menuDisplayNames[item.menuName] || item.menuName}
+                            {item.menuName}
                           </Button>
                           <Menu
                             anchorEl={anchorElNav}
@@ -543,11 +526,11 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                             }}
                           >
                             {item.multiItems?.map((subItem, subIndex) => (
-                              <MenuItem 
-                                key={subIndex} 
+                              <MenuItem
+                                key={subIndex}
                                 onClick={handleCloseNavMenu}
                                 component="a"
-                                href={`/${subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
+                                href={`/${subItem.menuSlug || subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
                                 sx={{
                                   '&:hover': {
                                     backgroundColor: 'primary.light',
@@ -555,14 +538,14 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                                   }
                                 }}
                               >
-                                {menuDisplayNames[subItem.menuName] || subItem.menuName}
+                                {subItem.menuName}
                               </MenuItem>
                             ))}
                           </Menu>
                         </>
                       ) : (
                         <Button
-                          href={`/${item.menuName.toLowerCase()}`}
+                          href={`/${item.menuSlug || item.menuName.toLowerCase()}`}
                           sx={{
                             color: itemIsActive ? 'primary.main' : navbarTextColor,
                             textTransform: 'none',
@@ -577,7 +560,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                             },
                           }}
                         >
-                          {menuDisplayNames[item.menuName] || item.menuName}
+                          {item.menuName}
                         </Button>
                       )}
                     </React.Fragment>
@@ -701,6 +684,12 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                       </ListItemIcon>
                       <ListItemText primary="Profile" />
                     </MenuItem>
+                    <MenuItem onClick={handleContactClick}>
+                      <ListItemIcon>
+                        <ContactIcon fontSize="small" color="primary" />
+                      </ListItemIcon>
+                      <ListItemText primary="Contact" />
+                    </MenuItem>
                     <MenuItem onClick={handleLogout}>
                       <ListItemIcon>
                         <LogoutIcon fontSize="small" color="primary" />
@@ -758,14 +747,14 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
             {(menuData?.items || []).map((item, index) => {
               const hasSubItems = item.multiItems && item.multiItems.length > 0;
               const isExpanded = expandedMobileMenus.includes(index);
-              const itemIsActive = isActive(`/${item.menuName.toLowerCase()}`);
+              const itemIsActive = isActive(`/${item.menuSlug || item.menuName.toLowerCase()}`);
 
               return (
                 <React.Fragment key={index}>
                   <ListItem
                     onClick={hasSubItems ? () => toggleMobileSubmenu(index) : undefined}
                     component={hasSubItems ? "div" : "a"}
-                    href={hasSubItems ? undefined : `/${item.menuName.toLowerCase()}`}
+                    href={hasSubItems ? undefined : `/${item.menuSlug || item.menuName.toLowerCase()}`}
                     sx={{
                       cursor: 'pointer',
                       backgroundColor: itemIsActive ? 'primary.light' : 'transparent',
@@ -779,7 +768,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                     }}
                   >
                     <ListItemText
-                      primary={menuDisplayNames[item.menuName] || item.menuName}
+                      primary={item.menuName}
                       sx={{
                         fontWeight: itemIsActive ? 700 : 400
                       }}
@@ -796,7 +785,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                           <ListItem
                             key={subIndex}
                             component="a"
-                            href={`/${subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
+                            href={`/${subItem.menuSlug || subItem.menuName.toLowerCase().replace(/\s+/g, '-')}`}
                             sx={{
                               pl: 4,
                               cursor: 'pointer',
@@ -808,7 +797,7 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                               mb: 0.5
                             }}
                           >
-                            <ListItemText primary={menuDisplayNames[subItem.menuName] || subItem.menuName} />
+                            <ListItemText primary={subItem.menuName} />
                           </ListItem>
                         ))}
                       </List>
@@ -835,6 +824,20 @@ const Navbar: React.FC<NavbarProps> = ({ menuData, themes }) => {
                       <PersonIcon color="primary" />
                     </ListItemIcon>
                     <ListItemText primary="Profile" />
+                  </ListItem>
+                  <ListItem onClick={() => { setMobileOpen(false); handleContactClick(); }} sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    },
+                    borderRadius: 1,
+                    mb: 0.5
+                  }}>
+                    <ListItemIcon>
+                      <ContactIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText primary="Contact" />
                   </ListItem>
                   <ListItem component="a" href="/cart" sx={{
                     cursor: 'pointer',

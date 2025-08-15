@@ -73,7 +73,7 @@ interface RegistrationField {
   name: string;
   displayName: string;
   type: string;
-  valueType: string;
+  valueType: "userInput" | "dynamic" | "fixed" | "attendanceInput";
   options?: Option[];
   formula?: FormulaItem[];
   truthValue?: number;
@@ -165,8 +165,8 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   
-  // Check if this is a donation event
-  const isDonationEvent = eventData.metadata?.name === "donation";
+  // Check if this is a donation or fundraiser event
+  const isDonationEvent = eventData.eventType === "donation" || eventData.eventType === "fundraiser";
 
   // Determine if this is a free event
   const isFreeEvent = eventData.paymentType === "Free";
@@ -491,14 +491,20 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       // Validate required registration fields
       const registrationFields = eventData.registrationFields || [];
       const requiredFields = registrationFields.filter(
-        field => field.valueType === "userInput" && 
-        (field.type === "radioButtonGroup" || field.type === "option")
+        field => (field.valueType === "userInput" || field.valueType === "attendanceInput") &&
+        (field.type === "radioButtonGroup" || field.type === "option" || field.type === "number" || field.type === "text")
       );
-      
+
       requiredFields.forEach(field => {
         if (!fieldValues[field.name]) {
           newErrors[field.name] = `${field.displayName} is required`;
           isValid = false;
+        } else if (field.valueType === "attendanceInput") {
+          const value = Number(fieldValues[field.name]);
+          if (isNaN(value) || value < 1) {
+            newErrors[field.name] = "Please enter a valid number of participants (minimum 1)";
+            isValid = false;
+          }
         }
       });
     }
@@ -519,18 +525,40 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       // Determine which registration API to use based on authentication
       const useAuthenticatedAPI = isUserAuthenticated && eventData.allowLogin;
 
-      // Prepare the registration data
+      // Calculate total seats from attendanceInput fields
+      let totalSeats = 0;
+      if (eventData.customAttendance && eventData.registrationFields) {
+        const attendanceFields = eventData.registrationFields.filter(
+          field => field.valueType === "attendanceInput"
+        );
+
+        attendanceFields.forEach(field => {
+          const value = fieldValues[field.name];
+          if (value && !isNaN(Number(value))) {
+            totalSeats += Number(value);
+          }
+        });
+      }
+
+      // Prepare the registration data according to new schema
       let registrationData: any = {
         eventId: id || (eventData as any)._id,
         eventData: Object.entries(fieldValues).map(([fieldName, fieldValue]) => ({
           fieldName,
-          fieldValue: typeof fieldValue === 'object' ? JSON.stringify(fieldValue) : String(fieldValue)
+          fieldValue: typeof fieldValue === 'object' ? fieldValue : fieldValue
         })),
         price: String(calculatedValues.totalPrice || 0),
         currency: "USD",
         status: isFreeEvent ? "completed" : "pending",
         paymentStatus: isFreeEvent ? "free" : "unpaid"
       };
+
+      // Add attendance-related fields only if customAttendance is true
+      if (eventData.customAttendance) {
+        registrationData.totalAttendance = 0;
+        registrationData.totalSeats = totalSeats;
+        registrationData.attendanceStatus = "registered";
+      }
 
       // Add user-specific fields based on authentication status
       if (useAuthenticatedAPI) {
@@ -540,8 +568,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
       } else {
         // For guest users, use the /events/register/guest endpoint
         registrationData.email = fieldValues.email;
-        registrationData.name = fieldValues.fullName;
-        registrationData.phone = fieldValues.phone;
+        // Remove name and phone from top level as they should be in eventData
       }
 
       // Debug logging
@@ -717,7 +744,7 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             value={fieldValues[field.name] || ""}
             onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
             margin="normal"
-            required={field.valueType === "userInput"}
+            required={field.valueType === "userInput" || field.valueType === "attendanceInput"}
             disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
             error={!!errors[field.name]}
             helperText={errors[field.name]}
@@ -735,17 +762,21 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             value={dynamicValue !== undefined ? dynamicValue : fieldValues[field.name] || ""}
             onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
             margin="normal"
-            required={field.valueType === "userInput"}
+            required={field.valueType === "userInput" || field.valueType === "attendanceInput"}
             disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
             error={!!errors[field.name]}
-            helperText={errors[field.name]}
+            helperText={errors[field.name] || (field.valueType === "attendanceInput" ? "Number of participants" : "")}
             variant="outlined"
             InputProps={{
               sx: { borderRadius: 2 },
-              startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") || 
-                field.name === "subtotal" || field.name === "discount_amount" ? 
+              startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") ||
+                field.name === "subtotal" || field.name === "discount_amount" ?
                 <InputAdornment position="start">$</InputAdornment> : undefined,
               readOnly: field.valueType === "dynamic",
+            }}
+            inputProps={{
+              min: field.valueType === "attendanceInput" ? 1 : undefined,
+              step: field.valueType === "attendanceInput" ? 1 : undefined
             }}
           />
         );

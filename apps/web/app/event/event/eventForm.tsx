@@ -57,6 +57,8 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     allowGuest: false,
     allowLogin: true,
     allowMemberLogin: false,
+    customAttendance: false,
+    eventType: "regular",
     seatsAvailable: 0,
     totalregisteredSeats: 0,
     registrationFields: [],
@@ -96,8 +98,8 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
     operationName: ""
   })
 
-  // Check if this is a donation event
-  const isDonationEvent = formData.metadata?.name === "donation"
+  // Check if this is a donation or fundraiser event based on eventType
+  const isDonationEvent = formData.eventType === "donation" || formData.eventType === "fundraiser"
 
   // Calculate dynamic fields when field values change
   useEffect(() => {
@@ -544,7 +546,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
             value={fieldValues[field.name] || ""}
             onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
             margin="normal"
-            required={field.valueType === "userInput"}
+            required={field.valueType === "userInput" || field.valueType === "attendanceInput"}
             disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
             variant="outlined"
             size="small"
@@ -560,16 +562,18 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
             value={dynamicValue !== undefined ? dynamicValue : fieldValues[field.name] || ""}
             onChange={(e) => handleFieldValueChange(field.name, e.target.value)}
             margin="normal"
-            required={field.valueType === "userInput"}
+            required={field.valueType === "userInput" || field.valueType === "attendanceInput"}
             disabled={field.valueType === "fixed" || field.valueType === "dynamic"}
             variant="outlined"
             size="small"
             slotProps={{
               htmlInput: {
-                startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") || 
-                  field.name === "subtotal" || field.name === "discount_amount" ? 
+                startAdornment: field.name === "totalPrice" || field.name.toLowerCase().includes("price") ||
+                  field.name === "subtotal" || field.name === "discount_amount" ?
                   <InputAdornment position="start">$</InputAdornment> : undefined,
                 readOnly: field.valueType === "dynamic",
+                min: field.valueType === "attendanceInput" ? 1 : undefined,
+                step: field.valueType === "attendanceInput" ? 1 : undefined
               }
             }}
           />
@@ -870,6 +874,18 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
           label="Allow Member Login"
         />
       </Grid>
+      <Grid item xs={12} sm={4}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={formData.customAttendance || false}
+              onChange={handleSwitchChange}
+              name="customAttendance"
+            />
+          }
+          label="Custom Attendance Tracking"
+        />
+      </Grid>
     </Grid>
   )
 
@@ -930,6 +946,21 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
             }
           }}
         />
+      </Grid>
+      <Grid item xs={12}>
+        <FormControl fullWidth>
+          <InputLabel>Event Type</InputLabel>
+          <Select
+            name="eventType"
+            value={formData.eventType || "regular"}
+            onChange={handleSelectChange}
+            label="Event Type"
+          >
+            <MenuItem value="regular">Regular Event</MenuItem>
+            <MenuItem value="donation">Donation Event</MenuItem>
+            <MenuItem value="fundraiser">Fundraiser Event</MenuItem>
+          </Select>
+        </FormControl>
       </Grid>
       <Grid item xs={12}>
         <FormControl fullWidth>
@@ -1045,6 +1076,7 @@ export default function EventForm({ onEventCreated }: EventFormProps) {
                   label="Value Type"
                 >
                   <MenuItem value="userInput">User Input</MenuItem>
+                  <MenuItem value="attendanceInput">Attendance Input</MenuItem>
                   <MenuItem value="fixed">Fixed</MenuItem>
                   <MenuItem value="dynamic">Dynamic</MenuItem>
                 </Select>

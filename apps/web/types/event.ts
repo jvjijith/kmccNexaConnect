@@ -2,6 +2,7 @@ export interface Event {
     name: string
     description: string
     type: "public" | "members"
+    eventType?: "donation" | "fundraiser" | "regular"
     metadata?: Metadata
     location: string
     GeoAllow?: GeoAllow
@@ -19,6 +20,7 @@ export interface Event {
     registrationStartDate: string
     registrationEndDate: string
     showDonorNames?: boolean
+    customAttendance?: boolean
   }
 
   export interface Metadata {
@@ -58,7 +60,7 @@ export interface Event {
     displayName: string
     type: "text" | "boolean" | "number" | "option" | "checkBoxGroup" | "radioButtonGroup"
     options?: Option[]
-    valueType: "dynamic" | "fixed" | "userInput"
+    valueType: "dynamic" | "fixed" | "userInput" | "attendanceInput"
     fixedValue?: any
     userValue?: any
     truthValue?: any
@@ -83,5 +85,3 @@ export interface Event {
     amount?: number
     dependantField?: string
   }
-  
-  

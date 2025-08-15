@@ -19,7 +19,7 @@ import {
   DialogActions,
   Alert
 } from "@mui/material"
-import { Visibility, VisibilityOff, Close } from "@mui/icons-material"
+import { Visibility, VisibilityOff } from "@mui/icons-material"
 import { useRouter } from 'next/navigation'
 
 interface LoginPageUIProps {
