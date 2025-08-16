@@ -588,18 +588,22 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
 
       // Additional validation for guest registration
       if (!useAuthenticatedAPI) {
-        if (!registrationData.name) {
+        if (!fieldValues.fullName) {
           throw new Error("Full name is required");
         }
-        if (!registrationData.phone) {
+        if (!fieldValues.phone) {
           throw new Error("Phone number is required");
         }
 
         // Validate phone format for guest users
         const phoneRegex = /^\+?[0-9\s\-()]{10,15}$/;
-        if (!phoneRegex.test(registrationData.phone)) {
+        if (!phoneRegex.test(fieldValues.phone)) {
           throw new Error("Please enter a valid phone number");
         }
+
+        // Add name and phone to registrationData for backward compatibility
+        registrationData.name = fieldValues.fullName;
+        registrationData.phone = fieldValues.phone;
       }
 
       // Validate email format
@@ -947,9 +951,9 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
   const renderAttendeeInformation = (): JSX.Element => {
     // Use the personal info fields we defined
     const registrationFields = (eventData.registrationFields || []).filter(
-      field => field.valueType === "userInput"
+      field => field.valueType === "userInput" || field.valueType === "attendanceInput"
     );
-    
+
     return (
       <StyledPaper>
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -958,25 +962,25 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             {isDonationEvent ? "Donor Information" : "Participant Information"}
           </Typography>
         </Box>
-        
+
         <Typography variant="subtitle1" gutterBottom>
           {isDonationEvent ? "Your Information" : "Personal Information"}
         </Typography>
-        
+
         {personalInfoFields.map((field) => (
           <Box key={field.name}>
             {renderField(field)}
           </Box>
         ))}
-        
+
         {registrationFields.length > 0 && (
           <>
             <Divider sx={{ my: 3 }} />
-            
+
             <Typography variant="subtitle1" gutterBottom>
               {isDonationEvent ? "Donation Options" : "Registration Options"}
             </Typography>
-            
+
             {registrationFields.map((field: any) => (
               <Box key={field.name}>
                 {renderField(field)}
@@ -984,16 +988,16 @@ export default function EventRegistrationForm({ eventData, id }: EventRegistrati
             ))}
           </>
         )}
-        
+
         {/* Show price summary for paid events */}
         {!isFreeEvent && (eventData.registrationFields || []).some(field => field.valueType === "dynamic") && (
           <>
             <Divider sx={{ my: 3 }} />
-            
+
             <Typography variant="subtitle1" gutterBottom>
               {isDonationEvent ? "Donation Summary" : "Price Summary"}
             </Typography>
-            
+
             <PriceSummary>
               <Grid container spacing={1}>
                 {(eventData.registrationFields || [])
