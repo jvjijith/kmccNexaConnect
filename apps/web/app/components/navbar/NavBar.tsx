@@ -21,39 +21,24 @@ import {
   Collapse,
   Badge,
   Tooltip,
-  ListItemIcon,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Typography,
-  Avatar,
-  Grid,
-  Card,
-  CardContent,
-  Chip,
-  Divider
+  ListItemIcon
 } from '@mui/material';
-import { 
+import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   Menu as MenuIcon,
   Close as CloseIcon,
-  ExpandMore as ExpandMoreIcon, 
+  ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   ShoppingCart as ShoppingCartIcon,
   Person as PersonIcon,
   AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon,
   Favorite as DonationIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  CalendarToday as CalendarIcon,
   ContactSupport as ContactIcon
 } from '@mui/icons-material';
 import { createDynamicTheme } from '@repo/ui/theme';
 import { logoutUser } from '../../../src/lib/auth';
-import { getMembershipByCustomerId, getPage } from '../../../src/data/loader';
+import { getMembershipByCustomerId } from '../../../src/data/loader';
 
 interface MultiItemType {
   menuName: string;

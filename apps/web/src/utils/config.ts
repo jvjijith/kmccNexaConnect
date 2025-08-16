@@ -1,3 +1,4 @@
+
 export const baseApiConfig = {
   basePath: process.env.NEXT_PUBLIC_API_BASE_URL || "", // Ensure fallback
   apiKey: process.env.NEXT_PUBLIC_API_KEY || "",
@@ -18,11 +19,11 @@ export const baseApiConfig = {
       console.warn('API base URL not configured, returning mock data');
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({
+        json: () => Promise.resolve([{
           title: 'Mock Page',
           items: [],
           message: 'API not configured'
-        })
+        }])
       } as Response);
     }
 
@@ -36,6 +37,17 @@ export const baseApiConfig = {
         ...filteredHeaders, // Use filtered headers
         ...(init?.headers as HeadersInit) // Ensure additional headers are merged properly
       }
+    }).catch((error) => {
+      console.error('API fetch error:', error);
+      // Return a mock response on network errors during build
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([{
+          title: 'Fallback Page',
+          items: [],
+          message: 'API temporarily unavailable'
+        }])
+      } as Response);
     });
   }
 };

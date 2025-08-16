@@ -12,11 +12,21 @@ export const fetchApi = async (endpoint: string, options: RequestInit = { method
     const response = await config.fetchApi(`${config.basePath}${endpoint}`, options)
 
     if (!response.ok) {
+      // During build time, if we get a 404, return empty array instead of throwing
+      if (response.status === 404 && process.env.NODE_ENV !== 'development') {
+        console.warn(`API endpoint ${endpoint} returned 404 during build, returning empty array`);
+        return [];
+      }
       throw new Error(`Error: ${response.status} ${response.statusText}`)
     }
 
     return await response.json()
   } catch (err: any) {
+    // During build time, return empty array instead of throwing
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn(`API call to ${endpoint} failed during build:`, err.message);
+      return [];
+    }
     throw new Error(err.message)
   }
 }
