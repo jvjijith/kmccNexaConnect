@@ -20,19 +20,20 @@ jobs:
         with:
           node-version: 20
 
+      # Restore .env file
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > apps/web/.env
+
       # Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Build turbo repo (only if you need internal packages)
+      # Build turbo repo
       - name: Build turborepo
         run: npx turbo run build --filter=web...
 
-      # Move to Next.js app folder
-      - name: Move to app directory
-        run: cd apps/web
-
-      # Deploy using Oryx
+      # Deploy to Azure (package is apps/web)
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
