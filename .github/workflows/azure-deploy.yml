@@ -1,43 +1,142 @@
-name: Deploy Next.js to Azure App Service
+name: Build & Package Next (turbo mono) for Azure
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  # Adjust these to your repo structure
+  PROJECT_NAME: web            # the package/workspace name or folder name of your Next app
+  APP_FOLDER: apps/web         # path to your Next.js app relative to repo root
+  TEMP_DIR: artifact-tmp       # temporary folder we create & package
+  ZIP_NAME: ${{ github.workflow }}-${{ env.PROJECT_NAME }}.zip
 
 jobs:
-  build-and-deploy:
+  build-and-package:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout repo
-      - name: Checkout code
+      # 1) Checkout code (and submodules if needed)
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
 
-      # Setup Node
-      - name: Setup Node
+      # 2) Setup Node
+      - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      # Restore .env file
-      - name: Create .env file
+      # 3) Install pnpm (same installer you used)
+      - name: Install pnpm
+        run: curl -L https://unpkg.com/@pnpm/self-installer | node
+
+      # 4) Restore .env (optional) — writes secret ENV_FILE into apps/web/.env
+      # If you use separate secrets for each env variable, replace this with explicit echo lines.
+      - name: Restore .env file (optional)
+        if: secrets.ENV_FILE != ''
         run: |
-          echo "${{ secrets.ENV_FILE }}" > apps/web/.env
+          mkdir -p ${{ env.APP_FOLDER }}
+          echo "${{ secrets.ENV_FILE }}" > ${{ env.APP_FOLDER }}/.env
 
-      # Install dependencies
-      - name: Install dependencies
-        run: npm install
+      # 5) Export a few envs for the build step if you want them during build
+      #    Alternative: rely on .env in the app folder or secrets injected at runtime.
+      - name: Set build-time envs
+        run: |
+          echo "NEXT_PUBLIC_API_USERNAME=${{ secrets.NEXT_PUBLIC_API_USERNAME }}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_API_PASSWORD=${{ secrets.NEXT_PUBLIC_API_PASSWORD }}" >> $GITHUB_ENV
+          # Add other non-sensitive build-time envs here (or use .env file)
+        # If you use ENV_FILE step above, you usually do not need to export these separately.
 
-      # Build turbo repo
-      - name: Build turborepo
-        run: npx turbo run build --filter=web...
+      # 6) Install repo dependencies (pnpm)
+      - name: Install dependencies (pnpm)
+        run: pnpm install --frozen-lockfile
 
-      # Deploy to Azure (package is apps/web)
-      - name: Deploy to Azure Web App
+      # 7) Run prisma generate (if required) and build only the app in the mono repo
+      - name: Prisma generate & Build (turbo filter)
+        run: |
+          pnpm run prisma:generate:all --filter api-${{ env.PROJECT_NAME }} || true
+          pnpm run build --filter=${{ env.PROJECT_NAME }}
+        env:
+          # build-time envs: map any required secrets to the step env
+          NEXT_PUBLIC_API_USERNAME: ${{ secrets.NEXT_PUBLIC_API_USERNAME }}
+          NEXT_PUBLIC_API_PASSWORD: ${{ secrets.NEXT_PUBLIC_API_PASSWORD }}
+          NEXT_PUBLIC_JWT_TOKEN: ${{ secrets.NEXT_PUBLIC_JWT_TOKEN }}
+
+      # 8) Create temp folder and prepare runtime package (single step so cd persists)
+      - name: Prepare deployable folder (copy .next + package.json)
+        run: |
+          set -e
+          echo "Creating temp folder: ${{ env.TEMP_DIR }}"
+          rm -rf ${{ env.TEMP_DIR }}
+          mkdir -p ${{ env.TEMP_DIR }}
+
+          # Copy the built next output
+          if [ -d "${{ env.APP_FOLDER }}/.next" ]; then
+            cp -R "${{ env.APP_FOLDER }}/.next" "${{ env.TEMP_DIR }}/"
+          else
+            echo "ERROR: .next folder not found at ${{ env.APP_FOLDER }}/.next"
+            ls -la "${{ env.APP_FOLDER }}"
+            exit 1
+          fi
+
+          # Copy public if exists
+          if [ -d "${{ env.APP_FOLDER }}/public" ]; then
+            cp -R "${{ env.APP_FOLDER }}/public" "${{ env.TEMP_DIR }}/"
+          fi
+
+          # Copy next.config.js or next.config.mjs if needed (copy both possibilities)
+          if [ -f "${{ env.APP_FOLDER }}/next.config.js" ]; then
+            cp "${{ env.APP_FOLDER }}/next.config.js" "${{ env.TEMP_DIR }}/"
+          fi
+          if [ -f "${{ env.APP_FOLDER }}/next.config.mjs" ]; then
+            cp "${{ env.APP_FOLDER }}/next.config.mjs" "${{ env.TEMP_DIR }}/"
+          fi
+
+          # Create a minimal package.json in the temp folder (Next runtime only).
+          # Adjust "next" version if you need a specific 14.x or 15.x.
+          cat > "${{ env.TEMP_DIR }}/package.json" <<'EOF'
+          {
+            "name": "deployable-next-app",
+            "private": true,
+            "scripts": {
+              "start": "next start -p 8080"
+            },
+            "dependencies": {
+              "next": "14.x"
+            }
+          }
+          EOF
+
+          # If your app uses extra runtime deps, append them to the package.json or install later.
+
+          # Move into temp folder and install runtime-only deps with npm
+          cd "${{ env.TEMP_DIR }}"
+          npm install --production --no-audit --no-fund
+
+      # 9) Archive the temp folder as a zip artifact
+      - name: Zip artifact
+        run: |
+          cd ${{ env.TEMP_DIR }}
+          zip -r "../${{ env.ZIP_NAME }}" ./*
+          echo "Artifact created: $(pwd)/../${{ env.ZIP_NAME }}"
+
+      # 10) Upload artifact for release or manual download (optional)
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-artifact
+          path: ${{ env.ZIP_NAME }}
+
+      # 11) (Optional) Deploy to Azure Web App using the zip we created
+      - name: Deploy to Azure Web App (optional)
+        if: secrets.AZURE_PUBLISH_PROFILE != ''
         uses: azure/webapps-deploy@v2
         with:
-          app-name: KMCC
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: apps/web
+          app-name: KMCC   # <-- replace with exact azure app service name
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: ${{ env.ZIP_NAME }}
 
