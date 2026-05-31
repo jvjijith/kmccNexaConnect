@@ -117,20 +117,20 @@ const Footer = () => {
               Contact Us
             </Typography>
             <Box>
-              <ContactItem>
+              {/* <ContactItem>
                 <ContactIcon>
                   <LocationOnIcon fontSize="small" />
                 </ContactIcon>
                 <Typography variant="body2">
                   123 Main Street, Melbourne, VIC 3000, Australia
                 </Typography>
-              </ContactItem>
+              </ContactItem> */}
               <ContactItem>
                 <ContactIcon>
                   <PhoneIcon fontSize="small" />
                 </ContactIcon>
                 <Typography variant="body2">
-                  +61 3 1234 5678
+                  +61 426748871
                 </Typography>
               </ContactItem>
               <ContactItem>
@@ -148,7 +148,7 @@ const Footer = () => {
         {/* Copyright section */}
         <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #EAECF0', textAlign: 'center' }}>
           <Typography variant="body2" sx={{ color: '#667085' }}>
-            © 2025 KMCC Australia. All rights reserved.
+             © {new Date().getFullYear()} KMCC Australia. All rights reserved.
           </Typography>
         </Box>
       </Container>

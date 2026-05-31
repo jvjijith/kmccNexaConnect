@@ -63,7 +63,7 @@ const ContactUs: React.FC = () => {
       <Grid container spacing={4}>
         <Grid item xs={12} md={4}>
           <Grid container direction="column" spacing={4}>
-            <Grid item>
+            {/* <Grid item>
               <Card elevation={2} sx={{ height: '100%', p: 1 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box display="flex" alignItems="center" mb={3}>
@@ -77,7 +77,7 @@ const ContactUs: React.FC = () => {
                   <Typography variant="body1" sx={{ fontSize: "1.1rem" }}>Australia</Typography>
                 </CardContent>
               </Card>
-            </Grid>
+            </Grid> */}
             
             <Grid item>
               <Card elevation={2} sx={{ p: 1 }}>
